@@ -6,18 +6,17 @@ namespace CrymexEngine.Scripts
 {
     public class MyBehaviourScript : Behaviour
     {
-        Entity circle;
         Entity icon;
-        Entity warning;
+        Entity logo;
+
+        AudioMixer mixer = new AudioMixer(0.25f, 1);
 
         public override void Load()
         {
-            circle = new Entity(Assets.GetTexture("Circle"), Vector2.Zero, new Vector2(256));
-            icon = new Entity(Assets.GetTexture("WindowIcon"), Vector2.Zero, new Vector2(256));
-            warning = new Entity(Assets.GetTexture("Warning"), Vector2.Zero, new Vector2(100));
+            icon = new Entity(Assets.GetTexture("WindowIcon"), Vector2.Zero, new Vector2(100), "Car");
 
-            warning.localPosition = new Vector2(0, 100);
-            icon.Bind(warning);
+            logo = new Entity(Assets.GetTexture("Logo"), new Vector2(0, 0), new Vector2(100), "Logo");
+            //logo.Parent = icon;
         }
 
         public override void TickLoop()
@@ -26,7 +25,8 @@ namespace CrymexEngine.Scripts
 
         public override void Update()
         {
-            icon.rotation = -Program.gameTime % 360;
+            icon.renderer.depth = MathF.Sin(Window.gameTime * 30);
+            //icon.renderer.color = new Color4(1f, 0f, 0f, (Sin(Application.gameTime * 30) + 1) * 0.5f);
         }
     }
 }

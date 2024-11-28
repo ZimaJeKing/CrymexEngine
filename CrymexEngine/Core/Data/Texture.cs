@@ -9,7 +9,7 @@ namespace CrymexEngine
         public byte[] data;
         public int width;
         public int height;
-        public int gl_Texture;
+        public int glTexture;
 
         public static Texture None;
         public static Texture Missing;
@@ -25,8 +25,8 @@ namespace CrymexEngine
 
             data = new byte[width * height * 4];
 
-            gl_Texture = GL.GenTexture();
-            GL.BindTexture(TextureTarget.Texture2D, gl_Texture);
+            glTexture = GL.GenTexture();
+            GL.BindTexture(TextureTarget.Texture2D, glTexture);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
         }
@@ -39,8 +39,8 @@ namespace CrymexEngine
             this.height = height;
             this.data = data;
 
-            gl_Texture = GL.GenTexture();
-            GL.BindTexture(TextureTarget.Texture2D, gl_Texture);
+            glTexture = GL.GenTexture();
+            GL.BindTexture(TextureTarget.Texture2D, glTexture);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
             Apply();
@@ -55,7 +55,7 @@ namespace CrymexEngine
             }
             catch
             {
-                Debug.LogL($"Texture at \"{path}\" not found", ConsoleColor.DarkRed);
+                Debug.Log($"Texture at \"{path}\" not found", ConsoleColor.DarkRed);
                 return Missing;
             }
 
@@ -177,7 +177,7 @@ namespace CrymexEngine
 
         public void Apply()
         {
-            GL.BindTexture(TextureTarget.Texture2D, gl_Texture);
+            GL.BindTexture(TextureTarget.Texture2D, glTexture);
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, data);
         }
 
@@ -188,7 +188,7 @@ namespace CrymexEngine
 
         public void Dispose()
         {
-            GL.DeleteBuffer(gl_Texture);
+            GL.DeleteBuffer(glTexture);
         }
     }
 }

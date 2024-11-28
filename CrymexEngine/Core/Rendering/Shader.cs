@@ -7,7 +7,6 @@ namespace CrymexEngine.Rendering
     public class Shader
     {
         public static Shader regular;
-        public static Shader postProcessing;
 
         public readonly int _glShader;
         public ShaderParam[] parameters;
@@ -15,18 +14,19 @@ namespace CrymexEngine.Rendering
         public static void LoadDefaultShaders()
         {
             regular = new Shader(
-                Debug.assetsPath + "Shaders\\RegularVertex.glsl",
-                Debug.assetsPath + "Shaders\\RegularFragment.glsl",
-                null
+                Debug.assetsPath + "Shaders\\Regular.vertex",
+                Debug.assetsPath + "Shaders\\Regular.fragment"
                 );
         }
 
-        public Shader(string vertexShaderPath, string fragmentShaderPath, ShaderParam[]? parameters)
+        public Shader(string vertexShaderPath, string fragmentShaderPath, ShaderParam[]? parameters = null)
         {
             if (parameters == null) parameters = new ShaderParam[0];
+
+            // Read shaders from disk
             if (!File.Exists(vertexShaderPath) || !File.Exists(fragmentShaderPath))
             {
-                Debug.LogL("One or more shaders not found\n" + vertexShaderPath + '\n' + fragmentShaderPath, ConsoleColor.DarkRed);
+                Debug.Log("[Shader] One or more shaders not found\n" + vertexShaderPath + '\n' + fragmentShaderPath, ConsoleColor.DarkRed);
                 return;
             }
 
@@ -51,7 +51,7 @@ namespace CrymexEngine.Rendering
             if (success == 0)
             {
                 string infoLog = GL.GetProgramInfoLog(_glShader);
-                throw new Exception($"Error linking program: {infoLog}");
+                Debug.Log($"[Shader] Error linking program: {infoLog}", ConsoleColor.DarkRed);
             }
 
             // Clean up shaders
@@ -80,7 +80,7 @@ namespace CrymexEngine.Rendering
             if (success == 0)
             {
                 string infoLog = GL.GetShaderInfoLog(shaderId);
-                throw new Exception($"Error compiling {type} shader: {infoLog}");
+                Debug.LogError(infoLog);
             }
 
             return shaderId;
@@ -99,7 +99,10 @@ namespace CrymexEngine.Rendering
         }
         public void SetParam(int param, object value)
         {
-            if (param < 0 || param >= parameters.Length) return;
+            if (param < 0 || param >= parameters.Length)
+            {
+                Debug.Log($"[Shader] Wrong parameter location \"{param}\"");
+            }
 
             parameters[param].Set(value);
         }
@@ -131,7 +134,7 @@ namespace CrymexEngine.Rendering
         private Shader reference;
 
         public static ShaderParam[] defaultParams = {
-                    new Vec2ShaderParam("position"),
+                    new Vec3ShaderParam("position"),
                     new Mat4ShaderParam("transform"),
                     new Vec4ShaderParam("color")
                 };

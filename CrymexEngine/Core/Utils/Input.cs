@@ -21,7 +21,7 @@ namespace CrymexEngine
         {
             get
             {
-                return Program.window.MousePosition;
+                return Window.glWindow.MousePosition;
             }
         }
 
@@ -29,34 +29,34 @@ namespace CrymexEngine
         {
             get
             {
-                return Program.window.MouseState.ScrollDelta;
+                return Window.glWindow.MouseState.ScrollDelta;
             }
         }
 
         public static bool Key(Key key)
         {
-            return Program.window.IsKeyDown((Keys)key);
+            return Window.glWindow.IsKeyDown((Keys)key);
         }
         public static bool KeyDown(Key key)
         {
-            return Program.window.IsKeyPressed((Keys)key);
+            return Window.glWindow.IsKeyPressed((Keys)key);
         }
         public static bool KeyUp(Key key)
         {
-            return Program.window.IsKeyReleased((Keys)key);
+            return Window.glWindow.IsKeyReleased((Keys)key);
         }
 
         public static bool Mouse(Mouse button)
         {
-            return Program.window.MouseState.IsButtonDown((MouseButton)button);
+            return Window.glWindow.MouseState.IsButtonDown((MouseButton)button);
         }
         public static bool MouseDown(Mouse button)
         {
-            return Program.window.MouseState.IsButtonPressed((MouseButton)button);
+            return Window.glWindow.MouseState.IsButtonPressed((MouseButton)button);
         }
         public static bool MouseUp(Mouse button)
         {
-            return Program.window.MouseState.IsButtonReleased((MouseButton)button);
+            return Window.glWindow.MouseState.IsButtonReleased((MouseButton)button);
         }
     }
 

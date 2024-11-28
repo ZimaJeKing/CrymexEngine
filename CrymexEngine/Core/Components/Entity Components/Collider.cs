@@ -2,21 +2,21 @@
 
 namespace CrymexEngine
 {
-    public class Collider : Component
+    public class Collider : EntityComponent
     {
         public override void Load()
         {
-            Scene.colliders.Add(this);
+            Scene.Current.colliders.Add(this);
         }
 
         public virtual float GetClosestPoint(Collider c)
         {
-            if (c.GetType() == typeof(SphereCollider)) return Vector2.Distance(entity.position, c.entity.position) - ((SphereCollider)c).radius;
-            return Vector2.Distance(entity.position, c.entity.position);
+            if (c.GetType() == typeof(SphereCollider)) return Vector2.Distance(Entity.position, c.Entity.position) - ((SphereCollider)c).radius;
+            return Vector2.Distance(Entity.position, c.Entity.position);
         }
         public virtual float GetClosestPoint(Vector2 point)
         {
-            return Vector2.Distance(point, entity.position);
+            return Vector2.Distance(point, Entity.position);
         }
     }
 
@@ -27,12 +27,12 @@ namespace CrymexEngine
 
         public override float GetClosestPoint(Collider c)
         {
-            if (c.GetType() == typeof(SphereCollider)) return Vector2.Distance(entity.position + offset, c.entity.position) - ((SphereCollider)c).radius - radius;
-            return Vector2.Distance(entity.position + offset, c.entity.position) - radius;
+            if (c.GetType() == typeof(SphereCollider)) return Vector2.Distance(Entity.position + offset, c.Entity.position) - ((SphereCollider)c).radius - radius;
+            return Vector2.Distance(Entity.position + offset, c.Entity.position) - radius;
         }
         public override float GetClosestPoint(Vector2 point)
         {
-            return Vector2.Distance(point, entity.position + offset) - radius;
+            return Vector2.Distance(point, Entity.position + offset) - radius;
         }
     }
 
@@ -47,7 +47,7 @@ namespace CrymexEngine
             {
                 BoxCollider bc = (BoxCollider)c;
 
-                float dist = MathF.Sqrt(MathF.Pow(c.entity.position.X - entity.position.X, 2) + MathF.Pow(c.entity.position.Y - entity.position.Y, 2));
+                float dist = MathF.Sqrt(MathF.Pow(c.Entity.position.X - Entity.position.X, 2) + MathF.Pow(c.Entity.position.Y - Entity.position.Y, 2));
 
                 float distX = dist - (size.X * 0.5f) - (bc.size.X * 0.5f);
                 float distY = dist - (size.Y * 0.5f) - (bc.size.Y * 0.5f);
@@ -58,8 +58,8 @@ namespace CrymexEngine
         }
         public override float GetClosestPoint(Vector2 point)
         {
-            float distX = MathF.Max(0, MathF.Abs(point.X - entity.position.X) - (size.X / 2));
-            float distY = MathF.Max(0, MathF.Abs(point.Y - entity.position.Y) - (size.Y / 2));
+            float distX = MathF.Max(0, MathF.Abs(point.X - Entity.position.X) - (size.X / 2));
+            float distY = MathF.Max(0, MathF.Abs(point.Y - Entity.position.Y) - (size.Y / 2));
 
             return MathF.Sqrt(MathF.Pow(distX, 2) + MathF.Pow(distY, 2));
         }

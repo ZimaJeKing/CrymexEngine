@@ -19,7 +19,7 @@
         {
             Behaviour? b = (Behaviour?)Activator.CreateInstance(typeof(T));
             if (b == null) return;
-            Scene.behaviours.Add(b);
+            Scene.Current.behaviours.Add(b);
         }
     }
 }

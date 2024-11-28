@@ -1,0 +1,36 @@
+ // Comments like this
+
+----- Parameter format -----
+
+HEX     | #1A2B3C
+INT     | 1234
+FLOAT   | 1.234f
+COND    | True/On x False/Off
+VECTOR2 | ( 12, 34 )
+VECTOR3 | ( 12, 34, 56 )
+VECTOR4 | ( 12, 34, 56, 78 )
+STRING  | "ABCD"/'ABCD'
+REF     | ABCD
+
+ ----- Possible settings -----
+
+Debugging:
+DebugMode [COND] - Shows or hides console output
+LogToFile [COND] - Whether to log error and debug messages to a log file
+UsageProfiler [COND] - Whether to use the usage profiler
+
+General:
+StartingScene [REF] - A pre-made scene to load on start
+
+Window:
+WindowResizable [COND]
+WindowTitle [STRING]
+WindowIcon [REF] - Name reference to a window icon texture
+WindowSize [VECTOR2]
+ClearColor [HEX] - Window background color
+
+Rendering:
+VSync [COND]
+MaxFPS [INT]
+RenderDistance [FLOAT]
+MSAASamples [INT] - Multi-sample anti-aliasing - possible values: 0, 2, 4, 8

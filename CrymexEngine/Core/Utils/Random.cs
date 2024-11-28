@@ -4,7 +4,7 @@ namespace CrymexEngine
 {
     public static class Random
     {
-        private static System.Random r = new System.Random(DateTime.Now.Millisecond);
+        private static System.Random r = new System.Random((int)DateTime.Now.ToBinary());
 
         /// <summary>
         /// Randomly returns true or false
@@ -13,7 +13,7 @@ namespace CrymexEngine
         {
             get
             {
-                if (r.Next() < int.MaxValue / 2) return false;
+                if (r.NextSingle() < 0.5f) return false;
                 return true;
             }
         }
@@ -41,18 +41,18 @@ namespace CrymexEngine
 
         /// <summary>
         /// value:
-        /// a number between 0 and 1 specifying the chance percentage
+        /// a number between 0 and 1 specifying the chance
         /// </summary>
-        /// <param name="value">A number between 0 and 1 specifying the chance percentage</param>
+        /// <param name="value">A number between 0 and 1 specifying the chance</param>
         public static bool Chance(float value)
         {
             if (Random.value < value) return true;
             return false;
         }
 
-        public static Color4 ColorHSV(float hueMin, float hueMax, float satMin, float satMax, float valMin, float valMax)
+        public static Color4 ColorHSV(float hueMin, float hueMax, float saturationMin, float saturationMax, float valueMin, float valueMax)
         {
-            return Color4.FromHsv(new Vector4(Range(hueMin, hueMax), Range(satMin, satMax), Range(valMin, valMax), 1));
+            return Color4.FromHsv(new Vector4(Range(hueMin, hueMax), Range(saturationMin, saturationMax), Range(valueMin, valueMax), 1));
         }
 
         public static Color4 Color(float rMin, float rMax, float gMin, float gMax, float bMin, float bMax)

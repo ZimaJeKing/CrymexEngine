@@ -5,6 +5,7 @@ namespace CrymexEngine
 {
     public sealed class Entity
     {
+        public string name;
         public Vector2 position
         {
             get
@@ -13,14 +14,14 @@ namespace CrymexEngine
             }
             set
             {
+                if (Parent != null)
+                {
+                    _localPosition = value - Parent.position;
+                }
                 _position = value;
-                RecalcMatrices();
                 for (int i = 0; i < children.Count; i++)
                 {
-                    Entity child = children[i];
-                    float dist = Vector2.Distance(child._position, position);
-                    float angle = MathF.Atan2(_position.Y - child._position.Y, _position.X - child._position.X);
-                    child.position = new Vector2(dist * MathF.Sin(angle), dist * MathF.Cos(angle));
+                    RecalcChildTransform(children[i]);
                 }
             }
         }
@@ -32,66 +33,78 @@ namespace CrymexEngine
             }
             set
             {
+                if (Parent != null)
+                {
+                    _localRotation = value - Parent.rotation;
+                }
                 _rotation = value;
+                rotationMatrix = Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(rotation));
                 for (int i = 0; i < children.Count; i++)
                 {
-                    Entity child = children[i];
-                    float dist = Vector2.Distance(child._position, _position);
-                    float angle = MathF.Atan(_position.Y - child._position.Y / _position.X - child._position.X);
-                    Debug.LogL(angle);
-                    child.position = new Vector2(dist * MathF.Sin(angle + _rotation), dist * MathF.Cos(angle));
-                    child.rotation = child._localRotation;
+                    RecalcChildTransform(children[i]);
                 }
-                RecalcMatrices();
             }
         }
-        public Vector2 scale;
+        public Vector2 scale
+        {
+            get
+            {
+                return _scale;
+            }
+            set
+            {
+                _scale = value;
+
+                scaleMatrix = Matrix4.CreateScale(scale.X / (Window.Size.X * 0.5f), scale.Y / (Window.Size.Y * 0.5f), 1);
+            }
+        }
         public Vector2 localPosition
         {
             get
             {
-                if (parent == null) return _position;
                 return _localPosition;
             }
             set
             {
                 _localPosition = value;
-                if (parent == null)
+                if (Parent == null)
                 {
-                    _position = value;
+                    position = value;
                     return;
                 }
-
-                position = parent._position + value;
-
-                RecalcMatrices();
+                Parent.RecalcChildTransform(this);
             }
         }
-        private float _localRotation;
         public float localRotation
         {
             get
             {
-                if (parent == null) return _rotation;
+                if (Parent == null) return _rotation;
                 return _localRotation;
             }
             set
             {
-                if (parent == null) { _rotation = value; return; }
-                _rotation = parent.rotation + value;
                 _localRotation = value;
-                RecalcMatrices();
+                if (Parent == null) 
+                { 
+                    rotation = value; 
+                    return; 
+                }
+                Parent.RecalcChildTransform(this);
+                rotationMatrix = Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(rotation));
             }
         }
 
         private Vector2 _position;
         private Vector2 _localPosition;
+        private float _localRotation;
         private float _rotation;
+        private Vector2 _scale;
 
         public Matrix4 scaleMatrix { get; private set; }
         public Matrix4 rotationMatrix { get; private set; }
 
-        public Entity? parent
+        public Entity? Parent
         {
             get
             {
@@ -105,10 +118,34 @@ namespace CrymexEngine
         }
         private Entity? _parent;
 
-        public Renderer renderer;
-        public List<Component> components = new List<Component>();
+        public Renderer renderer { get; private set; }
+        public List<EntityComponent> components = new List<EntityComponent>();
 
         private List<Entity> children = new List<Entity>();
+
+        public static Entity? GetEntity(string name)
+        {
+            for (int e = 0; e < Scene.Current.entities.Count; e++)
+            {
+                if (Scene.Current.entities[e].name == name)
+                {
+                    return Scene.Current.entities[e];
+                }
+            }
+            return null;
+        }
+
+        public static Entity? GetEntity(string name, Scene scene)
+        {
+            for (int e = 0; e < scene.entities.Count; e++)
+            {
+                if (scene.entities[e].name == name)
+                {
+                    return scene.entities[e];
+                }
+            }
+            return null;
+        }
 
         public void Update()
         {
@@ -119,13 +156,14 @@ namespace CrymexEngine
         }
 
         /// <summary>
-        /// Binds an entity as a child of this object
+        /// Binds an Entity as a child of this object
         /// </summary>
         public void Bind(Entity entity)
         {
             entity.UnbindSelf();
             children.Add(entity);
             entity._parent = this;
+            RecalcChildTransform(entity);
         }
 
         /// <summary>
@@ -135,6 +173,8 @@ namespace CrymexEngine
         {
             if (index < 0 || index >= children.Count) return;
             children[index]._parent = null;
+            children[index]._localPosition = Vector2.Zero; 
+            children[index]._localRotation = 0;
             children.RemoveAt(index);
         }
         /// <summary>
@@ -154,41 +194,53 @@ namespace CrymexEngine
         }
 
         /// <summary>
-        /// Unbinds itself from the parent
+        /// Unbinds itself from the Parent
         /// </summary>
         public void UnbindSelf()
         {
             _parent?.Unbind(this);
         }
 
-        public void Render()
+        public void PreRender()
         {
             for (int i = 0; i < components.Count; i++)
             {
-                if (components[i].enabled) components[i].Render();
+                if (components[i].enabled) components[i].PreRender();
             }
         }
 
-        public Entity(Texture texture, Vector2 position, Vector2 scale)
+        public Entity(Texture texture, Vector2 position, Vector2 scale, string name = "")
         {
             this.position = position;
             this.scale = scale;
             rotation = 0;
 
-            Scene.entities.Add(this);
+            Scene.Current.entities.Add(this);
 
             renderer = AddComponent<Renderer>();
             renderer.texture = texture;
+            this.name = name;
+        }
+        public Entity(Texture texture, Vector2 position, Vector2 scale, Scene scene, string name = "")
+        {
+            this.position = position;
+            this.scale = scale;
+            rotation = 0;
+
+            scene.entities.Add(this);
+
+            renderer = AddComponent<Renderer>();
+            renderer.texture = texture;
+            this.name = name;
         }
 
-        public T AddComponent<T>() where T : Component
+        public T AddComponent<T>() where T : EntityComponent
         {
             object? _instance = Activator.CreateInstance(typeof(T));
             if (_instance == null) return null;
 
             T instance = (T)_instance;
-            instance.entity = this;
-            instance.renderer = renderer;
+            instance.Entity = this;
             instance.Load();
 
             components.Add(instance);
@@ -196,13 +248,14 @@ namespace CrymexEngine
             return instance;
         }
 
-        public bool RemoveComponent<T>() where T : Component
+        public bool RemoveComponent<T>() where T : EntityComponent
         {
             for (int i = 0; i < components.Count; i++)
             {
                 if (components[i].GetType() == typeof(T))
                 {
-                    components[i].entity = null;
+                    components[i].Entity = null;
+                    components[i].enabled = false;
                     components.RemoveAt(i);
                     return true;
                 }
@@ -210,7 +263,7 @@ namespace CrymexEngine
             return false;
         }
 
-        public T GetComponent<T>() where T : Component
+        public T GetComponent<T>() where T : EntityComponent
         {
             for (int i = 0; i < components.Count; i++)
             {
@@ -224,8 +277,22 @@ namespace CrymexEngine
 
         public void RecalcMatrices()
         {
-            scaleMatrix = Matrix4.CreateScale(scale.X / (Program.window.Size.X * 0.5f), scale.Y / (Program.window.Size.Y * 0.5f), 1);
-            rotationMatrix = Matrix4.CreateRotationZ(rotation);
+            scaleMatrix = Matrix4.CreateScale(scale.X / (Window.Size.X * 0.5f), scale.Y / (Window.Size.Y * 0.5f), 1);
+            rotationMatrix = Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(rotation));
+        }
+
+        private void RecalcChildTransform(Entity child)
+        {
+            float dist = child._localPosition.Length;
+            float angle = MathF.Atan(child._localPosition.Y / child._localPosition.X);
+            angle -= MathHelper.DegreesToRadians(_rotation);
+            child._position = _position + new Vector2(dist * MathF.Cos(angle), dist * MathF.Sin(angle));
+            child._rotation = _rotation + child._localRotation;
+            child.RecalcMatrices();
+            for (int i = 0; i < child.children.Count; i++)
+            {
+                child.RecalcChildTransform(child.children[i]);
+            }
         }
     }
 }

@@ -5,32 +5,33 @@ using System.Drawing;
 
 namespace CrymexEngine
 {
-    public class Renderer : Component
+    public class Renderer : EntityComponent
     {
         public Texture texture = Texture.None;
         public Color4 color = Color4.White;
         public float depth;
-        public bool flipX;
-        public bool flipY;
         public Mesh mesh = Mesh.quad;
         public Shader shader = Shader.regular;
 
         public override void Update()
         {
-            if (enabled && Vector2.DistanceSquared(entity.position, Camera.position) < Camera.renderDistanceSquared)
+            if (Vector2.DistanceSquared(Entity.position, Camera.position) < Camera.renderDistanceSquared)
             {
                 // Bind texture
-                GL.BindTexture(TextureTarget.Texture2D, texture.gl_Texture);
+                GL.BindTexture(TextureTarget.Texture2D, texture.glTexture);
                 GL.BindVertexArray(mesh.vao);
                 GL.BindBuffer(BufferTarget.ElementArrayBuffer, mesh.ebo);
                 GL.UseProgram(shader._glShader);
 
-                // Set first three shader parameters for transformation and color
-                shader.SetParam(0, (entity.position - Camera.position) / (Program.windowSize.ToVector2() * 0.5f));
-                shader.SetParam(1, entity.scaleMatrix * entity.rotationMatrix);
+                // Set first three shader parameters for position, transformation, and color
+                Vector2 glPosition2D = (Entity.position - Camera.position) / (Window.Size.ToVector2() * 0.5f);
+                Vector3 glPosition3D = new Vector3(glPosition2D.X, glPosition2D.Y, depth);
+
+                shader.SetParam(0, glPosition3D);
+                shader.SetParam(1, Entity.scaleMatrix * Entity.rotationMatrix);
                 shader.SetParam(2, color);
 
-                entity.Render();
+                Entity.PreRender();
 
                 GL.DrawElements(BeginMode.Triangles, mesh.indices.Length, DrawElementsType.UnsignedInt, mesh.ebo);
             }

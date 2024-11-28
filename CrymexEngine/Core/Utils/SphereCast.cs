@@ -17,7 +17,7 @@ namespace CrymexEngine
             {
                 Collider? c = null;
                 float closestDistance = 10000;
-                foreach (Collider collider in Scene.colliders)
+                foreach (Collider collider in Scene.Current.colliders)
                 {
                     if (!collider.enabled) continue;
 
@@ -36,7 +36,7 @@ namespace CrymexEngine
 
                 if (closestDistance < width)
                 {
-                    hit = new CastHit(newPoint, c.entity);
+                    hit = new CastHit(newPoint, c.Entity);
                     return true;
                 }
             }

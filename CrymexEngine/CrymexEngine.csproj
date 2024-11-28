@@ -14,12 +14,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="OpenTK" Version="4.8.2" />
     <PackageReference Include="System.Drawing.Common" Version="8.0.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Core\Components\UI Components\" />
     <Folder Include="Scripts\Components\" />
   </ItemGroup>
 
