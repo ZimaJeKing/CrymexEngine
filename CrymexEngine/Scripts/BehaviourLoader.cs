@@ -1,4 +1,4 @@
-﻿namespace CrymexEngine.Scripts
+﻿namespace CrymexEngine.Scripting
 {
     public static class BehaviourLoader
     {
@@ -17,9 +17,11 @@
 
         public static void Add<T>() where T : Behaviour
         {
-            Behaviour? b = (Behaviour?)Activator.CreateInstance(typeof(T));
-            if (b == null) return;
-            Scene.Current.behaviours.Add(b);
+            Behaviour? behaviour = (Behaviour?)Activator.CreateInstance(typeof(T));
+            if (behaviour == null) return;
+
+            Scene.current.behaviours.Add(behaviour);
+            behaviour.Load();
         }
     }
 }

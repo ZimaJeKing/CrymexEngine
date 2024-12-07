@@ -27,7 +27,7 @@ namespace CrymexEngine
         /// <summary>
         /// A distance at which objects are no longer rendered
         /// </summary>
-        public static float renderDistance
+        public static float RenderDistance
         {
             get
             {
@@ -71,6 +71,15 @@ namespace CrymexEngine
                     msaaSamples = (int)msaaSetting.value;
                 }
             }
+        }
+
+        public static Vector2 ScreenSpaceToWorldSpace(Vector2 point)
+        {
+            return point + position;
+        }
+        public static Vector2 WorldSpaceToScreenSpace(Vector2 point)
+        {
+            return point - position;
         }
     }
 }

@@ -16,7 +16,7 @@ namespace CrymexEngine.Scenes
 
             Scene scene = SceneLanguageCompiler.CompileScene(precompiled);
 
-            Scene.Current = scene;
+            Scene.current = scene;
 
             return true;
         }
@@ -134,10 +134,9 @@ namespace CrymexEngine.Scenes
                 }
             }
 
-            Entity entity = new Entity(texture, position, scale, scene, name);
+            Entity entity = new Entity(texture, position, scale, scene, Entity.GetEntity(parentName, scene), name);
 
-            entity.Parent = Entity.GetEntity(parentName, scene);
-            if (localPosition != Vector2.Zero) entity.localPosition = localPosition;
+            entity.LocalPosition = localPosition;
 
             return entity;
         }

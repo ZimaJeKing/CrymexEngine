@@ -91,7 +91,7 @@ namespace CrymexEngine
 
         public static void LogToFile(object message, LogSeverity severity)
         {
-            if (!logToFile || logFileStream == null || !logFileStream.CanWrite) return;
+            if (!logToFile || logFileStream == null || !logFileStream.CanWrite || message == null) return;
 
             string? msgString = message.ToString();
             if (msgString == null) return;

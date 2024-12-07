@@ -4,7 +4,7 @@ namespace CrymexEngine
 {
     public class Scene
     {
-        public static Scene Current;
+        public static Scene current;
 
         public List<Entity> entities = new List<Entity>();
         public List<Behaviour> behaviours = new List<Behaviour>();

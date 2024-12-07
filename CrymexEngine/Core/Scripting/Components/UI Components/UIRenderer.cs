@@ -21,15 +21,15 @@ namespace CrymexEngine.UI
         {
             if (enabled)
             {
-                // Bind texture
+                // BindChild texture
                 GL.BindTexture(TextureTarget.Texture2D, texture.glTexture);
                 GL.BindVertexArray(Mesh.quad.vao);
                 GL.BindBuffer(BufferTarget.ElementArrayBuffer, Mesh.quad.ebo);
                 GL.UseProgram(shader._glShader);
 
-                // Set first three shader parameters for position, transformation, and color
-                shader.SetParam(0, (UIElement.position - Camera.position) / (Window.Size.ToVector2() * 0.5f));
-                shader.SetParam(1, UIElement.scaleMatrix);
+                // Set first three shader parameters for Position, transformation, and color
+                shader.SetParam(0, (UIElement.Position - Camera.position) / (Window.Size.ToVector2() * 0.5f));
+                shader.SetParam(1, UIElement.transformationMatrix);
                 shader.SetParam(2, color);
 
                 GL.DrawElements(BeginMode.Triangles, Mesh.quad.indices.Length, DrawElementsType.UnsignedInt, Mesh.quad.ebo);

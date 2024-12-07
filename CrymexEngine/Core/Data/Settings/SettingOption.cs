@@ -102,5 +102,5 @@ namespace CrymexEngine
         }
     }
 
-    public enum SettingType { None, Int, Float, String, RefString, Hex, Vector2, Vector3, Vector4, Bool }
+    public enum SettingType { Int, Float, String, RefString, Hex, Vector2, Vector3, Vector4, Bool }
 }

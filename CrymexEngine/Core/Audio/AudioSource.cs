@@ -30,11 +30,11 @@ namespace CrymexEngine
         private int buffer;
         private int source;
 
-        public AudioSource(AudioClip clip, float volume, AudioMixer? mixer)
+        public AudioSource(AudioClip clip, float volume, AudioMixer? mixer = null)
         {
             this.clip = clip;
             this.mixer = mixer;
-            startTime = Window.gameTime;
+            startTime = Time.GameTime;
 
             buffer = AL.GenBuffer();
             source = AL.GenSource();

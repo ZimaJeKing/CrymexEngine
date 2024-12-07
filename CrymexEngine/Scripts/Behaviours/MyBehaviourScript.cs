@@ -1,32 +1,66 @@
 ﻿using CrymexEngine;
+using CrymexEngine.UI;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 
-namespace CrymexEngine.Scripts
+namespace CrymexEngine.Scripting
 {
     public class MyBehaviourScript : Behaviour
     {
-        Entity icon;
-        Entity logo;
+        Entity car;
+        Entity warning;
 
         AudioMixer mixer = new AudioMixer(0.25f, 1);
 
         public override void Load()
         {
-            icon = new Entity(Assets.GetTexture("WindowIcon"), Vector2.Zero, new Vector2(100), "Car");
+            //car = Entity.GetEntity("Car");
+            //warning = Entity.GetEntity("Warning");
 
-            logo = new Entity(Assets.GetTexture("Logo"), new Vector2(0, 0), new Vector2(100), "Logo");
-            //logo.Parent = icon;
-        }
+            car = new Entity(Assets.GetTexture("WindowIcon"), Vector2.Zero, new Vector2(200), null, "Car");
+            car.AddComponent<ClickableComponent>();
+            car.renderer.Depth = 9959f;
 
-        public override void TickLoop()
-        {
+            warning = new Entity(Assets.GetTexture("Warning"), new Vector2(128, 0), new Vector2(128));
+            warning.AddComponent<ClickableComponent>();
+            warning.renderer.Depth = -101f;
+            warning.Parent = car;
         }
 
         public override void Update()
         {
-            icon.renderer.depth = MathF.Sin(Window.gameTime * 30);
-            //icon.renderer.color = new Color4(1f, 0f, 0f, (Sin(Application.gameTime * 30) + 1) * 0.5f);
+            //car.Rotation = Window.gameTime * 30;
+        }
+    }
+
+    public class ClickableComponent : EntityComponent
+    {
+        public override void OnMouseEnter()
+        {
+            renderer.color = Color4.LightGray;
+        }
+        public override void OnMouseExit()
+        {
+            renderer.color = Color4.White;
+        }
+
+        public override void OnMouseDown(MouseButton mouseButton)
+        {
+            renderer.color = Color4.Gray;
+            //Debug.Log("Click");
+        }
+
+        public override void OnMouseHold(MouseButton mouseButton, float time)
+        {
+            if (mouseButton == MouseButton.Right)
+            {
+                float val = (MathF.Sin(Time.GameTime * 3) + 1) * 0.5f;
+                renderer.color = new Color4(val, 0, val, 1f);
+            }
+        }
+        public override void OnMouseUp()
+        {
+            renderer.color = Color4.LightGray;
         }
     }
 }

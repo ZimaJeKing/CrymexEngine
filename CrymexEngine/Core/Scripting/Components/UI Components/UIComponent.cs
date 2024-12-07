@@ -2,7 +2,7 @@
 
 namespace CrymexEngine.UI
 {
-    public class UIComponent
+    public class UIComponent : Behaviour
     {
         public UIRenderer renderer;
         public UIElement UIElement
@@ -23,27 +23,10 @@ namespace CrymexEngine.UI
                 _uiElement = value;
             }
         }
-        public bool enabled
-        {
-            get
-            {
-                return _enabled;
-            }
-            set
-            {
-                if (_uiElement == null) return;
 
-                _enabled = value;
-            }
-        }
-
-        private bool _enabled = true;
         private UIElement? _uiElement;
 
-        public virtual void Load() { }
-        public virtual void Refresh() { }
-        public virtual void Update() { }
-        public virtual void Click(Mouse mouseButton) { }
+        public virtual void Click(MouseButton mouseButton) { }
         public virtual void CursorEnter() { }
         public virtual void CursorExit() { }
     }

@@ -1,21 +1,19 @@
-﻿using CrymexEngine.Rendering;
+﻿using CrymexEngine.Data;
+using CrymexEngine.Rendering;
 using NAudio.Wave;
-using OpenTK.Audio.OpenAL;
-using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
-using System.Runtime.InteropServices;
 
 namespace CrymexEngine
 {
     public static class Assets
     {
-        private static List<TexAsset> textures = new List<TexAsset>();
-        private static List<AudioClip> audioClips = new List<AudioClip>();
-        private static List<SceneAsset> scenes = new List<SceneAsset>();
+        private static List<TextureAsset> _textureAssets = new();
+        private static List<AudioAsset> _audioAssets = new();
+        private static List<DataAsset> _scenes = new();
 
         public static void LoadAssets()
         {
-            // Defining the white texture
+            // Defining the white texAsset
             Texture white = new Texture(1, 1);
             white.SetPixel(0, 0, Color4.White);
             white.Apply();
@@ -37,7 +35,7 @@ namespace CrymexEngine
 
         public static Texture GetTexture(string name)
         {
-            foreach (TexAsset texture in textures)
+            foreach (TextureAsset texture in _textureAssets)
             {
                 if (texture.name == name)
                 {
@@ -48,22 +46,22 @@ namespace CrymexEngine
         }
         public static string GetScenePath(string name)
         {
-            foreach (SceneAsset scene in scenes)
+            foreach (DataAsset asset in _scenes)
             {
-                if (scene.name == name)
+                if (asset.name == name)
                 {
-                    return scene.path;
+                    return asset.path;
                 }
             }
             return "";
         }
         public static AudioClip GetAudioClip(string name)
         {
-            foreach (AudioClip clip in audioClips)
+            foreach (AudioAsset asset in _audioAssets)
             {
-                if (clip.name == name)
+                if (asset.name == name)
                 {
-                    return clip;
+                    return asset.clip;
                 }
             }
             return null;
@@ -87,112 +85,76 @@ namespace CrymexEngine
         private static void LoadAsset(string path)
         {
             string fileExtension = Path.GetExtension(path);
-            string fileName = Path.GetFileNameWithoutExtension(path);
 
             switch (fileExtension.ToLower())
             {
                 case ".png":
                     {
-                        textures.Add(new TexAsset(fileName, path, Texture.Load(path)));
+                        _textureAssets.Add(new TextureAsset(path, Texture.Load(path)));
                         break;
                     }
                 case ".jpg":
                     {
-                        textures.Add(new TexAsset(fileName, path, Texture.Load(path)));
+                        _textureAssets.Add(new TextureAsset(path, Texture.Load(path)));
                         break;
                     }
                 case ".bmp":
                     {
-                        textures.Add(new TexAsset(fileName, path, Texture.Load(path)));
+                        _textureAssets.Add(new TextureAsset(path, Texture.Load(path)));
                         break;
                     }
                 case ".wav":
                     {
-                        audioClips.Add(new AudioClip(fileName, LoadSound(path, out WaveFormat format, out int size), format, size));
+                        AudioClip? clip = AudioClip.Load(path);
+                        if (clip == null) break;
+                        _audioAssets.Add(new AudioAsset(path, clip));
                         break;
                     }
                 case ".mp3":
                     {
-                        audioClips.Add(new AudioClip(fileName, LoadSound(path, out WaveFormat format, out int size), format, size));
+                        AudioClip? clip = AudioClip.Load(path);
+                        if (clip == null) break;
+                        _audioAssets.Add(new AudioAsset(path, clip)); 
                         break;
                     }
                 case ".scene":
                     {
-                        scenes.Add(new SceneAsset(fileName, path));
+                        _scenes.Add(new DataAsset(path));
                         break;
                     }
             }
         }
 
-        public static IntPtr LoadSound(string path, out WaveFormat format, out int size)
-        {
-            size = 0;
-            IntPtr unmanagedBuffer;
-            using (AudioFileReader reader = new AudioFileReader(path))
-            {
-                format = new WaveFormat(44100, 16, 2);
-
-                using (MediaFoundationResampler resampler = new MediaFoundationResampler(reader, format))
-                {
-                    resampler.ResamplerQuality = 60;
-
-                    using (MemoryStream memoryStream = new MemoryStream())
-                    {
-                        byte[] buffer = new byte[4096];
-                        int bytesRead;
-
-                        while ((bytesRead = resampler.Read(buffer, 0, buffer.Length)) > 0)
-                        {
-                            memoryStream.Write(buffer, 0, bytesRead);
-                        }
-
-                        byte[] fullData = memoryStream.ToArray();
-                        unmanagedBuffer = Marshal.AllocHGlobal(fullData.Length);
-
-                        Marshal.Copy(fullData, 0, unmanagedBuffer, fullData.Length);
-                        size = fullData.Length;
-                    }
-                }
-            }
-            return unmanagedBuffer;
-        }
-
         public static void Cleanup()
         {
-            for (int i = 0; i < audioClips.Count; i++)
+            foreach (AudioAsset asset in _audioAssets)
             {
-                Marshal.FreeHGlobal(audioClips[i].soundData);
+                asset.clip.Dispose();
             }
-            foreach (TexAsset texture in textures)
+            foreach (TextureAsset asset in _textureAssets)
             {
-                GL.DeleteBuffer(texture.texture.glTexture);
+                asset.texture.Dispose();
             }
         }
     }
 
-    class TexAsset
+    class TextureAsset : DataAsset
     {
-        public string name;
-        public string path;
         public Texture texture;
 
-        public TexAsset(string name, string path, Texture texture)
+        public TextureAsset(string path, Texture texture) : base(path)
         {
-            this.name = name;
-            this.path = path;
             this.texture = texture;
         }
     }
 
-    class SceneAsset
+    class AudioAsset : DataAsset
     {
-        public string name;
-        public string path;
+        public readonly AudioClip clip;
 
-        public SceneAsset(string name, string path)
+        public AudioAsset(string path, AudioClip clip) : base(path)
         {
-            this.name = name;
-            this.path = path;
+            this.clip = clip;
         }
     }
 }

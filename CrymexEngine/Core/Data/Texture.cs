@@ -1,14 +1,18 @@
-﻿using OpenTK.Graphics.OpenGL;
+﻿using CrymexEngine.Debugging;
+using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
+using SkiaSharp;
+using System;
 using System.Drawing;
+using System.Runtime.InteropServices;
 
 namespace CrymexEngine
 {
     public class Texture : IDisposable
     {
         public byte[] data;
-        public int width;
-        public int height;
+        public readonly int width;
+        public readonly int height;
         public int glTexture;
 
         public static Texture None;
@@ -25,9 +29,11 @@ namespace CrymexEngine
 
             data = new byte[width * height * 4];
 
+            UsageProfiler.AddDataConsumptionValue(data.Length, MemoryUsageType.Texture);
+
             glTexture = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2D, glTexture);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
         }
         private Texture(int width, int height, byte[] data)
@@ -39,39 +45,35 @@ namespace CrymexEngine
             this.height = height;
             this.data = data;
 
+            UsageProfiler.AddDataConsumptionValue(data.Length, MemoryUsageType.Texture);
+
             glTexture = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2D, glTexture);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
             Apply();
         }
 
         public static Texture Load(string path)
         {
-            Bitmap bmp;
-            try
+            if (!File.Exists(path))
             {
-                bmp = new Bitmap(Image.FromFile(path));
-            }
-            catch
-            {
-                Debug.Log($"Texture at \"{path}\" not found", ConsoleColor.DarkRed);
+                Debug.LogError($"Texture at \"{path}\" not found");
                 return Missing;
             }
 
-            Texture result = new Texture(bmp.Width, bmp.Height);
+            using SKBitmap bitmap = SKBitmap.Decode(path);
 
-            for (int x = 0; x < bmp.Width; x++)
-            {
-                for (int y = 0; y < bmp.Height; y++)
-                {
-                    result.SetPixel(x, bmp.Height - y - 1, bmp.GetPixel(x, y));
-                }
-            }
+            // Access raw pixel data
+            int byteCount = bitmap.ByteCount;
+            byte[] rawBytes = new byte[byteCount];
+            Marshal.Copy(bitmap.GetPixels(), rawBytes, 0, byteCount);
 
-            result.Apply();
+            Texture loadedTexture = new Texture(bitmap.Width, bitmap.Height, rawBytes);
 
-            return result;
+            loadedTexture.FlipY();
+
+            return loadedTexture;
         }
 
         public void SetPixel(int x, int y, Color4 color)
@@ -82,9 +84,9 @@ namespace CrymexEngine
             int dataIndex = (x + (y * width)) * 4;
             Color argb = Color.FromArgb(color.ToArgb());
 
-            data[dataIndex] = argb.R;
+            data[dataIndex] = argb.B;
             data[dataIndex + 1] = argb.G;
-            data[dataIndex + 2] = argb.B;
+            data[dataIndex + 2] = argb.R;
             data[dataIndex + 3] = argb.A;
         }
         public void SetPixel(int x, int y, Color color)
@@ -94,19 +96,21 @@ namespace CrymexEngine
 
             int dataIndex = (x + (y * width)) * 4;
 
-            data[dataIndex] = color.R;
+            data[dataIndex] = color.B;
             data[dataIndex + 1] = color.G;
-            data[dataIndex + 2] = color.B;
+            data[dataIndex + 2] = color.R;
             data[dataIndex + 3] = color.A;
         }
 
         public Color4 GetPixel(int x, int y)
         {
+            x = Math.Clamp(x, 0, width - 1);
+            y = Math.Clamp(y, 0, height - 1);
             byte r, g, b, a;
             int dataIndex = (x + y * width) * 4;
-            r = data[dataIndex];
+            b = data[dataIndex];
             g = data[dataIndex + 1];
-            b = data[dataIndex + 2];
+            r = data[dataIndex + 2];
             a = data[dataIndex + 3];
             return new Color4(r, g, b, a);
         }
@@ -133,18 +137,13 @@ namespace CrymexEngine
         public void FlipY()
         {
             byte[] newData = new byte[data.Length];
-            int size = (width * height * 4) - 1;
+            int stride = width * 4; // 4 bytes per pixel
 
-            for (int x = 0; x < width; x++)
+            for (int row = 0; row < height; row++)
             {
-                for (int y = 0; y < height; y++)
-                {
-                    int dataIndex = (x + (y * width)) * 4;
-                    newData[size - dataIndex - 3] = data[dataIndex];
-                    newData[size - dataIndex - 2] = data[dataIndex + 1];
-                    newData[size - dataIndex - 1] = data[dataIndex + 2];
-                    newData[size - dataIndex] = data[dataIndex + 3];
-                }
+                int sourceOffset = row * stride;
+                int targetOffset = (height - row - 1) * stride;
+                Array.Copy(data, sourceOffset, newData, targetOffset, stride);
             }
 
             data = newData;
@@ -175,10 +174,13 @@ namespace CrymexEngine
             Apply();
         }
 
+        /// <summary>
+        /// Applies changes made to the pixel data
+        /// </summary>
         public void Apply()
         {
             GL.BindTexture(TextureTarget.Texture2D, glTexture);
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, data);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, width, height, 0, PixelFormat.Bgra, PixelType.UnsignedByte, data);
         }
 
         public Texture Clone()

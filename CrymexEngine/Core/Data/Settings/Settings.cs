@@ -37,14 +37,21 @@ namespace CrymexEngine
             return null;
         }
 
-        public static bool GetSetting(string name, out SettingOption setting)
+        /// <summary>
+        /// Gets a etting
+        /// </summary>
+        /// <returns>If the etting was found</returns>
+        public static bool GetSetting(string name, out SettingOption setting, SettingType? type = null)
         {
             for (int s = 0; s < settings.Count; s++)
             {
                 if (settings[s].name == name)
                 {
-                    setting = settings[s];
-                    return true;
+                    if (type == settings[s].type || type == null)
+                    {
+                        setting = settings[s];
+                        return true;
+                    }
                 }
             }
             setting = null;

@@ -1,34 +1,51 @@
 ﻿using CrymexEngine.Rendering;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
+using OpenTK.Platform.Windows;
 using System.Drawing;
 
 namespace CrymexEngine
 {
-    public class Renderer : EntityComponent
+    public sealed class Renderer : EntityComponent
     {
+        public float Depth
+        {
+            get
+            {
+                return _depth;
+            }
+            set
+            {
+                value = Math.Clamp(value, -99f, 99f);
+
+                _depth = value;
+            }
+        }
+
         public Texture texture = Texture.None;
         public Color4 color = Color4.White;
-        public float depth;
         public Mesh mesh = Mesh.quad;
         public Shader shader = Shader.regular;
 
+        private float _depth;
+
         public override void Update()
         {
-            if (Vector2.DistanceSquared(Entity.position, Camera.position) < Camera.renderDistanceSquared)
+            if (Vector2.DistanceSquared(Entity.Position, Camera.position) < Camera.renderDistanceSquared)
             {
-                // Bind texture
                 GL.BindTexture(TextureTarget.Texture2D, texture.glTexture);
+
                 GL.BindVertexArray(mesh.vao);
                 GL.BindBuffer(BufferTarget.ElementArrayBuffer, mesh.ebo);
+
                 GL.UseProgram(shader._glShader);
 
-                // Set first three shader parameters for position, transformation, and color
-                Vector2 glPosition2D = (Entity.position - Camera.position) / (Window.Size.ToVector2() * 0.5f);
-                Vector3 glPosition3D = new Vector3(glPosition2D.X, glPosition2D.Y, depth);
+                // Set first three shader parameters for Position, transformation, and color
+                Vector2 glPosition2D = (Entity.Position - Camera.position) / (Window.Size.ToVector2() * 0.5f);
+                Vector3 glPosition3D = new Vector3(glPosition2D.X, glPosition2D.Y, -Depth * 0.01f);
 
                 shader.SetParam(0, glPosition3D);
-                shader.SetParam(1, Entity.scaleMatrix * Entity.rotationMatrix);
+                shader.SetParam(1, Entity.transformationMatrix);
                 shader.SetParam(2, color);
 
                 Entity.PreRender();

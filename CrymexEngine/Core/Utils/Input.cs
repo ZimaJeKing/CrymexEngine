@@ -5,70 +5,100 @@ namespace CrymexEngine
 {
     public static class Input
     {
-        public static string textInput
-        {
-            get 
-            {
-                string val = _textInput;
-                _textInput = "";
-                return val;
-            }
-            set { _textInput = value; }
-        }
-        private static string _textInput = "";
+        public static string textInput = "";
 
-        public static Vector2 mousePosition
+        public static Vector2 MousePosition
         {
             get
             {
-                return Window.glWindow.MousePosition;
+                return Window.GLFWWindow.MousePosition - Window.HalfSize;
             }
         }
 
-        public static Vector2 mouseScroll
+        public static Vector2 MouseScrollDelta
         {
             get
             {
-                return Window.glWindow.MouseState.ScrollDelta;
+                return Window.GLFWWindow.MouseState.ScrollDelta;
             }
         }
 
         public static bool Key(Key key)
         {
-            return Window.glWindow.IsKeyDown((Keys)key);
+            return Window.GLFWWindow.IsKeyDown((Keys)key);
         }
         public static bool KeyDown(Key key)
         {
-            return Window.glWindow.IsKeyPressed((Keys)key);
+            return Window.GLFWWindow.IsKeyPressed((Keys)key);
         }
         public static bool KeyUp(Key key)
         {
-            return Window.glWindow.IsKeyReleased((Keys)key);
+            return Window.GLFWWindow.IsKeyReleased((Keys)key);
         }
 
-        public static bool Mouse(Mouse button)
+        public static bool Mouse(MouseButton button)
         {
-            return Window.glWindow.MouseState.IsButtonDown((MouseButton)button);
+            return Window.GLFWWindow.MouseState.IsButtonDown((OpenTK.Windowing.GraphicsLibraryFramework.MouseButton)button);
         }
-        public static bool MouseDown(Mouse button)
+        public static bool MouseDown(MouseButton button)
         {
-            return Window.glWindow.MouseState.IsButtonPressed((MouseButton)button);
+            return Window.GLFWWindow.MouseState.IsButtonPressed((OpenTK.Windowing.GraphicsLibraryFramework.MouseButton)button);
         }
-        public static bool MouseUp(Mouse button)
+        public static bool MouseUp(MouseButton button)
         {
-            return Window.glWindow.MouseState.IsButtonReleased((MouseButton)button);
+            return Window.GLFWWindow.MouseState.IsButtonReleased((OpenTK.Windowing.GraphicsLibraryFramework.MouseButton)button);
+        }
+
+        public static bool CursorOverlap(Vector2 position, Vector2 scale, float rotation = 0)
+        {
+            Vector2 point = Camera.ScreenSpaceToWorldSpace(MousePosition);
+
+            float translatedX = point.X - position.X;
+            float translatedY = point.Y - position.Y;
+
+            float radians = MathHelper.DegreesToRadians(-rotation);
+            float rotatedX = MathF.Cos(radians) * translatedX - MathF.Sin(radians) * translatedY;
+            float rotatedY = MathF.Sin(radians) * translatedX + MathF.Cos(radians) * translatedY;
+
+            Vector2 halfScale = scale * 0.5f;
+            return rotatedX >= -halfScale.X && rotatedX <= halfScale.X && rotatedY >= -halfScale.Y && rotatedY <= halfScale.Y;
+        }
+
+        public static bool CursorOverlap(Entity entity)
+        {
+            if (entity.renderer == null) return false;
+
+            Vector2 point = Camera.ScreenSpaceToWorldSpace(MousePosition);
+
+            float translatedX = point.X - entity.Position.X;
+            float translatedY = point.Y - entity.Position.Y;
+
+            float radians = MathHelper.DegreesToRadians(-entity.Rotation);
+            float rotatedX = MathF.Cos(radians) * translatedX - MathF.Sin(radians) * translatedY;
+            float rotatedY = MathF.Sin(radians) * translatedX + MathF.Cos(radians) * translatedY;
+
+            if (rotatedX >= -entity.HalfScale.X && rotatedX <= entity.HalfScale.X && rotatedY >= -entity.HalfScale.Y && rotatedY <= entity.HalfScale.Y)
+            {
+                int texX = (int)(((rotatedX + entity.HalfScale.X) / entity.Scale.X) * entity.renderer.texture.width);
+                int texY = (int)(((rotatedY + entity.HalfScale.Y) / entity.Scale.Y) * entity.renderer.texture.height);
+                if (entity.renderer.texture.GetPixel(texX, entity.renderer.texture.height - texY - 1).A != 0)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
     public struct Axis
     {
-        public Key positive;
-        public Key negative;
+        public readonly Key positive;
+        public readonly Key negative;
 
-        public static Axis WS = new Axis(Key.W, Key.S);
-        public static Axis AD = new Axis(Key.D, Key.A);
-        public static Axis ArrowsLR = new Axis(Key.Right, Key.Left);
-        public static Axis ArrowsUD = new Axis(Key.Up, Key.Down);
+        public static readonly Axis WS = new Axis(Key.W, Key.S);
+        public static readonly Axis AD = new Axis(Key.D, Key.A);
+        public static readonly Axis ArrowsLR = new Axis(Key.Right, Key.Left);
+        public static readonly Axis ArrowsUD = new Axis(Key.Up, Key.Down);
 
         public Axis(Key positive, Key negative)
         {
@@ -76,7 +106,7 @@ namespace CrymexEngine
             this.negative = negative;
         }
 
-        public float Get()
+        public float GetValue()
         {
             float val = 0;
             if (Input.Key(positive)) val += 1;
@@ -86,13 +116,13 @@ namespace CrymexEngine
     }
     public struct Axis2D
     {
-        public Key positiveX;
-        public Key negativeX;
-        public Key positiveY;
-        public Key negativeY;
+        public readonly Key positiveX;
+        public readonly Key negativeX;
+        public readonly Key positiveY;
+        public readonly Key negativeY;
 
-        public static Axis2D WSAD = new Axis2D(Key.D, Key.A, Key.W, Key.S);
-        public static Axis2D Arrows = new Axis2D(Key.Right, Key.Left, Key.Up, Key.Down);
+        public static readonly Axis2D WSAD = new Axis2D(Key.D, Key.A, Key.W, Key.S);
+        public static readonly Axis2D Arrows = new Axis2D(Key.Right, Key.Left, Key.Up, Key.Down);
 
         public Axis2D(Key positiveX, Key negativeX, Key positiveY, Key negativeY)
         {
@@ -102,7 +132,7 @@ namespace CrymexEngine
             this.negativeY = negativeY;
         }
 
-        public Vector2 Get()
+        public Vector2 GetValue()
         {
             Vector2 val = Vector2.Zero;
             if (Input.Key(positiveX)) val.X += 1;
@@ -113,43 +143,8 @@ namespace CrymexEngine
         }
     }
 
-    public enum Mouse
+    public enum MouseButton
     {
-        //
-        // Summary:
-        //     The first button.
-        Button1 = 0,
-        //
-        // Summary:
-        //     The second button.
-        Button2 = 1,
-        //
-        // Summary:
-        //     The third button.
-        Button3 = 2,
-        //
-        // Summary:
-        //     The fourth button.
-        Button4 = 3,
-        //
-        // Summary:
-        //     The fifth button.
-        Button5 = 4,
-        //
-        // Summary:
-        //     The sixth button.
-        Button6 = 5,
-        //
-        // Summary:
-        //     The seventh button.
-        Button7 = 6,
-        //
-        // Summary:
-        //     The eighth button.
-        Button8 = 7,
-        //
-        // Summary:
-        //     The left mouse button. This corresponds to OpenTK.Windowing.GraphicsLibraryFramework.MouseButton.Button1.
         Left = 0,
         //
         // Summary:
@@ -159,10 +154,6 @@ namespace CrymexEngine
         // Summary:
         //     The middle mouse button. This corresponds to OpenTK.Windowing.GraphicsLibraryFramework.MouseButton.Button3.
         Middle = 2,
-        //
-        // Summary:
-        //     The highest mouse button available.
-        Last = 7
     }
 
     public enum Key

@@ -6,52 +6,52 @@ namespace CrymexEngine
 {
     public static class Audio
     {
-        private static bool initialized = false;
-        private static List<AudioSource> sources = new List<AudioSource>();
-        private static ALDevice device;
-        private static ALContext context;
+        private static bool _initialized = false;
+        private static List<AudioSource> _sources = new List<AudioSource>();
+        private static ALDevice _alDevice;
+        private static ALContext _alContext;
 
         public static void Init()
         {
-            device = ALC.OpenDevice(null);
-            if (device == IntPtr.Zero)
+            _alDevice = ALC.OpenDevice(null);
+            if (_alDevice == IntPtr.Zero)
             {
                 Debug.Log("Couldn't initialize audio device", ConsoleColor.DarkRed);
                 return;
             }
 
-            context = ALC.CreateContext(device, (int[]?)null);
-            ALC.MakeContextCurrent(context);
+            _alContext = ALC.CreateContext(_alDevice, (int[]?)null);
+            ALC.MakeContextCurrent(_alContext);
 
-            initialized = true;
+            _initialized = true;
         }
 
         public static void Update()
         {
-            for (int i = 0; i < sources.Count; i++)
+            for (int i = 0; i < _sources.Count; i++)
             {
-                AudioSource source = sources[i];
+                AudioSource source = _sources[i];
 
                 float lengthWithPitch = source.clip.length;
                 if (source.mixer != null)
                 {
                     lengthWithPitch /= source.mixer.Pitch;
                 }
-                if (Window.gameTime - source.startTime > lengthWithPitch)
+                if (Time.GameTime - source.startTime > lengthWithPitch)
                 {
                     source.Cleanup();
-                    sources.Remove(source);
+                    _sources.Remove(source);
                 }
             }
         }
 
         public static AudioSource Play(AudioClip clip, float volume = 1, AudioMixer? mixer = null)
         {
-            if (!initialized || clip == null) return null;
+            if (!_initialized || clip == null) return null;
 
             AudioSource source = new AudioSource(clip, volume, mixer);
 
-            sources.Add(source);
+            _sources.Add(source);
 
             return source;
         }
@@ -68,8 +68,8 @@ namespace CrymexEngine
 
         public static void Cleanup()
         {
-            ALC.DestroyContext(context);
-            ALC.CloseDevice(device);
+            ALC.DestroyContext(_alContext);
+            ALC.CloseDevice(_alDevice);
         }
     }
 }

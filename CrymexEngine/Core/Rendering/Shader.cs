@@ -131,7 +131,6 @@ namespace CrymexEngine.Rendering
     {
         public string name { get; private set; }
         public int location { get; private set; }
-        private Shader reference;
 
         public static ShaderParam[] defaultParams = {
                     new Vec3ShaderParam("position"),
@@ -146,7 +145,6 @@ namespace CrymexEngine.Rendering
 
         public void Init(Shader reference)
         {
-            this.reference = reference;
             location = GL.GetUniformLocation(reference._glShader, name);
         }
         public abstract void Set(object _value);
