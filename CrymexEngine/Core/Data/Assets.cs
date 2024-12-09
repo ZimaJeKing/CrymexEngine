@@ -31,6 +31,7 @@ namespace CrymexEngine
             _precompiled = Settings.GetSetting("LoadPrecompiled", out SettingOption usePrecompiledAssetsOption, SettingType.Bool) && usePrecompiledAssetsOption.GetValue<bool>();
             if (Precompiled)
             {
+                Debug.LogStatus("Running on precompiled assets");
                 _precompiled = true;
 
                 // Loads only precompiled assets
@@ -38,6 +39,7 @@ namespace CrymexEngine
             }
             else
             {
+                Debug.LogStatus("Running on dynamic assets");
                 _precompiled = false;
 
                 // Starts a recursive loop of searching directories in the "Assets" folder
