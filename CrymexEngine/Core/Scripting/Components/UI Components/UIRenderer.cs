@@ -1,39 +1,53 @@
 ﻿using CrymexEngine.Rendering;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
-using System;
-using System.Drawing;
 
 namespace CrymexEngine.UI
 {
     public class UIRenderer : UIComponent
     {
         public Texture texture;
-        public Shader shader;
-        public Color color;
+        public Shader shader = Shader.UI;
+        public Color4 color = Color4.White;
 
-        public static void Init()
+        public float Depth
         {
-            
+            get
+            {
+                return _depth;
+            }
+            set
+            {
+                _depth = value;
+                UICanvas.SortElements();
+            }
+        }
+
+        private float _depth = 0;
+
+        public UIRenderer(float depth)
+        {
+            _depth = depth;
+            UICanvas.SortElements();
         }
 
         public override void Update()
         {
-            if (enabled)
-            {
-                // BindChild texture
-                GL.BindTexture(TextureTarget.Texture2D, texture.glTexture);
-                GL.BindVertexArray(Mesh.quad.vao);
-                GL.BindBuffer(BufferTarget.ElementArrayBuffer, Mesh.quad.ebo);
-                GL.UseProgram(shader._glShader);
+            // Bind shader and texture
+            GL.BindTexture(TextureTarget.Texture2D, texture.glTexture);
+            GL.BindVertexArray(Mesh.quad.vao);
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, Mesh.quad.ebo);
+            GL.UseProgram(shader._glShader);
 
-                // Set first three shader parameters for Position, transformation, and color
-                shader.SetParam(0, (UIElement.Position - Camera.position) / (Window.Size.ToVector2() * 0.5f));
-                shader.SetParam(1, UIElement.transformationMatrix);
-                shader.SetParam(2, color);
+            // Set first three shader parameters for Position, transformation, and color
+            Vector2 glPosition2D = (UIElement.Position - Camera.position) / (Window.Size.ToVector2() * 0.5f);
+            Vector3 glPosition3D = new Vector3(glPosition2D.X, glPosition2D.Y, -Depth * 0.01f);
 
-                GL.DrawElements(BeginMode.Triangles, Mesh.quad.indices.Length, DrawElementsType.UnsignedInt, Mesh.quad.ebo);
-            }
+            shader.SetParam(0, glPosition3D);
+            shader.SetParam(1, UIElement.transformationMatrix);
+            shader.SetParam(2, color);
+
+            GL.DrawElements(BeginMode.Triangles, Mesh.quad.indices.Length, DrawElementsType.UnsignedInt, Mesh.quad.ebo);
         }
     }
 }

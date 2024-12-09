@@ -1,4 +1,5 @@
-﻿using OpenTK.Mathematics;
+﻿using CrymexEngine.UI;
+using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace CrymexEngine
@@ -11,7 +12,9 @@ namespace CrymexEngine
         {
             get
             {
-                return Window.GLFWWindow.MousePosition - Window.HalfSize;
+                Vector2 pos = Window.GLFWWindow.MousePosition - Window.HalfSize;
+                pos.Y = -pos.Y;
+                return pos;
             }
         }
 
@@ -54,7 +57,7 @@ namespace CrymexEngine
             Vector2 point = Camera.ScreenSpaceToWorldSpace(MousePosition);
 
             float translatedX = point.X - position.X;
-            float translatedY = point.Y - position.Y;
+            float translatedY = position.Y - point.Y;
 
             float radians = MathHelper.DegreesToRadians(-rotation);
             float rotatedX = MathF.Cos(radians) * translatedX - MathF.Sin(radians) * translatedY;
@@ -66,22 +69,49 @@ namespace CrymexEngine
 
         public static bool CursorOverlap(Entity entity)
         {
-            if (entity.renderer == null) return false;
+            if (!entity.enabled || entity.Renderer == null || !entity.interactible) return false;
 
             Vector2 point = Camera.ScreenSpaceToWorldSpace(MousePosition);
 
             float translatedX = point.X - entity.Position.X;
-            float translatedY = point.Y - entity.Position.Y;
+            float translatedY = entity.Position.Y - point.Y;
 
             float radians = MathHelper.DegreesToRadians(-entity.Rotation);
             float rotatedX = MathF.Cos(radians) * translatedX - MathF.Sin(radians) * translatedY;
             float rotatedY = MathF.Sin(radians) * translatedX + MathF.Cos(radians) * translatedY;
 
+            // Alpha testing
             if (rotatedX >= -entity.HalfScale.X && rotatedX <= entity.HalfScale.X && rotatedY >= -entity.HalfScale.Y && rotatedY <= entity.HalfScale.Y)
             {
-                int texX = (int)(((rotatedX + entity.HalfScale.X) / entity.Scale.X) * entity.renderer.texture.width);
-                int texY = (int)(((rotatedY + entity.HalfScale.Y) / entity.Scale.Y) * entity.renderer.texture.height);
-                if (entity.renderer.texture.GetPixel(texX, entity.renderer.texture.height - texY - 1).A != 0)
+                int texX = (int)(((rotatedX + entity.HalfScale.X) / entity.Scale.X) * entity.Renderer.texture.width);
+                int texY = (int)(((rotatedY + entity.HalfScale.Y) / entity.Scale.Y) * entity.Renderer.texture.height);
+                if (entity.Renderer.texture.GetPixel(texX, entity.Renderer.texture.height - texY - 1).A != 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static bool CursorOverlap(UIElement element)
+        {
+            if (!element.enabled || !element.interactible) return false;
+
+            Vector2 point = Camera.ScreenSpaceToWorldSpace(MousePosition);
+
+            float translatedX = point.X - element.Position.X;
+            float translatedY = element.Position.Y - point.Y;
+
+            float radians = MathHelper.DegreesToRadians(-element.Rotation);
+            float rotatedX = MathF.Cos(radians) * translatedX - MathF.Sin(radians) * translatedY;
+            float rotatedY = MathF.Sin(radians) * translatedX + MathF.Cos(radians) * translatedY;
+
+            // Alpha testing
+            if (rotatedX >= -element.HalfScale.X && rotatedX <= element.HalfScale.X && rotatedY >= -element.HalfScale.Y && rotatedY <= element.HalfScale.Y)
+            {
+                int texX = (int)(((rotatedX + element.HalfScale.X) / element.Scale.X) * element.Renderer.texture.width);
+                int texY = (int)(((rotatedY + element.HalfScale.Y) / element.Scale.Y) * element.Renderer.texture.height);
+                if (element.Renderer.texture.GetPixel(texX, element.Renderer.texture.height - texY - 1).A != 0)
                 {
                     return true;
                 }

@@ -6,6 +6,7 @@ namespace CrymexEngine
     public static class Debug
     {
         public static string assetsPath = Directory.GetCurrentDirectory() + "\\Assets\\";
+        public static string runtimeAssetsPath = Directory.GetCurrentDirectory() + "\\Precompiled\\";
 
         public static string shortTime
         {

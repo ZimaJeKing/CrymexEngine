@@ -4,8 +4,8 @@ namespace CrymexEngine.UI
 {
     public static class UICanvas
     {
-        private static Entity? _holdEntity;
-        private static Entity? _hoverEntity;
+        private static GameObject? _hold;
+        private static GameObject? _hover;
 
         private static float _holdTime, _hoverTime;
 
@@ -14,43 +14,57 @@ namespace CrymexEngine.UI
             HandleMouseInput();
         }
 
+        public static void SortElements()
+        {
+            Scene.current.uiElements.Sort((a, b) => -b.Renderer.Depth.CompareTo(a.Renderer.Depth));
+        }
+
         private static void HandleMouseInput()
         {
-            foreach (UIElement element in Scene.current.uiElements)
-            {
-
-            }
-
-            // Find overlaping entities and flter entities renderer.Depth
-            Entity? hover = null;
+            // Find overlaping entities and flter entities EntityRenderer.Depth
+            GameObject? hover = null;
             float highestDepth = float.MinValue;
             foreach (Entity entity in Scene.current.entities)
             {
-                if (entity.renderer != null && Input.CursorOverlap(entity))
+                if (entity.enabled && entity.Renderer != null && Input.CursorOverlap(entity))
                 {
-                    if (entity.renderer.Depth >= highestDepth)
+                    if (entity.Renderer.Depth >= highestDepth)
                     {
                         hover = entity;
-                        highestDepth = entity.renderer.Depth;
+                        highestDepth = entity.Renderer.Depth;
                     }
                 }
             }
 
+            highestDepth = float.MinValue;
+            foreach (UIElement element in Scene.current.uiElements)
+            {
+                if (element.enabled && Input.CursorOverlap(element))
+                {
+                    if (element.Renderer.Depth >= highestDepth)
+                    {
+                        hover = element;
+                        highestDepth = element.Renderer.Depth;
+                    }
+                }
+            }
+
+
             if (hover == null)
             {
-                _hoverEntity?.OnCursorExit();
-                _hoverEntity = null;
+                _hover?.OnCursorExit();
+                _hover = null;
                 return;
             }
-            else if (hover != _hoverEntity)
+            else if (hover != _hover)
             {
-                _hoverEntity?.OnCursorExit();
+                _hover?.OnCursorExit();
             }
 
             HandleCursorLogic(hover);
         }
 
-        private static void HandleCursorLogic(Entity entity)
+        private static void HandleCursorLogic(GameObject gameObject)
         {
             MouseButton? input = null;
             if (Input.Mouse(MouseButton.Left)) input = MouseButton.Left;
@@ -58,39 +72,39 @@ namespace CrymexEngine.UI
             if (Input.Mouse(MouseButton.Middle)) input = MouseButton.Middle;
 
             // Hover events
-            if (_hoverEntity == null || _hoverEntity != entity)
+            if (_hover == null || _hover != gameObject)
             {
-                entity.OnCursorEnter();
-                if (_holdEntity == _hoverEntity)
+                gameObject.OnCursorEnter();
+                if (_hold == _hover)
                 {
-                    _holdEntity = entity;
+                    _hold = gameObject;
                 }
-                _hoverEntity = entity;
+                _hover = gameObject;
                 _hoverTime = Time.GameTime;
             }
             else
             {
-                entity.OnCursorStay(Time.GameTime - _hoverTime);
+                gameObject.OnCursorStay(Time.GameTime - _hoverTime);
             }
 
             // No input
             if (input == null)
             {
-                _holdEntity?.OnCursorUp();
-                _holdEntity = null;
+                _hold?.OnCursorUp();
+                _hold = null;
                 return;
             }
 
             // Click events
-            if (_holdEntity == null)
+            if (_hold == null)
             {
-                entity.OnCursorDown(input.Value);
-                _holdEntity = entity;
+                gameObject.OnCursorDown(input.Value);
+                _hold = gameObject;
                 _holdTime = Time.GameTime;
             }
             else
             {
-                entity.OnCursorHold(input.Value, Time.GameTime - _holdTime);
+                gameObject.OnCursorHold(input.Value, Time.GameTime - _holdTime);
             }
         }
     }

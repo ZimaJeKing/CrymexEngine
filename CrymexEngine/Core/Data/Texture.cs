@@ -1,10 +1,19 @@
 ﻿using CrymexEngine.Debugging;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
-using SkiaSharp;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using WinColor = System.Drawing.Color;
+using ISColor = SixLabors.ImageSharp.Color;
 using System;
-using System.Drawing;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Advanced;
+using System.Security.AccessControl;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats.Png;
+using System.IO;
 
 namespace CrymexEngine
 {
@@ -36,7 +45,7 @@ namespace CrymexEngine
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
         }
-        private Texture(int width, int height, byte[] data)
+        public Texture(int width, int height, byte[] data)
         {
             width = Math.Clamp(width, 1, int.MaxValue);
             height = Math.Clamp(height, 1, int.MaxValue);
@@ -54,7 +63,7 @@ namespace CrymexEngine
             Apply();
         }
 
-        public static Texture Load(string path)
+        public static unsafe Texture Load(string path)
         {
             if (!File.Exists(path))
             {
@@ -62,18 +71,30 @@ namespace CrymexEngine
                 return Missing;
             }
 
-            using SKBitmap bitmap = SKBitmap.Decode(path);
+            using (Image<Rgba32> image = Image.Load<Rgba32>(path))
+            {
+                // Access the pixel memory
+                IMemoryGroup<Rgba32> pixelMemGroups = image.GetPixelMemoryGroup();
 
-            // Access raw pixel data
-            int byteCount = bitmap.ByteCount;
-            byte[] rawBytes = new byte[byteCount];
-            Marshal.Copy(bitmap.GetPixels(), rawBytes, 0, byteCount);
+                // Allocate a byte array to hold the raw pixel data
+                int byteCount = image.Width * image.Height * 4; // 4 bytes per pixel (RGBA)
+                byte[] rawBytes = new byte[byteCount];
 
-            Texture loadedTexture = new Texture(bitmap.Width, bitmap.Height, rawBytes);
+                int offset = 0;
+                foreach (var memoryGroup in pixelMemGroups)
+                {
+                    byte[] src = MemoryMarshal.AsBytes(memoryGroup.Span).ToArray();
+                    System.Buffer.BlockCopy(src, 0, rawBytes, offset, src.Length);
+                    offset += src.Length;
+                }
 
-            loadedTexture.FlipY();
+                // Create the texture
+                Texture loadedTexture = new Texture(image.Width, image.Height, rawBytes);
 
-            return loadedTexture;
+                loadedTexture.FlipY();
+
+                return loadedTexture;
+            }
         }
 
         public void SetPixel(int x, int y, Color4 color)
@@ -82,23 +103,23 @@ namespace CrymexEngine
             if  (y < 0 || y >= height) return;
 
             int dataIndex = (x + (y * width)) * 4;
-            Color argb = Color.FromArgb(color.ToArgb());
+            WinColor argb = WinColor.FromArgb(color.ToArgb());
 
-            data[dataIndex] = argb.B;
+            data[dataIndex] = argb.R;
             data[dataIndex + 1] = argb.G;
-            data[dataIndex + 2] = argb.R;
+            data[dataIndex + 2] = argb.B;
             data[dataIndex + 3] = argb.A;
         }
-        public void SetPixel(int x, int y, Color color)
+        public void SetPixel(int x, int y, WinColor color)
         {
             if (x < 0 || x >= width) return;
             if (y < 0 || y >= height) return;
 
             int dataIndex = (x + (y * width)) * 4;
 
-            data[dataIndex] = color.B;
+            data[dataIndex] = color.R;
             data[dataIndex + 1] = color.G;
-            data[dataIndex + 2] = color.R;
+            data[dataIndex + 2] = color.B;
             data[dataIndex + 3] = color.A;
         }
 
@@ -108,27 +129,92 @@ namespace CrymexEngine
             y = Math.Clamp(y, 0, height - 1);
             byte r, g, b, a;
             int dataIndex = (x + y * width) * 4;
-            b = data[dataIndex];
+            r = data[dataIndex];
             g = data[dataIndex + 1];
-            r = data[dataIndex + 2];
+            b = data[dataIndex + 2];
             a = data[dataIndex + 3];
             return new Color4(r, g, b, a);
         }
 
         public void Save(string path)
         {
-            Bitmap bmp = new Bitmap(width, height);
+            Save(path, TextureSaveFormat.PNG);
+        }
+        public void Save(string path, TextureSaveFormat format)
+        {
+            byte[] flippedData = new byte[width * height * 4];
+            int stride = width * 4; // 4 bytes per pixel
 
-            for (int x = 0; x < width; x++)
+            for (int row = 0; row < height; row++)
             {
-                for (int y = 0; y < height; y++)
-                {
-                    int index = (x + y * width) * 4;
-                    bmp.SetPixel(x, y, Color.FromArgb(data[index + 3], data[index], data[index + 1], data[index + 2]));
-                }
+                int sourceOffset = row * stride;
+                int targetOffset = (height - row - 1) * stride;
+                Array.Copy(data, sourceOffset, flippedData, targetOffset, stride);
             }
 
-            bmp.Save(path);
+            Image<Rgba32> isImage = Image.LoadPixelData<Rgba32>(flippedData, width, height);
+
+            switch (format)
+            {
+                case TextureSaveFormat.PNG:
+                    {
+                        isImage.SaveAsPng(path);
+                        break;
+                    }
+                case TextureSaveFormat.BMP:
+                    {
+                        isImage.SaveAsBmp(path);
+                        break;
+                    }
+                case TextureSaveFormat.JPEG:
+                    {
+                        isImage.SaveAsJpeg(path);
+                        break;
+                    }
+                case TextureSaveFormat.GIF:
+                    {
+                        isImage.SaveAsGif(path);
+                        break;
+                    }
+            }
+        }
+
+        public byte[] CompressData()
+        {
+            Image<Rgba32> isImage = Image.LoadPixelData<Rgba32>(data, width, height);
+
+            // Save the Image as PNG in a MemoryStream
+            using (MemoryStream memoryStream = new MemoryStream())
+            {
+                isImage.Save(memoryStream, new PngEncoder() { CompressionLevel = PngCompressionLevel.BestCompression });
+
+                return memoryStream.ToArray();
+            }
+        }
+
+        public static Texture FromCompressed(byte[] data)
+        {
+            using (MemoryStream memoryStream = new MemoryStream(data))
+            {
+                using (Image<Rgba32> image = Image.Load<Rgba32>(memoryStream))
+                {
+                    // Access the pixel memory
+                    IMemoryGroup<Rgba32> pixelMemGroups = image.GetPixelMemoryGroup();
+
+                    // Allocate a byte array to hold the raw pixel data
+                    byte[] rawBytes = new byte[image.Width * image.Height * 4];
+
+                    int offset = 0;
+                    foreach (var memoryGroup in pixelMemGroups)
+                    {
+                        byte[] src = MemoryMarshal.AsBytes(memoryGroup.Span).ToArray();
+                        System.Buffer.BlockCopy(src, 0, rawBytes, offset, src.Length);
+                        offset += src.Length;
+                    }
+
+                    return new Texture(image.Width, image.Height, rawBytes);
+                }
+            }
         }
 
         /// <summary>
@@ -180,7 +266,7 @@ namespace CrymexEngine
         public void Apply()
         {
             GL.BindTexture(TextureTarget.Texture2D, glTexture);
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, width, height, 0, PixelFormat.Bgra, PixelType.UnsignedByte, data);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, data);
         }
 
         public Texture Clone()
@@ -193,4 +279,6 @@ namespace CrymexEngine
             GL.DeleteBuffer(glTexture);
         }
     }
+
+    public enum TextureSaveFormat { PNG, BMP, JPEG, GIF }
 }

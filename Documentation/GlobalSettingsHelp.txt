@@ -34,3 +34,7 @@ VSync [COND]
 MaxFPS [INT]
 RenderDistance [FLOAT]
 MSAASamples [INT] - Multi-sample anti-aliasing - possible values: 0, 2, 4, 8
+
+Data:
+LoadPrecompiled [COND] - Enables or disables loading from precompiled assets
+PrecompileAssets [COND] - Whether to precompile all assets on run

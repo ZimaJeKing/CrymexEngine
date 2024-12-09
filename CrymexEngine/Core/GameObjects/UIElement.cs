@@ -1,25 +1,45 @@
 ﻿using OpenTK.Mathematics;
+using OpenTK.Platform.Windows;
 
 namespace CrymexEngine.UI
 {
     public class UIElement : GameObject
     {
-        private UIRenderer renderer;
-        private List<UIComponent> components = new List<UIComponent>();
-
-        public UIElement(Vector4 padding, Vector2 scale, UIElement? parent = null)
+        public UIRenderer Renderer
         {
-            Scale = scale;
+            get
+            {
+                return _renderer;
+            }
+        }
 
-            renderer = AddComponent<UIRenderer>();
+        private UIRenderer _renderer;
+
+        public UIElement(Texture texture, Vector2 position, Vector2 scale, UIElement? parent = null, float depth = 0)
+        {
+            Parent = parent;
+            Scale = scale;
+            LocalPosition = position;
+
+            _renderer = new UIRenderer(depth);
+            _renderer.UIElement = this;
+            _renderer.texture = texture;
+            _renderer.Depth = depth;
+
+            Scene.current.uiElements.Add(this);
+
+            UICanvas.SortElements();
         }
 
         public void Update()
         {
+            if (!enabled) return;
+
             foreach (UIComponent component in components)
             {
                 if (component.enabled) component.Update();
             }
+            Renderer.Update();
         }
 
         public T AddComponent<T>() where T : UIComponent
@@ -29,7 +49,6 @@ namespace CrymexEngine.UI
 
             T instance = (T)_instance;
             instance.UIElement = this;
-            instance.renderer = renderer;
             instance.Load();
 
             components.Add(instance);
@@ -41,10 +60,9 @@ namespace CrymexEngine.UI
         {
             for (int i = 0; i < components.Count; i++)
             {
-                UIComponent c = components[i];
+                UIComponent c = (UIComponent)components[i];
                 if (components[i].GetType() == typeof(T))
                 {
-                    c.UIElement = null;
                     c.enabled = false;
                     components.RemoveAt(i);
                     return true;

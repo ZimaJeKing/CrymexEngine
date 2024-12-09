@@ -56,12 +56,56 @@ namespace CrymexEngine
         }
         public static Texture Icon
         {
+            get
+            {
+                return _windowIcon;
+            }
             set
             {
                 if (value == null) return;
-                Texture winIcon = value.Clone();
-                winIcon.FlipY();
-                GLFWWindow.Icon = new WindowIcon(new OpenTK.Windowing.Common.Input.Image(winIcon.width, winIcon.height, winIcon.data));
+
+                _windowIcon?.Dispose();
+                Texture texture = new Texture(32, 32);
+
+                // Resample texture to 32x32 pixel format
+                for (int x = 0; x < texture.width; x++)
+                {
+                    for (int y = 0; y < texture.height; y++)
+                    {
+                        texture.SetPixel(x, y, value.GetPixel((int)(x / 32f * value.width), (int)(y / 32f * value.height)));
+                    }
+                }
+
+                _windowIcon = texture.Clone();
+                texture.FlipY();
+
+                OpenTK.Windowing.Common.Input.Image img = new OpenTK.Windowing.Common.Input.Image(32, 32, texture.data);
+                GLFWWindow.Icon = new WindowIcon(img);
+            }
+        }
+        public static WindowCursor Cursor
+        {
+            get
+            {
+                return _windowCursor;
+            }
+            set
+            {
+                Texture texture = new Texture(value.size.X, value.size.Y);
+
+                for (int x = 0; x < texture.width; x++)
+                {
+                    for (int y = 0; y < texture.height; y++)
+                    {
+                        texture.SetPixel(x, y, value.texture.GetPixel((int)((float)x / texture.width * value.texture.width), (int)((float)y / texture.height * value.texture.height)));
+                    }
+                }
+
+                texture.FlipY();
+
+                _windowCursor = value;
+                MouseCursor cursor = new MouseCursor(value.hotspot.X, value.hotspot.Y, value.size.X, value.size.Y, texture.data);
+                GLFWWindow.Cursor = cursor;
             }
         }
         public static string Title
@@ -132,6 +176,8 @@ namespace CrymexEngine
         private static bool _isLoaded;
         private static Vector2 _halfSize;
         private static Vector2i _monitorResolution;
+        private static WindowCursor _windowCursor;
+        private static Texture _windowIcon;
 
         public static void Run()
         {
@@ -151,10 +197,10 @@ namespace CrymexEngine
             GL.Enable(EnableCap.Blend);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
-            GL.Enable(EnableCap.Multisample);
-
             GL.Enable(EnableCap.DepthTest);
             GL.DepthFunc(DepthFunction.Less);
+
+            GL.Enable(EnableCap.Multisample);
 
             // Window events
             GLFWWindow.Load += Load;
@@ -206,17 +252,28 @@ namespace CrymexEngine
             // Time and FPS calculation
             Time.Set((float)e.Time);
 
+            UICanvas.Update();
+
             // Updating behaviours and entities
             foreach (Behaviour behaviour in Scene.current.behaviours)
             {
-                behaviour.Update();
+                if (behaviour.enabled) behaviour.Update();
             }
             foreach (Entity entity in Scene.current.entities)
             {
-                entity.Update();
+                if (entity.enabled) entity.Update();
             }
 
-            UICanvas.Update();
+            GL.Enable(EnableCap.Blend);
+            GL.Disable(EnableCap.DepthTest);
+            GL.DepthMask(false);
+            foreach (UIElement element in Scene.current.uiElements)
+            {
+                if (element.enabled) element.Update();
+            }
+            GL.Disable(EnableCap.Blend);
+            GL.Enable(EnableCap.DepthTest);
+            GL.DepthMask(true);
 
             HandleErrors();
 
@@ -299,6 +356,7 @@ namespace CrymexEngine
             {
                 Icon = Assets.GetTexture(windowIconSetting.GetValue<string>());
             }
+            else Icon = Assets.GetTexture("WindowIcon");
 
             // Window Size
             if (Settings.GetSetting("WindowSize", out SettingOption windowSizeSetting, SettingType.Vector2))
@@ -323,6 +381,22 @@ namespace CrymexEngine
                 {
                     GLFWWindow.VSync = VSyncMode.Off;
                 }
+            }
+
+            // Cursor
+            if (Settings.GetSetting("WindowCursor", out SettingOption cursorTexSetting, SettingType.RefString))
+            {
+                Vector2i hotspot = Vector2i.Zero;
+                Vector2i size = new Vector2i(16, 16);
+                if (Settings.GetSetting("WindowCursorHotspot", out SettingOption hotspotSetting, SettingType.Vector2))
+                {
+                    hotspot = (Vector2i)hotspotSetting.GetValue<Vector2>();
+                }
+                if (Settings.GetSetting("WindowCursorSize", out SettingOption sizeSetting, SettingType.Vector2))
+                {
+                    size = (Vector2i)sizeSetting.GetValue<Vector2>();
+                }
+                Cursor = new WindowCursor(Assets.GetTexture(cursorTexSetting.GetValue<string>()), size, hotspot);
             }
         }
     }

@@ -3,21 +3,15 @@ namespace CrymexEngine
 {
     public sealed class Entity : GameObject
     {
-        public Renderer? renderer
+        public EntityRenderer? Renderer
         {
             get
             {
                 return _renderer;
             }
-            private set
-            {
-                _renderer = value;
-            }
         }
 
-        private List<EntityComponent> components = new List<EntityComponent>();
-
-        private Renderer? _renderer;
+        private EntityRenderer? _renderer;
 
         public static Entity? GetEntity(string name)
         {
@@ -70,14 +64,14 @@ namespace CrymexEngine
         public Entity(Texture texture, Vector2 position, Vector2 scale, Entity? parent = null, string name = "")
         {
             Parent = parent;
-            Position = position;
+            LocalPosition = position;
             Scale = scale;
             Rotation = 0;
 
             Scene.current.entities.Add(this);
 
-            renderer = AddComponent<Renderer>();
-            renderer.texture = texture;
+            _renderer = AddComponent<EntityRenderer>();
+            Renderer.texture = texture;
             this.name = name;
         }
 
@@ -87,19 +81,19 @@ namespace CrymexEngine
         public Entity(Texture texture, Vector2 position, Vector2 scale, Scene scene, Entity? parent = null, string name = "")
         {
             Parent = parent;
-            Position = position;
+            LocalPosition = position;
             Scale = scale;
             Rotation = 0;
 
             scene.entities.Add(this);
 
-            renderer = AddComponent<Renderer>();
-            renderer.texture = texture;
+            _renderer = AddComponent<EntityRenderer>();
+            Renderer.texture = texture;
             this.name = name;
         }
 
         /// <summary>
-        /// Creates an Entity with no Renderer attached
+        /// Creates an Entity with no EntityRenderer attached
         /// </summary>
         public Entity(Vector2 position, Vector2 scale, Entity? parent = null, string name = "")
         {
@@ -177,49 +171,6 @@ namespace CrymexEngine
             component = null;
 #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
             return false;
-        }
-
-        public void OnCursorEnter()
-        {
-            foreach (EntityComponent component in components)
-            {
-                component.OnMouseEnter();
-            }
-        }
-        public void OnCursorStay(float time)
-        {
-            foreach (EntityComponent component in components)
-            {
-                component.OnMouseStay(time);
-            }
-        }
-        public void OnCursorExit()
-        {
-            foreach (EntityComponent component in components)
-            {
-                component.OnMouseExit();
-            }
-        }
-        public void OnCursorDown(MouseButton mouseButton)
-        {
-            foreach (EntityComponent component in components)
-            {
-                component.OnMouseDown(mouseButton);
-            }
-        }
-        public void OnCursorHold(MouseButton mouseButton, float time)
-        {
-            foreach (EntityComponent component in components)
-            {
-                component.OnMouseHold(mouseButton, time);
-            }
-        }
-        public void OnCursorUp()
-        {
-            foreach (EntityComponent component in components)
-            {
-                component.OnMouseUp();
-            }
         }
     }
 }

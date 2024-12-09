@@ -18,6 +18,7 @@ namespace CrymexEngine
 
             Settings.LoadSettings();
             Debug.Init();
+
             // --- Main application loop --- //
             Window.Run();
 

@@ -5,6 +5,9 @@ namespace CrymexEngine
 {
     public class GameObject
     {
+        public bool enabled = true;
+        public bool interactible = true;
+
         public string name;
         public Vector2 Position
         {
@@ -121,7 +124,51 @@ namespace CrymexEngine
         private Vector2 _scale = Vector2.Zero;
         private GameObject? _parent;
 
-        private List<GameObject> children = new List<GameObject>();
+        protected List<GameObject> children = new List<GameObject>();
+        protected List<Component> components = new List<Component>();
+
+        public void OnCursorEnter()
+        {
+            foreach (Component component in components)
+            {
+                component.OnMouseEnter();
+            }
+        }
+        public void OnCursorStay(float time)
+        {
+            foreach (Component component in components)
+            {
+                component.OnMouseStay(time);
+            }
+        }
+        public void OnCursorExit()
+        {
+            foreach (Component component in components)
+            {
+                component.OnMouseExit();
+            }
+        }
+        public void OnCursorDown(MouseButton mouseButton)
+        {
+            foreach (Component component in components)
+            {
+                component.OnMouseDown(mouseButton);
+            }
+        }
+        public void OnCursorHold(MouseButton mouseButton, float time)
+        {
+            foreach (Component component in components)
+            {
+                component.OnMouseHold(mouseButton, time);
+            }
+        }
+        public void OnCursorUp()
+        {
+            foreach (Component component in components)
+            {
+                component.OnMouseUp();
+            }
+        }
 
         protected void RecalcTransformMatrix()
         {

@@ -6,7 +6,7 @@ using System.Drawing;
 
 namespace CrymexEngine
 {
-    public sealed class Renderer : EntityComponent
+    public sealed class EntityRenderer : EntityComponent
     {
         public float Depth
         {
@@ -25,7 +25,7 @@ namespace CrymexEngine
         public Texture texture = Texture.None;
         public Color4 color = Color4.White;
         public Mesh mesh = Mesh.quad;
-        public Shader shader = Shader.regular;
+        public Shader shader = Shader.Regular;
 
         private float _depth;
 

@@ -1,5 +1,7 @@
 ﻿using CrymexEngine.Debugging;
+using NAudio.Lame;
 using NAudio.Wave;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace CrymexEngine
@@ -31,6 +33,44 @@ namespace CrymexEngine
             }
 
             return new AudioClip(soundData, format, dataSize);
+        }
+
+        public byte[] CompressData()
+        {
+            byte[] pcmData = new byte[dataSize];
+            Marshal.Copy(soundData, pcmData, 0, dataSize);
+
+            using (var pcmStream = new MemoryStream(pcmData))
+            using (var reader = new RawSourceWaveStream(pcmStream, new WaveFormat(format.SampleRate, format.BitsPerSample, format.Channels)))
+            using (var mp3Stream = new MemoryStream())
+            {
+                using (var writer = new LameMP3FileWriter(mp3Stream, reader.WaveFormat, LAMEPreset.VBR_90))
+                {
+                    reader.CopyTo(writer);
+                }
+
+                return mp3Stream.ToArray();
+            }
+        }
+
+        public static AudioClip FromCompressed(byte[] mp3Data)
+        {
+            WaveFormat format = new WaveFormat(41000, 16, 2);
+            using (var mp3Stream = new MemoryStream(mp3Data))
+            using (var reader = new Mp3FileReader(mp3Stream))
+            using (MediaFoundationResampler resampler = new MediaFoundationResampler(reader, format))
+            using (var pcmStream = new MemoryStream())
+            {
+                resampler.ResamplerQuality = 60;
+
+                WaveFileWriter.WriteWavFileToStream(pcmStream, resampler);
+
+                byte[] pcmData = pcmStream.ToArray();
+                IntPtr soundData = Marshal.AllocHGlobal(pcmData.Length);
+                Marshal.Copy(pcmData, 0, soundData, pcmData.Length);
+
+                return new AudioClip(soundData, format, pcmData.Length);
+            }
         }
 
         public void Dispose()

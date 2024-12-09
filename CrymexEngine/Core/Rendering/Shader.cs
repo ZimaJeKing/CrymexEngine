@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Xml.Linq;
+using NAudio.CoreAudioApi;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 
@@ -6,40 +8,45 @@ namespace CrymexEngine.Rendering
 {
     public class Shader
     {
-        public static Shader regular;
+        public static Shader Regular
+        {
+            get
+            {
+                return _regular;
+            }
+        }
+        public static Shader UI
+        {
+            get
+            {
+                return _ui;
+            }
+        }
 
         public readonly int _glShader;
-        public ShaderParam[] parameters;
+        public readonly ShaderParam[] parameters;
+
+        private static Shader _regular;
+        private static Shader _ui;
 
         public static void LoadDefaultShaders()
         {
-            regular = new Shader(
-                Debug.assetsPath + "Shaders\\Regular.vertex",
-                Debug.assetsPath + "Shaders\\Regular.fragment"
-                );
+            _regular = Assets.GetShader("Regular");
+
+            _ui = Assets.GetShader("UI");
         }
 
-        public Shader(string vertexShaderPath, string fragmentShaderPath, ShaderParam[]? parameters = null)
+        public Shader(string vertexCode, string fragmentCode, ShaderParam[]? parameters = null)
         {
             if (parameters == null) parameters = new ShaderParam[0];
-
-            // Read shaders from disk
-            if (!File.Exists(vertexShaderPath) || !File.Exists(fragmentShaderPath))
-            {
-                Debug.Log("[Shader] One or more shaders not found\n" + vertexShaderPath + '\n' + fragmentShaderPath, ConsoleColor.DarkRed);
-                return;
-            }
 
             this.parameters = new ShaderParam[parameters.Length + 3];
             ShaderParam.defaultParams.CopyTo(this.parameters, 0);
             parameters.CopyTo(this.parameters, 3);
-            
-            string vertexShaderSource = File.ReadAllText(vertexShaderPath);
-            string fragmentShaderSource = File.ReadAllText(fragmentShaderPath);
 
             // Compile shaders and link program
-            int vertexShader = CompileShader(vertexShaderSource, ShaderType.VertexShader);
-            int fragmentShader = CompileShader(fragmentShaderSource, ShaderType.FragmentShader);
+            int vertexShader = CompileShader(vertexCode, ShaderType.VertexShader);
+            int fragmentShader = CompileShader(fragmentCode, ShaderType.FragmentShader);
 
             _glShader = GL.CreateProgram();
             GL.AttachShader(_glShader, vertexShader);
@@ -64,26 +71,16 @@ namespace CrymexEngine.Rendering
             }
         }
 
+        public static Shader LoadFromAsset(string rawVertexCode, string rawFragmentCode)
+        {
+            ShaderParam[]? parameters = LoadParameters(rawVertexCode, rawFragmentCode, out string vertexCode, out string fragmentCode);
+
+            return new Shader(vertexCode, fragmentCode, parameters);
+        }
+
         public void Use()
         {
             GL.UseProgram(_glShader);
-        }
-
-        private static int CompileShader(string source, ShaderType type)
-        {
-            int shaderId = GL.CreateShader(type);
-            GL.ShaderSource(shaderId, source);
-            GL.CompileShader(shaderId);
-
-            // Check for compilation errors
-            GL.GetShader(shaderId, ShaderParameter.CompileStatus, out var success);
-            if (success == 0)
-            {
-                string infoLog = GL.GetShaderInfoLog(shaderId);
-                Debug.LogError(infoLog);
-            }
-
-            return shaderId;
         }
 
         public void SetParam(string name, object value)
@@ -101,7 +98,7 @@ namespace CrymexEngine.Rendering
         {
             if (param < 0 || param >= parameters.Length)
             {
-                Debug.Log($"[Shader] Wrong parameter location \"{param}\"");
+                Debug.LogError($"Shader: Wrong parameter location \"{param}\"");
             }
 
             parameters[param].Set(value);
@@ -124,6 +121,113 @@ namespace CrymexEngine.Rendering
         public void Dispose()
         {
             GL.DeleteProgram(_glShader);
+        }
+
+        private static int CompileShader(string source, ShaderType type)
+        {
+            int shaderId = GL.CreateShader(type);
+            GL.ShaderSource(shaderId, source);
+            GL.CompileShader(shaderId);
+
+            // Check for compilation errors
+            GL.GetShader(shaderId, ShaderParameter.CompileStatus, out var success);
+            if (success == 0)
+            {
+                string infoLog = GL.GetShaderInfoLog(shaderId);
+                Debug.LogError(infoLog);
+            }
+
+            return shaderId;
+        }
+
+        private static ShaderParam[]? LoadParameters(string assetVertexCode, string assetFragmentCode, out string newVertexText, out string newFragmentText)
+        {
+            List<ShaderParam> paramsList = new List<ShaderParam>();
+
+            newVertexText = "";
+            newFragmentText = "";
+
+            string[] vertexLines = assetVertexCode.Split('\n', StringSplitOptions.TrimEntries);
+            for (int i = 0; i < vertexLines.Length; i++)
+            {
+                string line = vertexLines[i];
+                if (string.IsNullOrEmpty(line)) continue;
+
+                if (line.Length > 12 && line[0] == '#' && line.Substring(1, 11) == "shaderparam")
+                {
+                    string[] words = line.Split(' ', StringSplitOptions.TrimEntries);
+
+                    if (words.Length < 3) continue;
+
+                    ShaderParam? parameter = ParamFromString(words[1], words[2]);
+
+                    if (parameter != null)
+                    {
+                        paramsList.Add(parameter);
+                        continue;
+                    }
+                }
+                newVertexText += line + '\n';
+            }
+
+            string[] fragmentLines = assetFragmentCode.Split('\n', StringSplitOptions.TrimEntries);
+            for (int i = 0; i < fragmentLines.Length; i++)
+            {
+                string line = fragmentLines[i];
+                if (string.IsNullOrEmpty(line)) continue;
+
+                if (line.Length > 12 && line[0] == '#' && line.Substring(1, 11) == "shaderparam")
+                {
+                    string[] words = line.Split(' ', StringSplitOptions.TrimEntries);
+
+                    if (words.Length < 3) continue;
+
+                    ShaderParam? parameter = ParamFromString(words[1], words[2]);
+
+                    if (parameter != null)
+                    {
+                        paramsList.Add(parameter);
+                        continue;
+                    }
+                }
+                newFragmentText += line + '\n';
+            }
+
+            if (paramsList.Count == 0) return null;
+            return paramsList.ToArray();
+        }
+
+        private static ShaderParam? ParamFromString(string type, string name)
+        {
+            switch (type)
+            {
+                case "double":
+                    {
+                        return new DoubleShaderParam(name);
+                    }
+                case "vec2":
+                    {
+                        return new Vec2ShaderParam(name);
+                    }
+                case "vec3":
+                    {
+                        return new Vec3ShaderParam(name);
+                    }
+                case "vec4":
+                    {
+                        return new Vec4ShaderParam(name);
+                    }
+                case "mat2":
+                    {
+                        return new Mat2ShaderParam(name);
+                    }
+                case "mat4":
+                    {
+                        return new Mat4ShaderParam(name);
+                    }
+            }
+
+            return null;
         }
     }
 
