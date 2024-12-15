@@ -1,0 +1,11 @@
+Precompilation:
+Add shader uniform parameters with:
+#shaderparam [TYPE] [NAME]
+
+Types:
+double
+vec2
+vec3
+vec4
+mat2 - Matrix2x2
+mat4 - Matrix4x4

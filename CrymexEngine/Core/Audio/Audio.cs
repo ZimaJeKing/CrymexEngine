@@ -28,6 +28,8 @@ namespace CrymexEngine
 
         public static void Update()
         {
+            if (!_initialized) return;
+
             for (int i = 0; i < _sources.Count; i++)
             {
                 AudioSource source = _sources[i];
@@ -68,6 +70,7 @@ namespace CrymexEngine
 
         public static void Cleanup()
         {
+            if (!_initialized) return;
             ALC.DestroyContext(_alContext);
             ALC.CloseDevice(_alDevice);
         }

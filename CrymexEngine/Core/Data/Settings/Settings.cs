@@ -1,19 +1,48 @@
-﻿using OpenTK.Mathematics;
+﻿using CrymexEngine.Data;
+using OpenTK.Mathematics;
 using System;
+using System.Text;
 
 namespace CrymexEngine
 {
     public static class Settings
     {
+        public static string SettingsText
+        {
+            get
+            {
+                return _settingsText;
+            }
+        }
+        public static bool Precompiled
+        {
+            get
+            {
+                return _precompiled;
+            }
+        }
+
         private static List<SettingOption> settings = new List<SettingOption>();
+        private static string _settingsText;
+        private static bool _precompiled;
 
         public static void LoadSettings()
         {
-            string globalSettingsPath = Debug.assetsPath + "GlobalSettings.txt";
-            if (!File.Exists(globalSettingsPath)) File.Create(globalSettingsPath).Close();
+            string rawSettingsText;
+            string runtimeSettingsPath = Debug.runtimeAssetsPath + "RuntimeSettings.rtmAsset";
+            if (!File.Exists(runtimeSettingsPath))
+            {
+                // Load dynamic settings
+                rawSettingsText = File.ReadAllText(Debug.assetsPath + "GlobalSettings.txt");
+            }
+            else
+            {
+                _precompiled = true;
+                // Load precompiled settings
+                rawSettingsText = Encoding.Unicode.GetString(AssetCompiler.DecompileData(File.ReadAllBytes(runtimeSettingsPath), out string dataAssetName));
+            }
 
-            string[] settingsLines = File.ReadAllLines(globalSettingsPath);
-
+            string[] settingsLines = rawSettingsText.Split('\n', StringSplitOptions.TrimEntries);
             for (int i = 0; i < settingsLines.Length; i++)
             {
                 string[]? split = FormatSettingLine(settingsLines[i]);
@@ -38,9 +67,9 @@ namespace CrymexEngine
         }
 
         /// <summary>
-        /// Gets a etting
+        /// Gets a setting
         /// </summary>
-        /// <returns>If the etting was found</returns>
+        /// <returns>If the setting was found</returns>
         public static bool GetSetting(string name, out SettingOption setting, SettingType? type = null)
         {
             for (int s = 0; s < settings.Count; s++)
@@ -54,43 +83,20 @@ namespace CrymexEngine
                     }
                 }
             }
-            setting = null;
+            setting = new SettingOption("NULL", SettingType.None, false);
             return false;
-        }
-
-        public static void SetSetting(string name, SettingType type, object value)
-        {
-            string globalSettingsPath = Debug.assetsPath + "GlobalSettings.txt";
-            if (!File.Exists(globalSettingsPath)) File.Create(globalSettingsPath).Close();
-
-            string[] settingsLines = File.ReadAllLines(globalSettingsPath);
-
-            for (int i = 0; i < settingsLines.Length; i++)
-            {
-                string[]? split = FormatSettingLine(settingsLines[i]);
-                if (split == null) continue;
-
-                SettingOption? newSetting = CompileSetting(split[0], split[1]);
-                if (newSetting == null) continue;
-
-                if (newSetting.name == name && newSetting.type == type)
-                {
-                    settingsLines[i] = new SettingOption(name, type, value).ToString();
-                    return;
-                }
-            }
-
-            settingsLines[settingsLines.Length - 1] += "\n\n" + new SettingOption(name, type, value).ToString();
         }
 
         private static string[]? FormatSettingLine(string line)
         {
-            if (line == "") return null;
+            if (string.IsNullOrEmpty(line)) return null;
             line = line.Trim();
             if (line.Substring(0, 2) == "//") return null;
             string[] split = line.Split(':', StringSplitOptions.TrimEntries);
             if (split.Length < 2) return null;
             split[1] = split[1].Trim();
+
+            _settingsText += line + '\n';
 
             return split;
         }

@@ -20,7 +20,7 @@ namespace CrymexEngine
             this.dataSize = dataSize;
             length = dataSize / (float)(format.SampleRate * format.Channels * (format.BitsPerSample / 8f));
 
-            UsageProfiler.AddDataConsumptionValue(dataSize, MemoryUsageType.Audio);
+            UsageProfiler.AddMemoryConsumptionValue(dataSize, MemoryUsageType.Audio);
         }
 
         public static AudioClip? Load(string path)
@@ -56,20 +56,25 @@ namespace CrymexEngine
         public static AudioClip FromCompressed(byte[] mp3Data)
         {
             WaveFormat format = new WaveFormat(41000, 16, 2);
+
             using (var mp3Stream = new MemoryStream(mp3Data))
             using (var reader = new Mp3FileReader(mp3Stream))
             using (MediaFoundationResampler resampler = new MediaFoundationResampler(reader, format))
-            using (var pcmStream = new MemoryStream())
+            using (MemoryStream pcmStream = new MemoryStream())
             {
-                resampler.ResamplerQuality = 60;
+                byte[] buffer = new byte[4096];
+                int bytesRead;
 
-                WaveFileWriter.WriteWavFileToStream(pcmStream, resampler);
+                while ((bytesRead = resampler.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    pcmStream.Write(buffer, 0, bytesRead);
+                }
 
-                byte[] pcmData = pcmStream.ToArray();
-                IntPtr soundData = Marshal.AllocHGlobal(pcmData.Length);
-                Marshal.Copy(pcmData, 0, soundData, pcmData.Length);
+                byte[] fullData = pcmStream.ToArray();
+                IntPtr unmanagedBuffer = Marshal.AllocHGlobal(fullData.Length);
 
-                return new AudioClip(soundData, format, pcmData.Length);
+                Marshal.Copy(fullData, 0, unmanagedBuffer, fullData.Length);
+                return new AudioClip(unmanagedBuffer, format, fullData.Length);
             }
         }
 

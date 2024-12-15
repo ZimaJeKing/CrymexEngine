@@ -5,20 +5,13 @@ namespace CrymexEngine
 {
     public static class Debug
     {
-        public static string assetsPath = Directory.GetCurrentDirectory() + "\\Assets\\";
-        public static string runtimeAssetsPath = Directory.GetCurrentDirectory() + "\\Precompiled\\";
-
-        public static string shortTime
-        {
-            get
-            {
-                return $"{DateTime.Now.Hour}h:{DateTime.Now.Minute}m:{DateTime.Now.Second}s:{DateTime.Now.Millisecond}ms";
-            }
-        }
+        public static readonly string assetsPath = Directory.GetCurrentDirectory() + "\\Assets\\";
+        public static readonly string runtimeAssetsPath = Directory.GetCurrentDirectory() + "\\Precompiled\\";
+        public static readonly string logFolderPath = Directory.GetCurrentDirectory() + "\\Logs\\";
+        public static readonly string saveFolderPath = Directory.GetCurrentDirectory() + "\\Saved\\";
 
         public static bool logToFile { get; private set; }
 
-        private static string logFolderPath = Directory.GetCurrentDirectory() + "\\Logs\\";
         private static FileStream logFileStream;
 
         /// <summary>
@@ -42,57 +35,56 @@ namespace CrymexEngine
 
             if (!logToFile) return;
 
-            DateTime now = DateTime.Now;
-            logFileStream = File.Create(logFolderPath + now.Day + now.Month + now.Year + ' ' + now.Hour + '_' + now.Minute + '_' + now.Second + ".log");
+            logFileStream = File.Create($"{logFolderPath}{Time.CurrentDateTimeShortString}.log");
         }
 
-        public static void Log(object message)
+        public static void Log(object? message)
         {
-            if (!Application.debugMode) return;
+            if (!Engine.debugMode) return;
 
             LogToFile(message, LogSeverity.Message);
 
             WriteToConsole(message, ConsoleColor.White);
         }
-        public static void Log(object message, ConsoleColor color)
+        public static void Log(object? message, ConsoleColor color)
         {
-            if (!Application.debugMode) return;
+            if (!Engine.debugMode) return;
 
             LogToFile(message, LogSeverity.Message);
 
             WriteToConsole(message, color);
         }
 
-        public static void LogError(object message)
+        public static void LogError(object? message)
         {
-            if (!Application.debugMode) return;
+            if (!Engine.debugMode) return;
 
             LogToFile(message, LogSeverity.Error);
 
             WriteToConsole(message, ConsoleColor.DarkRed);
         }
 
-        public static void LogWarning(object message)
+        public static void LogWarning(object? message)
         {
-            if (!Application.debugMode) return;
+            if (!Engine.debugMode) return;
 
             LogToFile(message, LogSeverity.Warning);
 
             WriteToConsole(message, ConsoleColor.Yellow);
         }
 
-        public static void LogStatus(object message)
+        public static void LogStatus(object? message)
         {
-            if (!Application.debugMode) return;
+            if (!Engine.debugMode) return;
 
             LogToFile(message, LogSeverity.Status);
 
             WriteToConsole(message, ConsoleColor.Blue);
         }
 
-        public static void LogToFile(object message, LogSeverity severity)
+        public static void LogToFile(object? message, LogSeverity severity)
         {
-            if (!logToFile || logFileStream == null || !logFileStream.CanWrite || message == null) return;
+            if (!logToFile || logFileStream == null || !logFileStream.CanWrite || message == null || !Engine.debugMode) return;
 
             string? msgString = message.ToString();
             if (msgString == null) return;
@@ -104,17 +96,83 @@ namespace CrymexEngine
                 return;
             }
 
-            logFileStream.Write(Encoding.Unicode.GetBytes($"{shortTime} | {severity} | {msgString}\n"));
+            logFileStream.Write(Encoding.Unicode.GetBytes($"\n{Time.CurrentTimeString} | {severity} | {msgString}\n"));
             logFileStream.Flush();
         }
 
-        private static void WriteToConsole(object message, ConsoleColor color)
+        public static void WriteToConsole(object? message, ConsoleColor color)
         {
-            if (!Application.debugMode) return;
+            if (!Engine.debugMode) return;
 
             Console.ForegroundColor = color;
             Console.WriteLine(message);
             Console.ForegroundColor = ConsoleColor.White;
+        }
+
+        public static string DoubleToShortString(double value)
+        {
+            string rawString = value.ToString();
+
+            string[] split = rawString.Split('.');
+            if (split.Length < 2 || split[1].Length < 3) return rawString;
+
+            split[1] = split[1][0..2];
+            return split[0] + '.' + split[1];
+        }
+
+
+        /// <summary>
+        /// Converts a number of bytes to a KB, MB, GB or TB string
+        /// </summary>
+        public static string ByteCountToString(long byteCount)
+        {
+            int i = 0;
+            while (byteCount > 1024)
+            {
+                byteCount /= 1024;
+                if (byteCount < 1024)
+                {
+                    switch (i)
+                    {
+                        case 0:
+                            {
+                                return $"{byteCount} KB";
+                            }
+                        case 1:
+                            {
+                                return $"{byteCount} MB";
+                            }
+                        case 2:
+                            {
+                                return $"{byteCount} GB";
+                            }
+                        case 3:
+                            {
+                                return $"{byteCount} TB";
+                            }
+                    }
+                }
+                i++;
+            }
+            return $"{byteCount} B";
+        }
+
+        public static int GetCheckSum(byte[] data)
+        {
+            if (data == null || data.Length == 0) return 0;
+
+            int length = data.Length - (data.Length % sizeof(int));
+            int[] ints = new int[length];
+            Array.Copy(data, ints, length);
+
+            int sum = 0;
+
+            for (int i = 0; i < length; i++)
+            {
+                sum += ints[i];
+            }
+
+            return sum;
         }
     }
 

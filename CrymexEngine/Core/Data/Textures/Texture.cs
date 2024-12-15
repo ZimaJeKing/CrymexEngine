@@ -30,15 +30,16 @@ namespace CrymexEngine
 
         public Texture(int width, int height)
         {
-            width = Math.Clamp(width, 1, int.MaxValue);
-            height = Math.Clamp(height, 1, int.MaxValue);
+            // 23170 - The highest number to not overflow the data array
+            width = Math.Clamp(width, 1, 23170);
+            height = Math.Clamp(height, 1, 23170);
 
             this.width = width;
             this.height = height;
 
             data = new byte[width * height * 4];
 
-            UsageProfiler.AddDataConsumptionValue(data.Length, MemoryUsageType.Texture);
+            UsageProfiler.AddMemoryConsumptionValue(data.Length, MemoryUsageType.Texture);
 
             glTexture = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2D, glTexture);
@@ -54,7 +55,7 @@ namespace CrymexEngine
             this.height = height;
             this.data = data;
 
-            UsageProfiler.AddDataConsumptionValue(data.Length, MemoryUsageType.Texture);
+            UsageProfiler.AddMemoryConsumptionValue(data.Length, MemoryUsageType.Texture);
 
             glTexture = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2D, glTexture);
@@ -179,14 +180,17 @@ namespace CrymexEngine
             }
         }
 
-        public byte[] CompressData()
+        /// <param name="level"></param>
+        public byte[] CompressData(int level)
         {
+            level = Math.Clamp(level, 0, 9);
+
             Image<Rgba32> isImage = Image.LoadPixelData<Rgba32>(data, width, height);
 
             // Save the Image as PNG in a MemoryStream
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                isImage.Save(memoryStream, new PngEncoder() { CompressionLevel = PngCompressionLevel.BestCompression });
+                isImage.Save(memoryStream, new PngEncoder() { CompressionLevel = (PngCompressionLevel)level});
 
                 return memoryStream.ToArray();
             }
@@ -272,6 +276,24 @@ namespace CrymexEngine
         public Texture Clone()
         {
             return new Texture(width, height, data);
+        }
+        public Texture Resize(int newWidth, int newHeight)
+        {
+            if (newWidth < 1 || newHeight < 1) return Missing;
+
+            Texture texture = new Texture(newWidth, newHeight);
+
+            for (int x = 0; x < texture.width; x++)
+            {
+                for (int y = 0; y < texture.height; y++)
+                {
+                    texture.SetPixel(x, y, GetPixel((int)(x / (float)newWidth * width), (int)(y / (float)newHeight * height)));
+                }
+            }
+
+            texture.Apply();
+
+            return texture;
         }
 
         public void Dispose()

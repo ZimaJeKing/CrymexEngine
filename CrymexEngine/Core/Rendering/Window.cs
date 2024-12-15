@@ -24,10 +24,6 @@ namespace CrymexEngine
             {
                 return _glfwWindow;
             }
-            private set
-            {
-                _glfwWindow = value;
-            }
         }
         public static unsafe bool Resizable
         {
@@ -64,19 +60,10 @@ namespace CrymexEngine
             {
                 if (value == null) return;
 
-                _windowIcon?.Dispose();
-                Texture texture = new Texture(32, 32);
-
-                // Resample texture to 32x32 pixel format
-                for (int x = 0; x < texture.width; x++)
-                {
-                    for (int y = 0; y < texture.height; y++)
-                    {
-                        texture.SetPixel(x, y, value.GetPixel((int)(x / 32f * value.width), (int)(y / 32f * value.height)));
-                    }
-                }
+                Texture texture = value.Resize(32, 32);
 
                 _windowIcon = texture.Clone();
+
                 texture.FlipY();
 
                 OpenTK.Windowing.Common.Input.Image img = new OpenTK.Windowing.Common.Input.Image(32, 32, texture.data);
@@ -91,15 +78,7 @@ namespace CrymexEngine
             }
             set
             {
-                Texture texture = new Texture(value.size.X, value.size.Y);
-
-                for (int x = 0; x < texture.width; x++)
-                {
-                    for (int y = 0; y < texture.height; y++)
-                    {
-                        texture.SetPixel(x, y, value.texture.GetPixel((int)((float)x / texture.width * value.texture.width), (int)((float)y / texture.height * value.texture.height)));
-                    }
-                }
+                Texture texture = value.texture.Resize(value.size.X, value.size.Y);
 
                 texture.FlipY();
 
@@ -144,6 +123,18 @@ namespace CrymexEngine
                 GLFWWindow.UpdateFrequency = value;
             }
         }
+        public static int MaxFPSIdle
+        {
+            get
+            {
+                return _maxFPSIdle;
+            }
+            set
+            {
+                if (value < 0) return;
+                _maxFPSIdle = value;
+            }
+        }
         public static bool IsLoaded
         {
             get
@@ -172,7 +163,9 @@ namespace CrymexEngine
         private static Vector2i _size;
         private static bool _resizable;
         private static int _maxFPS;
+        private static int _maxFPSIdle;
         private static int _framesPerSecond = 0;
+        private static int _fpsCounter = 0;
         private static bool _isLoaded;
         private static Vector2 _halfSize;
         private static Vector2i _monitorResolution;
@@ -181,26 +174,25 @@ namespace CrymexEngine
 
         public static void Run()
         {
+            _windowIcon = Texture.None;
+
             ApplyPreLoadSettings();
 
             // Window settings
             NativeWindowSettings nativeWindowSettings = new NativeWindowSettings
             {
                 NumberOfSamples = Camera.msaaSamples,
-                DepthBits = 24
+                DepthBits = 24,
+                APIVersion = new Version(4, 5),
+                Profile = ContextProfile.Core,
+                Flags = ContextFlags.ForwardCompatible, 
+                StartVisible = false
             };
 
             // --- Create the GLFWWindow and load OpenGL bindings ---
-            GLFWWindow = new GameWindow(GameWindowSettings.Default, nativeWindowSettings);
+            _glfwWindow = new GameWindow(GameWindowSettings.Default, nativeWindowSettings);
 
-            // Configure transparency
-            GL.Enable(EnableCap.Blend);
-            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-
-            GL.Enable(EnableCap.DepthTest);
-            GL.DepthFunc(DepthFunction.Less);
-
-            GL.Enable(EnableCap.Multisample);
+            InitOpenGL();
 
             // Window events
             GLFWWindow.Load += Load;
@@ -219,6 +211,10 @@ namespace CrymexEngine
 
         private static unsafe void Load()
         {
+            GLFWWindow.IsVisible = true;
+
+            EventSystem.AddEventRepeat("CE_SecondLoop", new Action(SecondLoop), 1f);
+
             GLFW.GetMonitorWorkarea((Monitor*)GLFWWindow.CurrentMonitor.Pointer, out int xPos, out int yPos, out int width, out int height);
             _monitorResolution = new Vector2i(width, height);
 
@@ -226,7 +222,12 @@ namespace CrymexEngine
             Camera.Init();
             Assets.LoadAssets();
             ApplyPostLoadSettings();
-            Audio.Init();
+
+            // Initialize audio
+            if (Settings.GetSetting("UseAudio", out SettingOption audioSettingOption, SettingType.Bool) && audioSettingOption.GetValue<bool>())
+            {
+                Audio.Init();
+            }
 
             UsageProfiler.Init();
 
@@ -236,8 +237,8 @@ namespace CrymexEngine
                 Scene.current = new Scene();
             }
 
-            // Loads behaviours and calls Load
-            BehaviourLoader.LoadBehaviours();
+            // Loads scriptableBehaviours and calls Load
+            ScriptLoader.LoadBehaviours();
 
             _isLoaded = true;
         }
@@ -245,6 +246,12 @@ namespace CrymexEngine
         private static void Update(FrameEventArgs e)
         {
             UsageProfiler.BeginProcessorTimeQuery();
+
+            _fpsCounter++;
+
+            // Max idle fps
+            if (GLFWWindow.IsFocused) GLFWWindow.UpdateFrequency = MaxFPS;
+            else GLFWWindow.UpdateFrequency = MaxFPSIdle;
 
             // Clearing the screen
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
@@ -254,16 +261,21 @@ namespace CrymexEngine
 
             UICanvas.Update();
 
-            // Updating behaviours and entities
-            foreach (Behaviour behaviour in Scene.current.behaviours)
+            EventSystem.Update();
+
+            // Update scriptableBehaviours
+            foreach (Behaviour behaviour in Scene.current.scriptableBehaviours)
             {
                 if (behaviour.enabled) behaviour.Update();
             }
+
+            // Render entities
             foreach (Entity entity in Scene.current.entities)
             {
                 if (entity.enabled) entity.Update();
             }
 
+            // Render transparent UI elements
             GL.Enable(EnableCap.Blend);
             GL.Disable(EnableCap.DepthTest);
             GL.DepthMask(false);
@@ -277,6 +289,7 @@ namespace CrymexEngine
 
             HandleErrors();
 
+            // Minimize the window with Tab + X
             if (Input.Key(Key.Tab) && Input.Key(Key.X)) GLFWWindow.WindowState = (OpenTK.Windowing.Common.WindowState)WindowState.Minimized;
 
             Audio.Update();
@@ -300,6 +313,18 @@ namespace CrymexEngine
         private static void WindowTextInput(TextInputEventArgs e)
         {
             Input.textInput = e.AsString;
+        }
+
+        /// <summary>
+        /// Happens once every second
+        /// </summary>
+        private static void SecondLoop()
+        {
+            if (UsageProfiler.Active) Debug.WriteToConsole("FPS: " + _fpsCounter, ConsoleColor.DarkGreen);
+            _framesPerSecond = _fpsCounter;
+            _fpsCounter = 0;
+
+            UsageProfiler.UpdateStats();
         }
 
         private static void HandleErrors()
@@ -334,7 +359,7 @@ namespace CrymexEngine
             // Debug Mode
             if (Settings.GetSetting("DebugMode", out SettingOption debugModeSetting, SettingType.Bool))
             {
-                Application.debugMode = debugModeSetting.GetValue<bool>();
+                Engine.debugMode = debugModeSetting.GetValue<bool>();
             }
         }
         private static void ApplyPostLoadSettings()
@@ -370,6 +395,12 @@ namespace CrymexEngine
                 MaxFPS = maxFPSSetting.GetValue<int>();
             }
 
+            // Max FPS Idle
+            if (Settings.GetSetting("MaxFPSIdle", out SettingOption maxFPSIdleSetting, SettingType.Int))
+            {
+                MaxFPSIdle = maxFPSIdleSetting.GetValue<int>();
+            }
+
             // VSync
             if (Settings.GetSetting("VSync", out SettingOption vsyncSetting, SettingType.Bool))
             {
@@ -398,6 +429,25 @@ namespace CrymexEngine
                 }
                 Cursor = new WindowCursor(Assets.GetTexture(cursorTexSetting.GetValue<string>()), size, hotspot);
             }
+        }
+
+        private static void InitOpenGL()
+        {
+            // Log version info
+            GLFW.GetVersion(out int glfwMajor, out int glfwMinor, out int glfwRevision);
+            Debug.LogStatus($"GLFW Version: {glfwMajor}.{glfwMinor}.{glfwRevision}");
+            Debug.LogStatus($"OpenGL Version: {GL.GetString(StringName.Version)}");
+            Debug.LogStatus($"GLSL Version: {GL.GetString(StringName.ShadingLanguageVersion)}");
+
+            GL.ActiveTexture(TextureUnit.Texture0);
+
+            GL.Enable(EnableCap.Blend);
+            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
+            GL.Enable(EnableCap.DepthTest);
+            GL.DepthFunc(DepthFunction.Less);
+
+            if (Camera.msaaSamples != 0) GL.Enable(EnableCap.Multisample);
         }
     }
 

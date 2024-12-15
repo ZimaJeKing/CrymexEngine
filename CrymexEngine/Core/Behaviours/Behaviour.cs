@@ -8,6 +8,5 @@ namespace CrymexEngine
 
         public virtual void Load() { }
         public virtual void Update() { }
-        public virtual void PreRender() { }
     }
 }

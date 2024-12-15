@@ -40,7 +40,7 @@ namespace CrymexEngine.UI
             GL.UseProgram(shader._glShader);
 
             // Set first three shader parameters for Position, transformation, and color
-            Vector2 glPosition2D = (UIElement.Position - Camera.position) / (Window.Size.ToVector2() * 0.5f);
+            Vector2 glPosition2D = UIElement.Position / Window.HalfSize;
             Vector3 glPosition3D = new Vector3(glPosition2D.X, glPosition2D.Y, -Depth * 0.01f);
 
             shader.SetParam(0, glPosition3D);

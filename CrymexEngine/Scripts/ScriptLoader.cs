@@ -1,6 +1,6 @@
 ﻿namespace CrymexEngine.Scripting
 {
-    public static class BehaviourLoader
+    public static class ScriptLoader
     {
         public static void LoadBehaviours()
         {
@@ -15,12 +15,12 @@
             // - - - - - - - - - - - - - - - - //
         }
 
-        public static void Add<T>() where T : Behaviour
+        public static void Add<T>() where T : ScriptableBehaviour
         {
-            Behaviour? behaviour = (Behaviour?)Activator.CreateInstance(typeof(T));
+            ScriptableBehaviour? behaviour = (ScriptableBehaviour?)Activator.CreateInstance(typeof(T));
             if (behaviour == null) return;
 
-            Scene.current.behaviours.Add(behaviour);
+            Scene.current.scriptableBehaviours.Add(behaviour);
             behaviour.Load();
         }
     }

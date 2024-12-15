@@ -29,7 +29,7 @@ namespace CrymexEngine.Scenes
         public static Scene CompileScene(string[] lines)
         {
             List<Entity> entities = new List<Entity>();
-            List<Behaviour> behaviours = new List<Behaviour>();
+            List<ScriptableBehaviour> behaviours = new List<ScriptableBehaviour>();
             List<Collider> colliders = new List<Collider>();
 
             scene = new Scene(entities, behaviours, colliders);

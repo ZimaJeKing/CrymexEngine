@@ -1,16 +1,10 @@
-﻿using CrymexEngine.Rendering;
-using CrymexEngine.Scenes;
-using CrymexEngine.Scripting;
-using OpenTK.Audio.OpenAL;
-using OpenTK.Graphics.OpenGL;
-using OpenTK.Mathematics;
-using OpenTK.Windowing.GraphicsLibraryFramework;
+﻿using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace CrymexEngine
 {
-    public static class Application
+    public static class Engine
     {
-        public static bool debugMode = true;
+        public static bool debugMode = false;
 
         private static unsafe void Main(string[] args)
         {
@@ -31,6 +25,7 @@ namespace CrymexEngine
         {
             Window.End();
         }
+
         public static void ErrorQuit(string errorMessage)
         {
             Debug.LogError(errorMessage);
@@ -38,8 +33,9 @@ namespace CrymexEngine
         }
 
         private static void LogQuitDebugInfo()
-        {            
-            Debug.LogStatus($"Loaded {Scene.current.behaviours.Count} behaviours and {Scene.current.entities.Count} entities before quit");
+        {
+            Debug.LogStatus($"Ended after {Debug.DoubleToShortString(Time.GameTime)} seconds");
+            Debug.LogStatus($"Loaded {Scene.current.scriptableBehaviours.Count} behaviours and {Scene.current.entities.Count + Scene.current.uiElements.Count} game objects before quit");
         }
 
         private static void PerformCleanup()

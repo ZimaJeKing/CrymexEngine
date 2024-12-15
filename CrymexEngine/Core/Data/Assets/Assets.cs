@@ -1,6 +1,8 @@
 ﻿using CrymexEngine.Data;
+using CrymexEngine.Debugging;
 using CrymexEngine.Rendering;
-using OpenTK.Graphics.OpenGL;
+using OpenTK.Windowing.GraphicsLibraryFramework;
+using System.Text;
 
 namespace CrymexEngine
 {
@@ -14,6 +16,22 @@ namespace CrymexEngine
             }
         }
 
+        /// <summary>
+        /// A number between 0 and 9. 0 for no compression, 1 for best speed, and 9 for best compression
+        /// </summary>
+        public static int AssetTextureCompressionLevel
+        {
+            get
+            {
+                return _textureCompressionLevel;
+            }
+            set
+            {
+                value = Math.Clamp(value, 0, 9);
+                _textureCompressionLevel = value;
+            }
+        }
+
         private static List<TextureAsset> _textureAssets = new();
         private static List<AudioAsset> _audioAssets = new();
         private static List<DataAsset> _scenes = new();
@@ -21,38 +39,69 @@ namespace CrymexEngine
 
         private static bool _precompiled;
 
+        private static int _textureCompressionLevel = 9;
+
         public static void LoadAssets()
         {
+            // Get the texture compression level setting
+            if (Settings.GetSetting("TextureCompressionLevel", out SettingOption texCompLevelOption, SettingType.Int)) _textureCompressionLevel = texCompLevelOption.GetValue<int>();
+
             // Defining Texture.White and Texture.None
             Texture.White = new Texture(1, 1, new byte[] { 255, 255, 255, 255 });
-
             Texture.None = new Texture(1, 1, new byte[] { 0, 0, 0, 0 });
 
-            _precompiled = Settings.GetSetting("LoadPrecompiled", out SettingOption usePrecompiledAssetsOption, SettingType.Bool) && usePrecompiledAssetsOption.GetValue<bool>();
-            if (Precompiled)
+            // Get the asset compiler check sum setting
+            if (Settings.GetSetting("AssetCheckSum", out SettingOption checkSumSetting, SettingType.Bool)) AssetCompiler.compareCheckSum = checkSumSetting.GetValue<bool>();
+
+            //  Whether the application is precompiled
+            if (Settings.Precompiled)
             {
                 Debug.LogStatus("Running on precompiled assets");
                 _precompiled = true;
 
+                double startTime = GLFW.GetTime();
+
                 // Loads only precompiled assets
                 LoadPrecompiledAssets();
+
+                double loadingTime = GLFW.GetTime() - startTime;
+                Debug.LogStatus($"Precompiled assets loaded in {Debug.DoubleToShortString(loadingTime)} seconds");
             }
             else
             {
                 Debug.LogStatus("Running on dynamic assets");
                 _precompiled = false;
 
+                double startTime = GLFW.GetTime();
+
                 // Starts a recursive loop of searching directories in the "Assets" folder
-                // Responsible for loading all non-precompiled assets
-                SearchDirectory(Debug.assetsPath);
+                // Responsible for loading all dynamic assets
+                AssetSearchDirectory(Debug.assetsPath);
 
-                // Remove incomplete shaders
+                double loadingTime = GLFW.GetTime() - startTime;
+                Debug.LogStatus($"Dynamic assets loaded in {Debug.DoubleToShortString(loadingTime)} seconds");
 
-
-                // Precompile assets if specified
+                // Compile assets if specified in settings
                 if (Settings.GetSetting("PrecompileAssets", out SettingOption precompileAssetsOption, SettingType.Bool) && precompileAssetsOption.GetValue<bool>())
                 {
-                    CompileDataAssets();
+                    Debug.WriteToConsole($"Precompiling all assets...", ConsoleColor.Blue);
+
+                    // Compile data
+                    AssetCompilationInfo info = CompileDataAssets();
+
+                    // Create a compilation log
+                    DateTime now = DateTime.Now;
+                    using (FileStream fileStream = File.Create($"{Debug.logFolderPath}{Time.CurrentDateTimeShortString} CompilationLog.log"))
+                    {
+                        string final = "Compilation log:\n";
+                        final += info.ToString();
+
+                        fileStream.Write(Encoding.Unicode.GetBytes(final));
+                    }
+
+                    // Write to a log file and console
+                    Debug.LogToFile("\nAsset compilation:\n" + info, LogSeverity.Custom);
+                    Debug.WriteToConsole("Compilation:\n" + info, ConsoleColor.Blue);
                 }
             }
 
@@ -61,6 +110,8 @@ namespace CrymexEngine
             if (Texture.Missing == null) Texture.Missing = Texture.None;
 
             Shader.LoadDefaultShaders();
+
+            GC.Collect();
         }
 
         public static Texture GetTexture(string name)
@@ -107,35 +158,10 @@ namespace CrymexEngine
             }
             return null;
         }
-        public static void Cleanup()
+        public static void LoadDynamicAsset(string path)
         {
-            foreach (AudioAsset asset in _audioAssets)
-            {
-                asset.clip.Dispose();
-            }
-            foreach (TextureAsset asset in _textureAssets)
-            {
-                asset.texture.Dispose();
-            }
-        }
+            if (!File.Exists(path)) return;
 
-        private static void SearchDirectory(string path)
-        {
-            string[] files = Directory.GetFiles(path);
-            string[] directories = Directory.GetDirectories(path);
-
-            for (int i = 0; i < files.Length; i++)
-            {
-                LoadAsset(files[i]);
-            }
-            for (int i = 0; i < directories.Length; i++)
-            {
-                SearchDirectory(directories[i]);
-            }
-        }
-
-        private static void LoadAsset(string path)
-        {
             string filename = Path.GetFileNameWithoutExtension(path);
             string fileExtension = Path.GetExtension(path).ToLower();
 
@@ -198,40 +224,83 @@ namespace CrymexEngine
                     }
             }
         }
-
-        private static void CompileDataAssets()
+        public static void Cleanup()
         {
-            // Compiling texture data
-            string texturePath = Debug.runtimeAssetsPath + "RuntimeTextures.rtmAsset";
-            FileStream textureFileStream = File.Create(texturePath);
-
+            foreach (AudioAsset asset in _audioAssets)
+            {
+                asset.clip.Dispose();
+            }
             foreach (TextureAsset asset in _textureAssets)
             {
-                textureFileStream.Write(AssetCompiler.CompileTextureAsset(asset));
+                asset.texture.Dispose();
             }
-            textureFileStream.Close();
+        }
+
+        private static void AssetSearchDirectory(string path)
+        {
+            string[] files = Directory.GetFiles(path);
+            string[] directories = Directory.GetDirectories(path);
+
+            for (int i = 0; i < files.Length; i++)
+            {
+                LoadDynamicAsset(files[i]);
+            }
+            for (int i = 0; i < directories.Length; i++)
+            {
+                AssetSearchDirectory(directories[i]);
+            }
+        }
+        private static AssetCompilationInfo CompileDataAssets()
+        {
+            double startTime = GLFW.GetTime();
+            long textureSize, audioSize, shaderSize;
+
+            // Compiling texture data
+            string texturePath = Debug.runtimeAssetsPath + "RuntimeTextures.rtmAsset";
+
+            using (FileStream textureFileStream = File.Create(texturePath))
+            {
+                foreach (TextureAsset asset in _textureAssets)
+                {
+                    textureFileStream.Write(AssetCompiler.CompileTextureAsset(asset));
+                }
+                textureSize = textureFileStream.Length;
+            }
 
             // Compiling audio data
             string audioPath = Debug.runtimeAssetsPath + "RuntimeAudioClips.rtmAsset";
-            FileStream audioFileStream = File.Create(audioPath);
-
-            foreach (AudioAsset asset in _audioAssets)
+            using (FileStream audioFileStream = File.Create(audioPath))
             {
-                audioFileStream.Write(AssetCompiler.CompileAudioAsset(asset));
+                foreach (AudioAsset asset in _audioAssets)
+                {
+                    audioFileStream.Write(AssetCompiler.CompileAudioAsset(asset));
+                }
+                audioSize = audioFileStream.Length;
             }
-            audioFileStream.Close();
 
             // Compiling shaders
             string shaderPath = Debug.runtimeAssetsPath + "RuntimeShaders.rtmAsset";
-            FileStream shaderFileStream = File.Create(shaderPath);
-
-            foreach (ShaderAsset asset in _shaderAssets)
+            using (FileStream shaderFileStream = File.Create(shaderPath))
             {
-                shaderFileStream.Write(AssetCompiler.CompileShaderAsset(asset));
+                foreach (ShaderAsset asset in _shaderAssets)
+                {
+                    shaderFileStream.Write(AssetCompiler.CompileShaderAsset(asset));
+                }
+                shaderSize = shaderFileStream.Length;
             }
-            shaderFileStream.Close();
-        }
 
+            // Compiling setttings
+            string settingsPath = Debug.runtimeAssetsPath + "RuntimeSettings.rtmAsset";
+            using (FileStream settingsFileStream = File.Create(settingsPath))
+            {
+                settingsFileStream.Write(AssetCompiler.CompileData("GLOBALSETTINGS", Encoding.Unicode.GetBytes(Settings.SettingsText)));
+            }
+
+            double compilationTime = GLFW.GetTime() - startTime;
+
+            return new AssetCompilationInfo(textureSize, audioSize, shaderSize, compilationTime);
+
+        }
         private static void LoadPrecompiledAssets()
         {
             string texturePath = Debug.runtimeAssetsPath + "RuntimeTextures.rtmAsset";
@@ -245,37 +314,28 @@ namespace CrymexEngine
         }
     }
 
-    public class TextureAsset : DataAsset
+    public class AssetCompilationInfo
     {
-        public readonly Texture texture;
+        public readonly double compilationTime;
+        public readonly long textureCompressedSize;
+        public readonly long audioCompressedSize;
+        public readonly long shaderSize;
 
-        public TextureAsset(string path, Texture texture) : base(path)
+        public AssetCompilationInfo(long textureCompressedSize, long audioCompressedSize, long shaderSize, double compilationTime)
         {
-            this.texture = texture;
+            this.compilationTime = compilationTime;
+            this.textureCompressedSize = textureCompressedSize;
+            this.audioCompressedSize = audioCompressedSize;
+            this.shaderSize = shaderSize;
         }
-    }
 
-    public class AudioAsset : DataAsset
-    {
-        public readonly AudioClip clip;
-
-        public AudioAsset(string path, AudioClip clip) : base(path)
+        public override string ToString()
         {
-            this.clip = clip;
-        }
-    }
-
-    public class ShaderAsset : DataAsset
-    {
-        public readonly Shader shader;
-        public readonly string vertexAssetCode;
-        public readonly string fragmentAssetCode;
-
-        public ShaderAsset(string path, Shader shader, string vertexAssetCode, string fragmentAssetCode) : base(path)
-        {
-            this.shader = shader;
-            this.vertexAssetCode = vertexAssetCode;
-            this.fragmentAssetCode = fragmentAssetCode;
+            string final = $"Textures: {Debug.ByteCountToString(UsageProfiler.TextureMemoryUsage)} raw, {Debug.ByteCountToString(textureCompressedSize)} compressed\n";
+            final += $"Audio: {Debug.ByteCountToString(UsageProfiler.AudioMmeoryUsage)} raw, {Debug.ByteCountToString(audioCompressedSize)} compressed\n";
+            final += $"Shaders: {Debug.ByteCountToString(shaderSize)}\n";
+            final += $"Compilation Time: {Debug.DoubleToShortString(compilationTime)} seconds";
+            return final;
         }
     }
 }

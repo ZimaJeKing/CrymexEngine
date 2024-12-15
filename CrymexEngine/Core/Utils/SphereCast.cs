@@ -36,7 +36,6 @@ namespace CrymexEngine
                     }
                 }
 
-                // 
                 if (c == null) 
                 { 
                     hit = new PhysicsCastHit(); 

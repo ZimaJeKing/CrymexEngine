@@ -1,11 +1,10 @@
-﻿using CrymexEngine;
-using CrymexEngine.UI;
-using OpenTK.Graphics.OpenGL;
+﻿using CrymexEngine.UI;
 using OpenTK.Mathematics;
+using System.Text;
 
 namespace CrymexEngine.Scripting
 {
-    public class MyBehaviourScript : Behaviour
+    public class MyBehaviourScript : ScriptableBehaviour
     {
         Entity car;
         Entity beer;
@@ -16,21 +15,21 @@ namespace CrymexEngine.Scripting
 
         public override void Load()
         {
-            weed = new UIElement(Assets.GetTexture("Weed"), new Vector2(0, 0), new Vector2(128), null, 0);
+            weed = new UIElement(Assets.GetTexture("Weed"), -Window.HalfSize + new Vector2(64), new Vector2(128), null, 0);
             weed.AddComponent<UIClickableComponent>();
 
             circle = new UIElement(Assets.GetTexture("Circle"), Vector2.Zero, new Vector2(32));
             circle.Renderer.color = Color4.Red;
             circle.Renderer.color.A = 0.25f;
+            circle.Renderer.Depth = -1;
             circle.interactible = false;
 
-            car = new Entity(Assets.GetTexture("Logo"), Vector2.Zero, new Vector2(256), null, "Car");
+            car = new Entity(Assets.GetTexture("Car"), Vector2.Zero, new Vector2(256), null, "Car");
             car.AddComponent<ClickableComponent>();
-            car.Renderer.Depth = 1;
+            car.Renderer.Depth = 5;
 
             beer = new Entity(Assets.GetTexture("Beer"), new Vector2(350, 0), new Vector2(300));
             beer.AddComponent<ClickableComponent>();
-            beer.Parent = car;
             beer.Renderer.Depth = 0;
         }
 
@@ -40,6 +39,9 @@ namespace CrymexEngine.Scripting
 
             circle.Position = Input.MousePosition;
             //car.Rotation = Window.gameTime * 30;
+
+            car.Position += Axis2D.Arrows.GetValue() * 100 * Time.DeltaTime;
+            Camera.position = car.Position;
         }
     }
 

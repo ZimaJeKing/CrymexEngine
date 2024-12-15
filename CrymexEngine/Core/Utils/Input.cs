@@ -76,6 +76,8 @@ namespace CrymexEngine
             float translatedX = point.X - entity.Position.X;
             float translatedY = entity.Position.Y - point.Y;
 
+            if (translatedX * translatedX + translatedY * translatedY > entity.Scale.LengthSquared) return false;
+
             float radians = MathHelper.DegreesToRadians(-entity.Rotation);
             float rotatedX = MathF.Cos(radians) * translatedX - MathF.Sin(radians) * translatedY;
             float rotatedY = MathF.Sin(radians) * translatedX + MathF.Cos(radians) * translatedY;
@@ -97,10 +99,10 @@ namespace CrymexEngine
         {
             if (!element.enabled || !element.interactible) return false;
 
-            Vector2 point = Camera.ScreenSpaceToWorldSpace(MousePosition);
+            float translatedX = MousePosition.X - element.Position.X;
+            float translatedY = element.Position.Y - MousePosition.Y;
 
-            float translatedX = point.X - element.Position.X;
-            float translatedY = element.Position.Y - point.Y;
+            if (translatedX * translatedX + translatedY * translatedY > element.Scale.LengthSquared) return false;
 
             float radians = MathHelper.DegreesToRadians(-element.Rotation);
             float rotatedX = MathF.Cos(radians) * translatedX - MathF.Sin(radians) * translatedY;

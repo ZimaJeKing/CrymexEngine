@@ -17,6 +17,22 @@
             }
         }
 
+        public static string CurrentTimeString
+        {
+            get
+            {
+                return $"{DateTime.Now.Hour}h:{DateTime.Now.Minute}m:{DateTime.Now.Second}s:{DateTime.Now.Millisecond}ms";
+            }
+        }
+
+        public static string CurrentDateTimeShortString
+        {
+            get
+            {
+                return $"{DateTime.Now.Day}{DateTime.Now.Month}{DateTime.Now.Year} {DateTime.Now.Hour}_{DateTime.Now.Minute}_{DateTime.Now.Second}";
+            }
+        }
+
         private static float _gameTime;
         private static float _deltaTime;
 

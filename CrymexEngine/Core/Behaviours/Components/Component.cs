@@ -19,5 +19,10 @@ namespace CrymexEngine
         public virtual void OnMouseEnter() { }
         public virtual void OnMouseStay(float time) { }
         public virtual void OnMouseExit() { }
+
+        /// <summary>
+        /// Used for setting custom shader parameters. Happens before every render operation
+        /// </summary>
+        public virtual void PreRender() { }
     }
 }

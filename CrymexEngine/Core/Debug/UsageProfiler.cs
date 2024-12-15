@@ -12,10 +12,6 @@ namespace CrymexEngine.Debugging
             {
                 return _active;
             }
-            private set
-            {
-                _active = value;
-            }
         }
 
         /// <summary>
@@ -27,20 +23,12 @@ namespace CrymexEngine.Debugging
             { 
                 return _memoryUsage; 
             }
-            private set
-            {
-                _memoryUsage = value;
-            }
         }
         public static long TextureMemoryUsage
         {
             get
             {
                 return _textureMemoryUsage;
-            }
-            private set
-            {
-                _textureMemoryUsage = value;
             }
         }
         public static long AudioMmeoryUsage
@@ -49,14 +37,10 @@ namespace CrymexEngine.Debugging
             {
                 return _audioMemoryUsage;
             }
-            private set
-            {
-                _audioMemoryUsage = value;
-            }
         }
 
         /// <summary>
-        /// Processor time in miliseconds
+        /// Processor time in nanoseconds
         /// </summary>
         public static long ProcessorTime
         {
@@ -64,20 +48,12 @@ namespace CrymexEngine.Debugging
             {
                 return _processorTime;
             }
-            private set
-            {
-                _processorTime = value;
-            }
         }
-        public static int threadCount
+        public static int ThreadCount
         {
             get
             {
                 return _threadCount;
-            }
-            private set
-            {
-                _threadCount = value;
             }
         }
 
@@ -92,6 +68,9 @@ namespace CrymexEngine.Debugging
 
         private static int _glRenderTimeQuery;
 
+        private static int _processorTimeFrameCount;
+        private static long _processorTimeSum;
+
         public static void Init()
         {
             if (!Settings.GetSetting("UsageProfiler", out SettingOption option, SettingType.Bool)) return;
@@ -101,15 +80,19 @@ namespace CrymexEngine.Debugging
             _glRenderTimeQuery = GL.GenQuery();
 
             LogStartupInfo();
-            Active = true;
+            _active = true;
         }
 
         public static void UpdateStats()
         {
             if (!Active) return;
 
-            MemoryUsage = _currentProcess.PrivateMemorySize64;
-            threadCount = _currentProcess.Threads.Count;
+            _memoryUsage = _currentProcess.PrivateMemorySize64;
+            _threadCount = _currentProcess.Threads.Count;
+
+            _processorTime = _processorTimeSum / _processorTimeFrameCount;
+            _processorTimeFrameCount = 0;
+            _processorTimeSum = 0;
 
             Debug.LogToFile(GetUsageProfile(), LogSeverity.Custom);
         }
@@ -117,6 +100,8 @@ namespace CrymexEngine.Debugging
         public static void BeginProcessorTimeQuery()
         {
             if (!Active) return;
+
+            _processorTimeFrameCount++;
 
             GL.BeginQuery(QueryTarget.TimeElapsed, _glRenderTimeQuery);
         }
@@ -126,21 +111,21 @@ namespace CrymexEngine.Debugging
 
             GL.EndQuery(QueryTarget.TimeElapsed);
             GL.GetQueryObject(_glRenderTimeQuery, GetQueryObjectParam.QueryResult, out int nanoseconds);
-            ProcessorTime = nanoseconds;
+            _processorTimeSum += nanoseconds;
         }
 
-        public static void AddDataConsumptionValue(int byteCount, MemoryUsageType type)
+        public static void AddMemoryConsumptionValue(int byteCount, MemoryUsageType type)
         {
             switch (type)
             {
                 case MemoryUsageType.Texture:
                     {
-                        TextureMemoryUsage += byteCount;
+                        _textureMemoryUsage += byteCount;
                         break;
                     }
                 case MemoryUsageType.Audio:
                     {
-                        AudioMmeoryUsage += byteCount;
+                        _audioMemoryUsage += byteCount;
                         break;
                     }
             }
@@ -149,63 +134,26 @@ namespace CrymexEngine.Debugging
         private static string GetUsageProfile()
         {
             string profile = "\nUsage Profiler:\n";
-            profile += $"Time: {Debug.shortTime}\n";
-            profile += $"Ram usage: {ByteCountToString(MemoryUsage)}\n";
-            profile += $"Processor time: {ProcessorTime}ns\n";
-            profile += $"Thread count: {threadCount}\n";
-            profile += $"Avarage FPS: {Window.FramesPerSecond}\n";
+            profile += $"Time: {Time.CurrentTimeString}\n";
+            profile += $"Ram usage: {Debug.ByteCountToString(MemoryUsage)}\n";
+            profile += $"Avarage processor time: {Debug.DoubleToShortString(ProcessorTime * 0.000_001)}ms\n";
+            profile += $"Thread count: {ThreadCount}\n";
+            profile += $"FPS: {Window.FramesPerSecond}";
             return profile;
         }
 
         private static void LogStartupInfo()
         {
-            Debug.LogToFile("Usage profiler startup info:", LogSeverity.Custom);
+            Debug.LogToFile("\nUsage profiler startup info:", LogSeverity.Custom);
 
             int maxMsaaSamples;
             GL.GetInteger(GetPName.MaxSamples, out maxMsaaSamples);
 
             Debug.LogToFile($"Max supported MSAA samples: {maxMsaaSamples}", LogSeverity.Custom);
 
-            Debug.LogToFile($"Texture memory usage: {ByteCountToString(TextureMemoryUsage)}", LogSeverity.Custom);
-            Debug.LogToFile($"Audio memory usage: {ByteCountToString(AudioMmeoryUsage)}", LogSeverity.Custom);
-            Debug.LogToFile($"Total memory usage: {ByteCountToString(_currentProcess.PrivateMemorySize64)}", LogSeverity.Custom);
-        }
-
-        /// <summary>
-        /// Converts a number of bytes to a KB, MB, GB or TB string
-        /// </summary>
-        /// <returns></returns>
-        private static string ByteCountToString(long byteCount)
-        {
-            int i = 0;
-            while (byteCount > 1024)
-            {
-                byteCount /= 1024;
-                if (byteCount < 1024)
-                {
-                    switch (i)
-                    {
-                        case 0:
-                            {
-                                return $"{byteCount} KB";
-                            }
-                        case 1:
-                            {
-                                return $"{byteCount} MB";
-                            }
-                        case 2:
-                            {
-                                return $"{byteCount} GB";
-                            }
-                        case 3:
-                            {
-                                return $"{byteCount} TB";
-                            }
-                    }
-                }
-                i++;
-            }
-            return $"{byteCount} B";
+            Debug.LogToFile($"Texture memory usage: {Debug.ByteCountToString(TextureMemoryUsage)}", LogSeverity.Custom);
+            Debug.LogToFile($"Audio memory usage: {Debug.ByteCountToString(AudioMmeoryUsage)}", LogSeverity.Custom);
+            Debug.LogToFile($"Total memory usage: {Debug.ByteCountToString(_currentProcess.PrivateMemorySize64)}", LogSeverity.Custom);
         }
     }
 
