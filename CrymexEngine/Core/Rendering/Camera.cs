@@ -1,11 +1,18 @@
-﻿using CrymexEngine.Rendering;
-using OpenTK.Graphics.OpenGL;
+﻿using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 
 namespace CrymexEngine
 {
-    public static class Camera
+    public class Camera
     {
+        public static Camera Instance
+        {
+            get
+            {
+                return _instance;
+            }
+        }
+
         public static Vector2 position;
 
         /// <summary>
@@ -53,7 +60,9 @@ namespace CrymexEngine
         private static float _renderDistance = 2048;
         private static Color4 _clearColor;
 
-        public static void Init()
+        private static Camera _instance = new Camera();
+
+        public void Init()
         {
             // Clear color
             _clearColor = Color4.White;

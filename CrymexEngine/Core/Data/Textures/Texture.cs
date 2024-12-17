@@ -39,7 +39,7 @@ namespace CrymexEngine
 
             data = new byte[width * height * 4];
 
-            UsageProfiler.AddMemoryConsumptionValue(data.Length, MemoryUsageType.Texture);
+            UsageProfiler.Instance.AddMemoryConsumptionValue(data.Length, MemoryUsageType.Texture);
 
             glTexture = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2D, glTexture);
@@ -55,7 +55,7 @@ namespace CrymexEngine
             this.height = height;
             this.data = data;
 
-            UsageProfiler.AddMemoryConsumptionValue(data.Length, MemoryUsageType.Texture);
+            UsageProfiler.Instance.AddMemoryConsumptionValue(data.Length, MemoryUsageType.Texture);
 
             glTexture = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2D, glTexture);

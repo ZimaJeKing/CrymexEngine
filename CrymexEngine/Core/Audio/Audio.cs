@@ -1,17 +1,28 @@
-﻿using NAudio.Mixer;
-using NAudio.Wave;
-using OpenTK.Audio.OpenAL;
+﻿using OpenTK.Audio.OpenAL;
 
 namespace CrymexEngine
 {
-    public static class Audio
+    public class Audio
     {
+        /// <summary>
+        /// An internal instance
+        /// </summary>
+        public static Audio Instance
+        {
+            get 
+            { 
+                return _instance; 
+            }
+        }
+
+        private static readonly List<AudioSource> _sources = new List<AudioSource>();
         private static bool _initialized = false;
-        private static List<AudioSource> _sources = new List<AudioSource>();
         private static ALDevice _alDevice;
         private static ALContext _alContext;
 
-        public static void Init()
+        private static Audio _instance = new Audio();
+
+        public void Init()
         {
             _alDevice = ALC.OpenDevice(null);
             if (_alDevice == IntPtr.Zero)
@@ -26,34 +37,26 @@ namespace CrymexEngine
             _initialized = true;
         }
 
-        public static void Update()
+        public void RemoveInactiveSources()
         {
             if (!_initialized) return;
 
-            for (int i = 0; i < _sources.Count; i++)
+            foreach (AudioSource source in _sources)
             {
-                AudioSource source = _sources[i];
-
-                float lengthWithPitch = source.clip.length;
-                if (source.mixer != null)
+                if (source.ShouldBeDeleted)
                 {
-                    lengthWithPitch /= source.mixer.Pitch;
-                }
-                if (Time.GameTime - source.startTime > lengthWithPitch)
-                {
-                    source.Cleanup();
-                    _sources.Remove(source);
+                    source.Delete();
                 }
             }
         }
 
-        public static AudioSource Play(AudioClip clip, float volume = 1, AudioMixer? mixer = null)
+        public static AudioSource Play(AudioClip clip, float volume, bool looping = false, AudioMixer? mixer = null, bool deleteAfterEnd = true)
         {
             if (!_initialized || clip == null) return null;
 
-            AudioSource source = new AudioSource(clip, volume, mixer);
+            AudioSource source = new AudioSource(clip, volume, looping, true, mixer);
 
-            _sources.Add(source);
+           if (deleteAfterEnd) _sources.Add(source);
 
             return source;
         }
@@ -68,7 +71,7 @@ namespace CrymexEngine
             return ALFormat.Mono8;
         }
 
-        public static void Cleanup()
+        public void Cleanup()
         {
             if (!_initialized) return;
             ALC.DestroyContext(_alContext);

@@ -12,12 +12,22 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using System.ComponentModel;
 using GLErrorCode = OpenTK.Graphics.OpenGL.ErrorCode;
 using GLFWErrorCode = OpenTK.Windowing.GraphicsLibraryFramework.ErrorCode;
-using Monitor = OpenTK.Windowing.GraphicsLibraryFramework.Monitor;
 
 namespace CrymexEngine
 {
-    public static class Window
+    public class Window
     {
+        /// <summary>
+        /// An internal instance
+        /// </summary>
+        public static Window Instance
+        {
+            get
+            {
+                return _instance;
+            }
+        }
+
         public static GameWindow GLFWWindow
         {
             get
@@ -87,6 +97,13 @@ namespace CrymexEngine
                 GLFWWindow.Cursor = cursor;
             }
         }
+        public static VSyncMode VSyncMode
+        {
+            get
+            {
+                return _vSyncMode;
+            }
+        }
         public static string Title
         {
             get
@@ -120,7 +137,6 @@ namespace CrymexEngine
             {
                 if (value < 0) return; 
                 _maxFPS = value;
-                GLFWWindow.UpdateFrequency = value;
             }
         }
         public static int MaxFPSIdle
@@ -159,6 +175,7 @@ namespace CrymexEngine
 
         private static GameWindow _glfwWindow;
         private static WindowState _windowState;
+        private static VSyncMode _vSyncMode;
         private static string _title = "";
         private static Vector2i _size;
         private static bool _resizable;
@@ -168,70 +185,64 @@ namespace CrymexEngine
         private static int _fpsCounter = 0;
         private static bool _isLoaded;
         private static Vector2 _halfSize;
-        private static Vector2i _monitorResolution;
         private static WindowCursor _windowCursor;
         private static Texture _windowIcon;
 
+        private static Window _instance = new Window();
+
         public static void Run()
         {
+            if (_isLoaded) return;
+
             _windowIcon = Texture.None;
 
             ApplyPreLoadSettings();
 
-            // Window settings
-            NativeWindowSettings nativeWindowSettings = new NativeWindowSettings
-            {
-                NumberOfSamples = Camera.msaaSamples,
-                DepthBits = 24,
-                APIVersion = new Version(4, 5),
-                Profile = ContextProfile.Core,
-                Flags = ContextFlags.ForwardCompatible, 
-                StartVisible = false
-            };
-
             // --- Create the GLFWWindow and load OpenGL bindings ---
-            _glfwWindow = new GameWindow(GameWindowSettings.Default, nativeWindowSettings);
+            _glfwWindow = new GameWindow(GameWindowSettings.Default, GetWindowSettings());
 
             InitOpenGL();
 
             // Window events
-            GLFWWindow.Load += Load;
-            GLFWWindow.UpdateFrame += Update;
-            GLFWWindow.Resize += Resize;
-            GLFWWindow.TextInput += WindowTextInput;
-            GLFWWindow.Closing += WindowQuit;
+            _glfwWindow.Load += WindowLoad;
+            _glfwWindow.UpdateFrame += WindowUpdate;
+            _glfwWindow.Resize += WindowResize;
+            _glfwWindow.TextInput += WindowTextInput;
+            _glfwWindow.Closing += WindowQuit;
+            _glfwWindow.FocusedChanged += WindowFocusChanged;
 
             // Running
-            GLFWWindow.Run();
+            _glfwWindow.Run();
         }
+
         public static void End()
         {
             GLFWWindow.Close();
         }
 
-        private static unsafe void Load()
+        private static unsafe void WindowLoad()
         {
-            GLFWWindow.IsVisible = true;
+            _glfwWindow.IsVisible = true;
+
+            _glfwWindow.CenterWindow();
 
             EventSystem.AddEventRepeat("CE_SecondLoop", new Action(SecondLoop), 1f);
 
-            GLFW.GetMonitorWorkarea((Monitor*)GLFWWindow.CurrentMonitor.Pointer, out int xPos, out int yPos, out int width, out int height);
-            _monitorResolution = new Vector2i(width, height);
-
             // Initializing CrymexEngine components
-            Camera.Init();
+            Camera.Instance.Init();
             Assets.LoadAssets();
+
             ApplyPostLoadSettings();
 
             // Initialize audio
             if (Settings.GetSetting("UseAudio", out SettingOption audioSettingOption, SettingType.Bool) && audioSettingOption.GetValue<bool>())
             {
-                Audio.Init();
+                Audio.Instance.Init();
             }
 
-            UsageProfiler.Init();
+            UsageProfiler.Instance.Init();
 
-            // Load the user specified scene, otherwise create a new scene
+            // WindowLoad the user specified scene, otherwise create a new scene
             if (!Settings.GetSetting("StartingScene", out SettingOption startingSceneSetting, SettingType.RefString) || !SceneLoader.LoadScene(Assets.GetScenePath(startingSceneSetting.GetValue<string>())))
             {
                 Scene.current = new Scene();
@@ -243,66 +254,38 @@ namespace CrymexEngine
             _isLoaded = true;
         }
 
-        private static void Update(FrameEventArgs e)
+        private static void WindowUpdate(FrameEventArgs e)
         {
-            UsageProfiler.BeginProcessorTimeQuery();
+            UsageProfiler.Instance.BeginProcessorTimeQuery();
 
             _fpsCounter++;
-
-            // Max idle fps
-            if (GLFWWindow.IsFocused) GLFWWindow.UpdateFrequency = MaxFPS;
-            else GLFWWindow.UpdateFrequency = MaxFPSIdle;
 
             // Clearing the screen
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            // Time and FPS calculation
-            Time.Set((float)e.Time);
+            Time.Instance.Set((float)e.Time);
 
-            UICanvas.Update();
+            UICanvas.Instance.Update();
+            EventSystem.Instance.Update();
 
-            EventSystem.Update();
-
-            // Update scriptableBehaviours
-            foreach (Behaviour behaviour in Scene.current.scriptableBehaviours)
-            {
-                if (behaviour.enabled) behaviour.Update();
-            }
-
-            // Render entities
-            foreach (Entity entity in Scene.current.entities)
-            {
-                if (entity.enabled) entity.Update();
-            }
-
-            // Render transparent UI elements
-            GL.Enable(EnableCap.Blend);
-            GL.Disable(EnableCap.DepthTest);
-            GL.DepthMask(false);
-            foreach (UIElement element in Scene.current.uiElements)
-            {
-                if (element.enabled) element.Update();
-            }
-            GL.Disable(EnableCap.Blend);
-            GL.Enable(EnableCap.DepthTest);
-            GL.DepthMask(true);
+            // Call Update on all loaded behaviours
+            UpdateBehaviours();
 
             HandleErrors();
 
             // Minimize the window with Tab + X
-            if (Input.Key(Key.Tab) && Input.Key(Key.X)) GLFWWindow.WindowState = (OpenTK.Windowing.Common.WindowState)WindowState.Minimized;
+            if (Input.Key(Key.Tab) && Input.Key(Key.X)) _glfwWindow.WindowState = (OpenTK.Windowing.Common.WindowState)WindowState.Minimized;
 
-            Audio.Update();
+            _glfwWindow.SwapBuffers();
 
-            GLFWWindow.SwapBuffers();
-
-            UsageProfiler.EndProcessorTimeQuery();
+            UsageProfiler.Instance.EndProcessorTimeQuery();
         }
 
-        private static void Resize(ResizeEventArgs e)
+        private static void WindowResize(ResizeEventArgs e)
         {
             GL.Viewport(0, 0, e.Width, e.Height);
             _size = e.Size;
+            _halfSize = e.Size.ToVector2() * 0.5f;
         }
 
         private static void WindowQuit(CancelEventArgs e)
@@ -315,6 +298,12 @@ namespace CrymexEngine
             Input.textInput = e.AsString;
         }
 
+        private static void WindowFocusChanged(FocusedChangedEventArgs args)
+        {
+            if (args.IsFocused) GLFWWindow.UpdateFrequency = MaxFPS;
+            else GLFWWindow.UpdateFrequency = MaxFPSIdle;
+        }
+
         /// <summary>
         /// Happens once every second
         /// </summary>
@@ -324,7 +313,9 @@ namespace CrymexEngine
             _framesPerSecond = _fpsCounter;
             _fpsCounter = 0;
 
-            UsageProfiler.UpdateStats();
+            UsageProfiler.Instance.UpdateStats();
+
+            Audio.Instance.RemoveInactiveSources();
         }
 
         private static void HandleErrors()
@@ -348,9 +339,38 @@ namespace CrymexEngine
             }
         }
 
+        private static void UpdateBehaviours()
+        {
+            // Update scriptable behaviours
+            foreach (ScriptableBehaviour behaviour in Scene.current.scriptableBehaviours)
+            {
+                if (behaviour.enabled) behaviour.Update();
+            }
+
+            // Update entities
+            foreach (Entity entity in Scene.current.entities)
+            {
+                if (entity.enabled) entity.Update();
+            }
+
+            // Update UI elements and configure transparency
+            GL.Disable(EnableCap.DepthTest);
+            GL.Enable(EnableCap.Blend);
+            GL.DepthMask(false);
+
+            foreach (UIElement element in Scene.current.uiElements)
+            {
+                if (element.enabled) element.Update();
+            }
+
+            GL.Disable(EnableCap.Blend);
+            GL.Enable(EnableCap.DepthTest);
+            GL.DepthMask(true);
+        }
+
         private static void ApplyPreLoadSettings()
         {
-            // PreRender Distance
+            // Render Distance
             if (Settings.GetSetting("RenderDistance", out SettingOption renderDistSetting, SettingType.Float))
             {
                 Camera.RenderDistance = renderDistSetting.GetValue<float>();
@@ -359,17 +379,38 @@ namespace CrymexEngine
             // Debug Mode
             if (Settings.GetSetting("DebugMode", out SettingOption debugModeSetting, SettingType.Bool))
             {
-                Engine.debugMode = debugModeSetting.GetValue<bool>();
+                Debug.logToConsole = debugModeSetting.GetValue<bool>();
             }
-        }
-        private static void ApplyPostLoadSettings()
-        {
+
             // Window Title
             if (Settings.GetSetting("WindowTitle", out SettingOption windowTitleSetting, SettingType.String))
             {
-                Title = windowTitleSetting.GetValue<string>();
+                _title = windowTitleSetting.GetValue<string>();
             }
 
+            // Window Size
+            if (Settings.GetSetting("WindowSize", out SettingOption windowSizeSetting, SettingType.Vector2))
+            {
+                _size = (Vector2i)windowSizeSetting.GetValue<Vector2>();
+                _halfSize = _size.ToVector2() * 0.5f;
+            }
+
+            // VSync
+            if (Settings.GetSetting("VSync", out SettingOption vsyncSetting, SettingType.Bool))
+            {
+                if (vsyncSetting.GetValue<bool>())
+                {
+                    _vSyncMode = VSyncMode.On;
+                }
+                else
+                {
+                    _vSyncMode = VSyncMode.Off;
+                }
+            }
+
+        }
+        private static void ApplyPostLoadSettings()
+        {
             // Window resizability
             if (Settings.GetSetting("WindowResizable", out SettingOption windowResizableSetting, SettingType.Bool))
             {
@@ -383,16 +424,11 @@ namespace CrymexEngine
             }
             else Icon = Assets.GetTexture("WindowIcon");
 
-            // Window Size
-            if (Settings.GetSetting("WindowSize", out SettingOption windowSizeSetting, SettingType.Vector2))
-            {
-                Size = (Vector2i)windowSizeSetting.GetValue<Vector2>();
-            }
-
             // Max FPS
             if (Settings.GetSetting("MaxFPS", out SettingOption maxFPSSetting, SettingType.Int))
             {
                 MaxFPS = maxFPSSetting.GetValue<int>();
+                _glfwWindow.UpdateFrequency = _maxFPS;
             }
 
             // Max FPS Idle
@@ -401,24 +437,12 @@ namespace CrymexEngine
                 MaxFPSIdle = maxFPSIdleSetting.GetValue<int>();
             }
 
-            // VSync
-            if (Settings.GetSetting("VSync", out SettingOption vsyncSetting, SettingType.Bool))
-            {
-                if (vsyncSetting.GetValue<bool>())
-                {
-                    GLFWWindow.VSync = VSyncMode.On;
-                }
-                else
-                {
-                    GLFWWindow.VSync = VSyncMode.Off;
-                }
-            }
-
             // Cursor
             if (Settings.GetSetting("WindowCursor", out SettingOption cursorTexSetting, SettingType.RefString))
             {
                 Vector2i hotspot = Vector2i.Zero;
                 Vector2i size = new Vector2i(16, 16);
+
                 if (Settings.GetSetting("WindowCursorHotspot", out SettingOption hotspotSetting, SettingType.Vector2))
                 {
                     hotspot = (Vector2i)hotspotSetting.GetValue<Vector2>();
@@ -427,6 +451,7 @@ namespace CrymexEngine
                 {
                     size = (Vector2i)sizeSetting.GetValue<Vector2>();
                 }
+
                 Cursor = new WindowCursor(Assets.GetTexture(cursorTexSetting.GetValue<string>()), size, hotspot);
             }
         }
@@ -443,11 +468,39 @@ namespace CrymexEngine
 
             GL.Enable(EnableCap.Blend);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+            GL.Disable(EnableCap.Blend);
 
             GL.Enable(EnableCap.DepthTest);
             GL.DepthFunc(DepthFunction.Less);
 
+            GL.Enable(EnableCap.CullFace);
+            GL.CullFace(CullFaceMode.Back);
+
             if (Camera.msaaSamples != 0) GL.Enable(EnableCap.Multisample);
+        }
+
+        private static NativeWindowSettings GetWindowSettings()
+        {
+            return new NativeWindowSettings
+            {
+                Title = _title,
+                ClientSize = _size,
+                WindowState = (OpenTK.Windowing.Common.WindowState)_windowState,
+                StartVisible = false,
+                Vsync = _vSyncMode,
+
+                API = ContextAPI.OpenGL,
+                Profile = ContextProfile.Core,
+                APIVersion = new Version(4, 5),
+                Flags = ContextFlags.Default,
+
+                NumberOfSamples = Camera.msaaSamples,
+                DepthBits = 24,
+                AutoLoadBindings = true,
+
+                StartFocused = true,
+                IsEventDriven = false
+            };
         }
     }
 

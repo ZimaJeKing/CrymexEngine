@@ -11,6 +11,17 @@
     <ApplicationIcon>Logo.ico</ApplicationIcon>
   </PropertyGroup>
 
+    <PropertyGroup>
+		<PublishTrimmed>true</PublishTrimmed>
+		<PublishReadyToRun>true</PublishReadyToRun>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<EnableComInterop>true</EnableComInterop>
+		<PublishTrimmed>false</PublishTrimmed>
+		<!-- You can also try disabling trimming if needed -->
+	</PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <WarningLevel>9999</WarningLevel>
   </PropertyGroup>

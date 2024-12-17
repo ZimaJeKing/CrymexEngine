@@ -1,6 +1,4 @@
-﻿using OpenTK.Mathematics;
-
-namespace CrymexEngine
+﻿namespace CrymexEngine
 {
     public class Behaviour
     {

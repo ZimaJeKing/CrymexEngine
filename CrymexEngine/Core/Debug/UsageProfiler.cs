@@ -1,11 +1,18 @@
 ﻿using System.Diagnostics;
-using NAudio.Dmo;
 using OpenTK.Graphics.OpenGL;
 
 namespace CrymexEngine.Debugging
 {
-    public static class UsageProfiler
+    public class UsageProfiler
     {
+        public static UsageProfiler Instance
+        {
+            get
+            {
+                return _instance;
+            }
+        }
+
         public static bool Active
         {
             get
@@ -42,7 +49,7 @@ namespace CrymexEngine.Debugging
         /// <summary>
         /// Processor time in nanoseconds
         /// </summary>
-        public static long ProcessorTime
+        public static float ProcessorTime
         {
             get
             {
@@ -63,27 +70,25 @@ namespace CrymexEngine.Debugging
         private static long _memoryUsage;
         private static long _textureMemoryUsage;
         private static long _audioMemoryUsage;
-        private static long _processorTime;
         private static int _threadCount;
-
-        private static int _glRenderTimeQuery;
-
+        private static float _processorTime;
+        private static float _processorTimerStart;
         private static int _processorTimeFrameCount;
-        private static long _processorTimeSum;
+        private static float _processorTimeSum;
 
-        public static void Init()
+        private static UsageProfiler _instance = new UsageProfiler();
+
+        public void Init()
         {
             if (!Settings.GetSetting("UsageProfiler", out SettingOption option, SettingType.Bool)) return;
 
             if (!option.GetValue<bool>()) return;
 
-            _glRenderTimeQuery = GL.GenQuery();
-
             LogStartupInfo();
             _active = true;
         }
 
-        public static void UpdateStats()
+        public void UpdateStats()
         {
             if (!Active) return;
 
@@ -94,27 +99,23 @@ namespace CrymexEngine.Debugging
             _processorTimeFrameCount = 0;
             _processorTimeSum = 0;
 
-            Debug.LogToFile(GetUsageProfile(), LogSeverity.Custom);
+            Debug.WriteToLogFile(GetUsageProfileLog(), LogSeverity.Custom);
         }
 
-        public static void BeginProcessorTimeQuery()
+        public void BeginProcessorTimeQuery()
         {
             if (!Active) return;
 
+            _processorTimerStart = Time.GameTime;
             _processorTimeFrameCount++;
-
-            GL.BeginQuery(QueryTarget.TimeElapsed, _glRenderTimeQuery);
         }
-        public static void EndProcessorTimeQuery()
+        public void EndProcessorTimeQuery()
         {
             if (!Active) return;
-
-            GL.EndQuery(QueryTarget.TimeElapsed);
-            GL.GetQueryObject(_glRenderTimeQuery, GetQueryObjectParam.QueryResult, out int nanoseconds);
-            _processorTimeSum += nanoseconds;
+            _processorTimeSum += Time.GameTime - _processorTimerStart;
         }
 
-        public static void AddMemoryConsumptionValue(int byteCount, MemoryUsageType type)
+        public void AddMemoryConsumptionValue(int byteCount, MemoryUsageType type)
         {
             switch (type)
             {
@@ -131,12 +132,12 @@ namespace CrymexEngine.Debugging
             }
         }
 
-        private static string GetUsageProfile()
+        private static string GetUsageProfileLog()
         {
             string profile = "\nUsage Profiler:\n";
             profile += $"Time: {Time.CurrentTimeString}\n";
             profile += $"Ram usage: {Debug.ByteCountToString(MemoryUsage)}\n";
-            profile += $"Avarage processor time: {Debug.DoubleToShortString(ProcessorTime * 0.000_001)}ms\n";
+            profile += $"Avarage processor time: {Debug.FloatToShortString(ProcessorTime * 1000)}ms\n";
             profile += $"Thread count: {ThreadCount}\n";
             profile += $"FPS: {Window.FramesPerSecond}";
             return profile;
@@ -144,16 +145,16 @@ namespace CrymexEngine.Debugging
 
         private static void LogStartupInfo()
         {
-            Debug.LogToFile("\nUsage profiler startup info:", LogSeverity.Custom);
+            Debug.WriteToLogFile("\nUsage profiler startup info:", LogSeverity.Custom);
 
             int maxMsaaSamples;
             GL.GetInteger(GetPName.MaxSamples, out maxMsaaSamples);
 
-            Debug.LogToFile($"Max supported MSAA samples: {maxMsaaSamples}", LogSeverity.Custom);
+            Debug.WriteToLogFile($"Max supported MSAA samples: {maxMsaaSamples}", LogSeverity.Custom);
 
-            Debug.LogToFile($"Texture memory usage: {Debug.ByteCountToString(TextureMemoryUsage)}", LogSeverity.Custom);
-            Debug.LogToFile($"Audio memory usage: {Debug.ByteCountToString(AudioMmeoryUsage)}", LogSeverity.Custom);
-            Debug.LogToFile($"Total memory usage: {Debug.ByteCountToString(_currentProcess.PrivateMemorySize64)}", LogSeverity.Custom);
+            Debug.WriteToLogFile($"Texture memory usage: {Debug.ByteCountToString(TextureMemoryUsage)}", LogSeverity.Custom);
+            Debug.WriteToLogFile($"Audio memory usage: {Debug.ByteCountToString(AudioMmeoryUsage)}", LogSeverity.Custom);
+            Debug.WriteToLogFile($"Total memory usage: {Debug.ByteCountToString(_currentProcess.PrivateMemorySize64)}", LogSeverity.Custom);
         }
     }
 

@@ -1,90 +1,123 @@
-﻿using System.Diagnostics;
-using System.Text;
+﻿using System.Text;
 
 namespace CrymexEngine
 {
-    public static class Debug
+    public class Debug
     {
+        /// <summary>
+        /// An internal instance
+        /// </summary>
+        public static Debug Instance
+        {
+            get
+            {
+                return _instance;
+            }
+        }
+
         public static readonly string assetsPath = Directory.GetCurrentDirectory() + "\\Assets\\";
         public static readonly string runtimeAssetsPath = Directory.GetCurrentDirectory() + "\\Precompiled\\";
         public static readonly string logFolderPath = Directory.GetCurrentDirectory() + "\\Logs\\";
         public static readonly string saveFolderPath = Directory.GetCurrentDirectory() + "\\Saved\\";
 
-        public static bool logToFile { get; private set; }
+        public static bool logToConsole;
+
+        public static bool LogToFile
+        {
+            get
+            {
+                return _logToFile;
+            }
+        }
 
         private static FileStream logFileStream;
+        private static bool _logToFile;
+
+        private static Debug _instance = new Debug();
 
         /// <summary>
         /// A function to close
         /// </summary>
-        public static void Cleanup()
+        public void Cleanup()
         {
-            if (!logToFile) return;
+            if (!_logToFile) return;
 
             logFileStream.Flush();
             logFileStream.Dispose();
             logFileStream.Close();
         }
 
-        public static void Init()
+        public void Init()
         {
-            if (Settings.GetSetting("LogToFile", out SettingOption logToFileSetting, SettingType.Bool))
+            // Init directories
+            if (!Directory.Exists(assetsPath)) Directory.CreateDirectory(assetsPath);
+            if (!Directory.Exists(runtimeAssetsPath)) Directory.CreateDirectory(runtimeAssetsPath);
+            if (!Directory.Exists(logFolderPath)) Directory.CreateDirectory(logFolderPath);
+            if (!Directory.Exists(saveFolderPath)) Directory.CreateDirectory(saveFolderPath);
+
+            if (Settings.GetSetting("LogToConsole", out SettingOption logToConsoleSetting, SettingType.Bool))
             {
-                logToFile = logToFileSetting.GetValue<bool>();
+                logToConsole = logToConsoleSetting.GetValue<bool>();
             }
 
-            if (!logToFile) return;
+            // Create a log file
+            if (Settings.GetSetting("LogToFile", out SettingOption logToFileSetting, SettingType.Bool))
+            {
+                _logToFile = logToFileSetting.GetValue<bool>();
+            }
+
+            if (!_logToFile) return;
 
             logFileStream = File.Create($"{logFolderPath}{Time.CurrentDateTimeShortString}.log");
         }
 
         public static void Log(object? message)
         {
-            if (!Engine.debugMode) return;
+            if (!logToConsole) return;
 
-            LogToFile(message, LogSeverity.Message);
+            WriteToLogFile(message, LogSeverity.Message);
 
             WriteToConsole(message, ConsoleColor.White);
         }
         public static void Log(object? message, ConsoleColor color)
         {
-            if (!Engine.debugMode) return;
+            if (!logToConsole) return;
 
-            LogToFile(message, LogSeverity.Message);
+            WriteToLogFile(message, LogSeverity.Message);
 
             WriteToConsole(message, color);
         }
 
         public static void LogError(object? message)
         {
-            if (!Engine.debugMode) return;
+            if (!logToConsole) return;
 
-            LogToFile(message, LogSeverity.Error);
+            WriteToLogFile(message, LogSeverity.Error);
 
             WriteToConsole(message, ConsoleColor.DarkRed);
         }
 
         public static void LogWarning(object? message)
         {
-            if (!Engine.debugMode) return;
+            if (!logToConsole) return;
 
-            LogToFile(message, LogSeverity.Warning);
+            WriteToLogFile(message, LogSeverity.Warning);
 
             WriteToConsole(message, ConsoleColor.Yellow);
         }
 
         public static void LogStatus(object? message)
         {
-            if (!Engine.debugMode) return;
+            if (!logToConsole) return;
 
-            LogToFile(message, LogSeverity.Status);
+            WriteToLogFile(message, LogSeverity.Status);
 
             WriteToConsole(message, ConsoleColor.Blue);
         }
 
-        public static void LogToFile(object? message, LogSeverity severity)
+        public static void WriteToLogFile(object? message, LogSeverity severity)
         {
-            if (!logToFile || logFileStream == null || !logFileStream.CanWrite || message == null || !Engine.debugMode) return;
+            if (!_logToFile || logFileStream == null || !logFileStream.CanWrite || message == null || !logToConsole) return;
 
             string? msgString = message.ToString();
             if (msgString == null) return;
@@ -102,18 +135,22 @@ namespace CrymexEngine
 
         public static void WriteToConsole(object? message, ConsoleColor color)
         {
-            if (!Engine.debugMode) return;
+            if (!logToConsole) return;
 
             Console.ForegroundColor = color;
             Console.WriteLine(message);
             Console.ForegroundColor = ConsoleColor.White;
         }
 
-        public static string DoubleToShortString(double value)
+        public static string FloatToShortString(float value)
         {
             string rawString = value.ToString();
 
-            string[] split = rawString.Split('.');
+            char separator;
+            if (rawString.Contains('.')) separator = '.';
+            else separator = ',';
+
+            string[] split = rawString.Split(separator);
             if (split.Length < 2 || split[1].Length < 3) return rawString;
 
             split[1] = split[1][0..2];

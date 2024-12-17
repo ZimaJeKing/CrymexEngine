@@ -19,7 +19,7 @@ namespace CrymexEngine.UI
             set
             {
                 _depth = value;
-                UICanvas.SortElements();
+                UICanvas.Instance.SortElements();
             }
         }
 
@@ -28,7 +28,7 @@ namespace CrymexEngine.UI
         public UIRenderer(float depth)
         {
             _depth = depth;
-            UICanvas.SortElements();
+            UICanvas.Instance.SortElements();
         }
 
         public override void Update()

@@ -4,14 +4,24 @@ namespace CrymexEngine
 {
     public static class Engine
     {
-        public static bool debugMode = false;
+        public static string[] StartingArgs
+        {
+            get
+            {
+                return _startingArgs;
+            }
+        }
+
+        private static string[] _startingArgs;
 
         private static unsafe void Main(string[] args)
         {
+            _startingArgs = args;
+
             GLFW.Init();
 
-            Settings.LoadSettings();
-            Debug.Init();
+            Settings.Instance.LoadSettings();
+            Debug.Instance.Init();
 
             // --- Main application loop --- //
             Window.Run();
@@ -34,15 +44,15 @@ namespace CrymexEngine
 
         private static void LogQuitDebugInfo()
         {
-            Debug.LogStatus($"Ended after {Debug.DoubleToShortString(Time.GameTime)} seconds");
+            Debug.LogStatus($"Ended after {Debug.FloatToShortString(Time.GameTime)} seconds");
             Debug.LogStatus($"Loaded {Scene.current.scriptableBehaviours.Count} behaviours and {Scene.current.entities.Count + Scene.current.uiElements.Count} game objects before quit");
         }
 
         private static void PerformCleanup()
         {
-            Audio.Cleanup();
+            Audio.Instance.Cleanup();
             Assets.Cleanup();
-            Debug.Cleanup();
+            Debug.Instance.Cleanup();
 
             GLFW.Terminate();
         }

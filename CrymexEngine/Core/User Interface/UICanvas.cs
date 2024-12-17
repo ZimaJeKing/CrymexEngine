@@ -2,19 +2,32 @@
 
 namespace CrymexEngine.UI
 {
-    public static class UICanvas
+    public class UICanvas
     {
+        /// <summary>
+        /// An internal instance
+        /// </summary>
+        public static UICanvas Instance
+        {
+            get
+            {
+                return _instance;
+            }
+        }
+
         private static GameObject? _hold;
         private static GameObject? _hover;
 
         private static float _holdTime, _hoverTime;
 
-        public static void Update()
+        private static UICanvas _instance = new UICanvas();
+
+        public void Update()
         {
             HandleMouseInput();
         }
 
-        public static void SortElements()
+        public void SortElements()
         {
             Scene.current.uiElements.Sort((a, b) => -b.Renderer.Depth.CompareTo(a.Renderer.Depth));
         }

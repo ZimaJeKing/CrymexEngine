@@ -4,7 +4,7 @@
 
 HEX     | #1A2B3C
 INT     | 1234
-FLOAT   | 1.234f
+FLOAT   | 1,234f
 COND    | True/On x False/Off
 VECTOR2 | ( 12, 34 )
 VECTOR3 | ( 12, 34, 56 )
@@ -15,7 +15,7 @@ REF     | ABCD
  ----- Possible settings -----
 
 Debugging:
-DebugMode [COND] - Shows or hides console output
+LogToConsole [COND] - Shows or hides console output
 LogToFile [COND] - Whether to log error and debug messages to a log file
 UsageProfiler [COND] - Whether to use the usage profiler
 

@@ -1,22 +1,20 @@
 ﻿using CrymexEngine.UI;
 using OpenTK.Mathematics;
-using System.Text;
 
 namespace CrymexEngine.Scripting
 {
     public class MyBehaviourScript : ScriptableBehaviour
     {
         Entity car;
-        Entity beer;
         UIElement circle;
-        UIElement weed;
+        UIElement beer;
 
         AudioMixer mixer = new AudioMixer(0.25f, 1);
 
         public override void Load()
         {
-            weed = new UIElement(Assets.GetTexture("Weed"), -Window.HalfSize + new Vector2(64), new Vector2(128), null, 0);
-            weed.AddComponent<UIClickableComponent>();
+            beer = new UIElement(Assets.GetTexture("Beer"), -Window.HalfSize + new Vector2(64), new Vector2(128), null, 0);
+            beer.AddComponent<UIClickableComponent>();
 
             circle = new UIElement(Assets.GetTexture("Circle"), Vector2.Zero, new Vector2(32));
             circle.Renderer.color = Color4.Red;
@@ -27,15 +25,11 @@ namespace CrymexEngine.Scripting
             car = new Entity(Assets.GetTexture("Car"), Vector2.Zero, new Vector2(256), null, "Car");
             car.AddComponent<ClickableComponent>();
             car.Renderer.Depth = 5;
-
-            beer = new Entity(Assets.GetTexture("Beer"), new Vector2(350, 0), new Vector2(300));
-            beer.AddComponent<ClickableComponent>();
-            beer.Renderer.Depth = 0;
         }
 
         public override void Update()
         {
-            if (Input.KeyDown(Key.W)) Audio.Play(Assets.GetAudioClip("SprayPaint"), 0.5f, mixer);
+            if (Input.KeyDown(Key.W)) Audio.Play(Assets.GetAudioClip("SprayPaint"), 0.5f);
 
             circle.Position = Input.MousePosition;
             //car.Rotation = Window.gameTime * 30;
@@ -59,7 +53,6 @@ namespace CrymexEngine.Scripting
         public override void OnMouseDown(MouseButton mouseButton)
         {
             Renderer.color = Color4.Gray;
-            //Debug.Log("Click");
         }
 
         public override void OnMouseHold(MouseButton mouseButton, float time)

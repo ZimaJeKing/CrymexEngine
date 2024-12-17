@@ -1,11 +1,24 @@
 ﻿using OpenTK.Audio.OpenAL;
+using OpenTK.Platform.Windows;
 
 namespace CrymexEngine
 {
     public class AudioSource
     {
-        public readonly float startTime;
         public readonly AudioClip clip;
+        public readonly AudioMixer? mixer;
+        public readonly bool looping;
+        public readonly bool deleteAfterStop;
+        public readonly float lengthWithPitch;
+        public readonly bool deleteAfterEnd;
+
+        public bool Playing
+        {
+            get
+            {
+                return _playing;
+            }
+        }
 
         public float Volume
         {
@@ -16,50 +29,108 @@ namespace CrymexEngine
 
                 if (mixer != null)
                 {
-                    AL.Source(source, ALSourcef.Gain, value * mixer.Volume);
+                    AL.Source(alSource, ALSourcef.Gain, value * mixer.Volume);
                 }
                 else
                 {
-                    AL.Source(source, ALSourcef.Gain, value);
+                    AL.Source(alSource, ALSourcef.Gain, value);
                 }
             }
         }
 
-        public AudioMixer? mixer;
+        public bool Disposed
+        {
+            get 
+            { 
+                return _disposed; 
+            }
+        }
 
-        private int buffer;
-        private int source;
+        public bool ShouldBeDeleted
+        {
+            get
+            {
+                if (!looping && Time.GameTime - _startTime + _playProgress > lengthWithPitch) return true;
 
-        public AudioSource(AudioClip clip, float volume, AudioMixer? mixer = null)
+                return false;
+            }
+        }
+
+        private readonly int alDataBuffer;
+        private readonly int alSource;
+
+        private bool _playing;
+        private float _playProgress;
+        private float _startTime;
+        private bool _disposed;
+
+        public AudioSource(AudioClip clip, float volume, bool looping = false, bool playOnStart = true, AudioMixer? mixer = null, bool deleteAfterEnd = true)
         {
             this.clip = clip;
+            this.looping = looping;
             this.mixer = mixer;
-            startTime = Time.GameTime;
+            this.deleteAfterEnd = deleteAfterEnd;
+            _startTime = Time.GameTime;
 
-            buffer = AL.GenBuffer();
-            source = AL.GenSource();
+            // Calculate modified length
+            lengthWithPitch = clip.length;
+            if (mixer != null)
+            {
+                lengthWithPitch /= mixer.Pitch;
+            }
+
+            // Setup OpenAL buffer and source
+            alDataBuffer = AL.GenBuffer();
+            alSource = AL.GenSource();
 
             ALFormat format = Audio.GetSoundFormat(clip.format.Channels, clip.format.BitsPerSample);
 
-            AL.BufferData(buffer, format, clip.soundData, clip.dataSize, clip.format.SampleRate);
+            AL.BufferData(alDataBuffer, format, clip.soundData, clip.dataSize, clip.format.SampleRate);
 
-            AL.Source(source, ALSourcei.Buffer, buffer);
+            AL.Source(alSource, ALSourcei.Buffer, alDataBuffer);
 
             if (mixer != null)
             {
-                AL.Source(source, ALSourcef.Pitch, mixer.Pitch);
+                AL.Source(alSource, ALSourcef.Pitch, mixer.Pitch);
             }
 
             Volume = volume;
 
-            AL.SourcePlay(source);
+            if (playOnStart) Play();
         }
 
-        public void Cleanup()
+        public void Stop()
         {
-            AL.SourceStop(source);
-            AL.DeleteSource(source);
-            AL.DeleteBuffer(buffer);
+            if (_disposed || _playing) return;
+
+            _playing = false;
+            AL.SourceStop(alSource);
+        }
+
+        public void Play()
+        {
+            if (_disposed || _playing) return;
+
+            _playProgress = Time.GameTime - _startTime;
+            _startTime = Time.GameTime;
+            _playing = true;
+            AL.SourcePlay(alSource);
+        }
+
+        public void Delete()
+        {
+            Stop();
+            Cleanup();
+        }
+
+        private void Cleanup()
+        {
+            if (_disposed || _playing) return;
+
+            _disposed = true;
+            AL.SourceStop(alSource);
+            AL.DeleteSource(alSource);
+            AL.DeleteBuffer(alDataBuffer);
         }
     }
 }

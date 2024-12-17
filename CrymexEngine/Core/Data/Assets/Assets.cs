@@ -1,13 +1,23 @@
 ﻿using CrymexEngine.Data;
 using CrymexEngine.Debugging;
 using CrymexEngine.Rendering;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 using System.Text;
 
 namespace CrymexEngine
 {
-    public static class Assets
+    public class Assets
     {
+        /// <summary>
+        /// An internal instance
+        /// </summary>
+        public static Assets Instance
+        {
+            get
+            {
+                return _instance;
+            }
+        }
+
         public static bool Precompiled
         {
             get
@@ -34,12 +44,13 @@ namespace CrymexEngine
 
         private static List<TextureAsset> _textureAssets = new();
         private static List<AudioAsset> _audioAssets = new();
-        private static List<DataAsset> _scenes = new();
         private static List<ShaderAsset> _shaderAssets = new();
+        private static readonly List<DataAsset> _scenes = new();
 
         private static bool _precompiled;
-
         private static int _textureCompressionLevel = 9;
+
+        private static Assets _instance = new Assets();
 
         public static void LoadAssets()
         {
@@ -59,27 +70,27 @@ namespace CrymexEngine
                 Debug.LogStatus("Running on precompiled assets");
                 _precompiled = true;
 
-                double startTime = GLFW.GetTime();
+                float startTime = Time.GameTime;
 
                 // Loads only precompiled assets
                 LoadPrecompiledAssets();
 
-                double loadingTime = GLFW.GetTime() - startTime;
-                Debug.LogStatus($"Precompiled assets loaded in {Debug.DoubleToShortString(loadingTime)} seconds");
+                float loadingTime = Time.GameTime - startTime;
+                Debug.LogStatus($"Precompiled assets loaded in {Debug.FloatToShortString(loadingTime)} seconds");
             }
             else
             {
                 Debug.LogStatus("Running on dynamic assets");
                 _precompiled = false;
 
-                double startTime = GLFW.GetTime();
+                float startTime = Time.GameTime;
 
                 // Starts a recursive loop of searching directories in the "Assets" folder
                 // Responsible for loading all dynamic assets
                 AssetSearchDirectory(Debug.assetsPath);
 
-                double loadingTime = GLFW.GetTime() - startTime;
-                Debug.LogStatus($"Dynamic assets loaded in {Debug.DoubleToShortString(loadingTime)} seconds");
+                float loadingTime = Time.GameTime - startTime;
+                Debug.LogStatus($"Dynamic assets loaded in {Debug.FloatToShortString(loadingTime)} seconds");
 
                 // Compile assets if specified in settings
                 if (Settings.GetSetting("PrecompileAssets", out SettingOption precompileAssetsOption, SettingType.Bool) && precompileAssetsOption.GetValue<bool>())
@@ -90,7 +101,6 @@ namespace CrymexEngine
                     AssetCompilationInfo info = CompileDataAssets();
 
                     // Create a compilation log
-                    DateTime now = DateTime.Now;
                     using (FileStream fileStream = File.Create($"{Debug.logFolderPath}{Time.CurrentDateTimeShortString} CompilationLog.log"))
                     {
                         string final = "Compilation log:\n";
@@ -100,14 +110,14 @@ namespace CrymexEngine
                     }
 
                     // Write to a log file and console
-                    Debug.LogToFile("\nAsset compilation:\n" + info, LogSeverity.Custom);
+                    Debug.WriteToLogFile("\nAsset compilation:\n" + info, LogSeverity.Custom);
                     Debug.WriteToConsole("Compilation:\n" + info, ConsoleColor.Blue);
                 }
             }
 
             // Set the missing texture
             Texture.Missing = GetTexture("Missing");
-            if (Texture.Missing == null) Texture.Missing = Texture.None;
+            Texture.Missing ??= Texture.None;
 
             Shader.LoadDefaultShaders();
 
@@ -252,7 +262,7 @@ namespace CrymexEngine
         }
         private static AssetCompilationInfo CompileDataAssets()
         {
-            double startTime = GLFW.GetTime();
+            float startTime = Time.GameTime;
             long textureSize, audioSize, shaderSize;
 
             // Compiling texture data
@@ -296,7 +306,7 @@ namespace CrymexEngine
                 settingsFileStream.Write(AssetCompiler.CompileData("GLOBALSETTINGS", Encoding.Unicode.GetBytes(Settings.SettingsText)));
             }
 
-            double compilationTime = GLFW.GetTime() - startTime;
+            float compilationTime = Time.GameTime - startTime;
 
             return new AssetCompilationInfo(textureSize, audioSize, shaderSize, compilationTime);
 
@@ -316,12 +326,12 @@ namespace CrymexEngine
 
     public class AssetCompilationInfo
     {
-        public readonly double compilationTime;
+        public readonly float compilationTime;
         public readonly long textureCompressedSize;
         public readonly long audioCompressedSize;
         public readonly long shaderSize;
 
-        public AssetCompilationInfo(long textureCompressedSize, long audioCompressedSize, long shaderSize, double compilationTime)
+        public AssetCompilationInfo(long textureCompressedSize, long audioCompressedSize, long shaderSize, float compilationTime)
         {
             this.compilationTime = compilationTime;
             this.textureCompressedSize = textureCompressedSize;
@@ -334,7 +344,7 @@ namespace CrymexEngine
             string final = $"Textures: {Debug.ByteCountToString(UsageProfiler.TextureMemoryUsage)} raw, {Debug.ByteCountToString(textureCompressedSize)} compressed\n";
             final += $"Audio: {Debug.ByteCountToString(UsageProfiler.AudioMmeoryUsage)} raw, {Debug.ByteCountToString(audioCompressedSize)} compressed\n";
             final += $"Shaders: {Debug.ByteCountToString(shaderSize)}\n";
-            final += $"Compilation Time: {Debug.DoubleToShortString(compilationTime)} seconds";
+            final += $"Compilation Time: {Debug.FloatToShortString(compilationTime)} seconds";
             return final;
         }
     }

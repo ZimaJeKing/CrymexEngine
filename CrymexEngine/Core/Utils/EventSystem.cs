@@ -1,10 +1,23 @@
 ﻿namespace CrymexEngine
 {
-    public static class EventSystem
+    public class EventSystem
     {
+        /// <summary>
+        /// An internal instance
+        /// </summary>
+        public static EventSystem Instance
+        {
+            get
+            {
+                return _instance;
+            }
+        }
+
         private static List<Event> events = new List<Event>();
 
-        public static void Update()
+        private static EventSystem _instance = new EventSystem();
+
+        public void Update()
         {
             foreach (Event e in events)
             {

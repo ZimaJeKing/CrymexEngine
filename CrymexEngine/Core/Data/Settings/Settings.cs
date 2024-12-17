@@ -1,12 +1,22 @@
 ﻿using CrymexEngine.Data;
 using OpenTK.Mathematics;
-using System;
 using System.Text;
 
 namespace CrymexEngine
 {
-    public static class Settings
+    public class Settings
     {
+        /// <summary>
+        /// An internal instance
+        /// </summary>
+        public static Settings Instance
+        {
+            get
+            {
+                return _instance;
+            }
+        }
+
         public static string SettingsText
         {
             get
@@ -22,24 +32,26 @@ namespace CrymexEngine
             }
         }
 
-        private static List<SettingOption> settings = new List<SettingOption>();
+        private static readonly List<SettingOption> settings = new List<SettingOption>();
         private static string _settingsText;
         private static bool _precompiled;
 
-        public static void LoadSettings()
+        private static Settings _instance = new Settings();
+
+        public void LoadSettings()
         {
             string rawSettingsText;
             string runtimeSettingsPath = Debug.runtimeAssetsPath + "RuntimeSettings.rtmAsset";
             if (!File.Exists(runtimeSettingsPath))
             {
-                // Load dynamic settings
+                // WindowLoad dynamic settings
                 rawSettingsText = File.ReadAllText(Debug.assetsPath + "GlobalSettings.txt");
             }
             else
             {
                 _precompiled = true;
-                // Load precompiled settings
-                rawSettingsText = Encoding.Unicode.GetString(AssetCompiler.DecompileData(File.ReadAllBytes(runtimeSettingsPath), out string dataAssetName));
+                // WindowLoad precompiled settings
+                rawSettingsText = Encoding.Unicode.GetString(AssetCompiler.DecompileData(File.ReadAllBytes(runtimeSettingsPath), out _));
             }
 
             string[] settingsLines = rawSettingsText.Split('\n', StringSplitOptions.TrimEntries);
@@ -91,7 +103,7 @@ namespace CrymexEngine
         {
             if (string.IsNullOrEmpty(line)) return null;
             line = line.Trim();
-            if (line.Substring(0, 2) == "//") return null;
+            if (line[..2] == "//") return null;
             string[] split = line.Split(':', StringSplitOptions.TrimEntries);
             if (split.Length < 2) return null;
             split[1] = split[1].Trim();
@@ -108,16 +120,16 @@ namespace CrymexEngine
             value = value.Trim();
 
             char first = value[0];
-            char last = value[value.Length - 1];
+            char last = value[^1];
 
             if (first == '#') // Hex values
             {
-                if (!int.TryParse(value.Substring(1), System.Globalization.NumberStyles.HexNumber, null, out int hexValue)) return null;
+                if (!int.TryParse(value.AsSpan(1), System.Globalization.NumberStyles.HexNumber, null, out int hexValue)) return null;
                 return new SettingOption(name, SettingType.Hex, hexValue);
             }
-            else if (first == '(' && value[value.Length - 1] == ')') // Vectors
+            else if (first == '(' && value[^1] == ')') // Vectors
             {
-                string[] strings = value.Substring(1, value.Length - 2).Split(',');
+                string[] strings = value[1..^1].Split(',');
 
                 float[] values = new float[strings.Length];
 
@@ -150,11 +162,11 @@ namespace CrymexEngine
             {
                 if (last != '"' && last != '\'' || value.Length < 2) return null;
 
-                return new SettingOption(name, SettingType.String, value.Substring(1, value.Length - 2));
+                return new SettingOption(name, SettingType.String, value[1..^1]);
             }
             else if (last == 'f')
             {
-                if (!float.TryParse(value.Substring(0, value.Length - 1), System.Globalization.NumberStyles.Float, null, out float num)) return null;
+                if (!float.TryParse(value.AsSpan(0, value.Length - 1), System.Globalization.NumberStyles.Float, null, out float num)) return null;
                 return new SettingOption(name, SettingType.Float, num);
             }
             else if (int.TryParse(value, out int num))

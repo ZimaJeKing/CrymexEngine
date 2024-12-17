@@ -28,7 +28,7 @@ namespace CrymexEngine.UI
 
             Scene.current.uiElements.Add(this);
 
-            UICanvas.SortElements();
+            UICanvas.Instance.SortElements();
         }
 
         public void Update()

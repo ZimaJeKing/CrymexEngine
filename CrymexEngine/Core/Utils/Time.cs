@@ -1,12 +1,25 @@
-﻿namespace CrymexEngine
+﻿using OpenTK.Windowing.GraphicsLibraryFramework;
+
+namespace CrymexEngine
 {
-    public static class Time
+    public class Time
     {
+        /// <summary>
+        /// An internal instance
+        /// </summary>
+        public static Time Instance
+        {
+            get
+            {
+                return _instance;
+            }
+        }
+
         public static float GameTime
         {
             get
-            { 
-                return _gameTime; 
+            {
+                return (float)GLFW.GetTime();
             }
         }
         public static float DeltaTime
@@ -33,12 +46,12 @@
             }
         }
 
-        private static float _gameTime;
         private static float _deltaTime;
 
-        public static void Set(float deltaTime)
+        private static Time _instance = new Time();
+
+        public void Set(float deltaTime)
         {
-            _gameTime += deltaTime;
             _deltaTime = deltaTime;
         }
     }
