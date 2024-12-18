@@ -326,10 +326,13 @@ namespace CrymexEngine
                 Debug.LogError("OpenGL Error: " + glError);
             }
 
-            ALError alError = AL.GetError();
-            if (alError != ALError.NoError)
+            if (Audio.Initialized)
             {
-                Debug.LogError("OpenAL Error: " + AL.GetErrorString(alError));
+                ALError alError = AL.GetError();
+                if (alError != ALError.NoError)
+                {
+                    Debug.LogError("OpenAL Error: " + AL.GetErrorString(alError));
+                }
             }
 
             GLFWErrorCode glfwError = GLFW.GetError(out string glfwErrorMessage);

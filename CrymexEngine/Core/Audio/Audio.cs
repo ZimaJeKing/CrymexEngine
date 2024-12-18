@@ -15,6 +15,14 @@ namespace CrymexEngine
             }
         }
 
+        public static bool Initialized
+        {
+            get
+            {
+                return _initialized;
+            }
+        }
+
         private static readonly List<AudioSource> _sources = new List<AudioSource>();
         private static bool _initialized = false;
         private static ALDevice _alDevice;
