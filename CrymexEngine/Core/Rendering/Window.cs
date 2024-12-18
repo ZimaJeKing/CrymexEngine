@@ -97,11 +97,17 @@ namespace CrymexEngine
                 GLFWWindow.Cursor = cursor;
             }
         }
-        public static VSyncMode VSyncMode
+        public static bool VSync
         {
             get
             {
-                return _vSyncMode;
+                return _vSync;
+            }
+            set
+            {
+                _vSync = value;
+                if (value) _glfwWindow.VSync = VSyncMode.On;
+                else _glfwWindow.VSync = VSyncMode.Off;
             }
         }
         public static string Title
@@ -173,9 +179,9 @@ namespace CrymexEngine
             }
         }
 
+        private static bool _vSync;
         private static GameWindow _glfwWindow;
         private static WindowState _windowState;
-        private static VSyncMode _vSyncMode;
         private static string _title = "";
         private static Vector2i _size;
         private static bool _resizable;
@@ -188,7 +194,7 @@ namespace CrymexEngine
         private static WindowCursor _windowCursor;
         private static Texture _windowIcon;
 
-        private static Window _instance = new Window();
+        private static readonly Window _instance = new Window();
 
         public static void Run()
         {
@@ -217,7 +223,7 @@ namespace CrymexEngine
 
         public static void End()
         {
-            GLFWWindow.Close();
+            _glfwWindow?.Close();
         }
 
         private static unsafe void WindowLoad()
@@ -401,16 +407,22 @@ namespace CrymexEngine
             // VSync
             if (Settings.GetSetting("VSync", out SettingOption vsyncSetting, SettingType.Bool))
             {
-                if (vsyncSetting.GetValue<bool>())
+                _vSync = vsyncSetting.GetValue<bool>();
+            }
+
+            // Cull back face
+            if (Settings.GetSetting("CullFace", out SettingOption windowStateSetting, SettingType.Bool))
+            {
+                if (windowStateSetting.GetValue<bool>())
                 {
-                    _vSyncMode = VSyncMode.On;
+                    GL.Enable(EnableCap.CullFace);
+                    GL.CullFace(TriangleFace.Back);
                 }
                 else
                 {
-                    _vSyncMode = VSyncMode.Off;
+                    GL.Disable(EnableCap.CullFace);
                 }
             }
-
         }
         private static void ApplyPostLoadSettings()
         {
@@ -469,28 +481,29 @@ namespace CrymexEngine
 
             GL.ActiveTexture(TextureUnit.Texture0);
 
-            GL.Enable(EnableCap.Blend);
+            // Transparency
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-            GL.Disable(EnableCap.Blend);
 
+            // Depth testing
             GL.Enable(EnableCap.DepthTest);
             GL.DepthFunc(DepthFunction.Less);
 
-            GL.Enable(EnableCap.CullFace);
-            GL.CullFace(CullFaceMode.Back);
-
+            // MSAA
             if (Camera.msaaSamples != 0) GL.Enable(EnableCap.Multisample);
         }
 
         private static NativeWindowSettings GetWindowSettings()
         {
+            VSyncMode vsyncMode = VSyncMode.Off;
+            if (_vSync) vsyncMode = VSyncMode.On;
+
             return new NativeWindowSettings
             {
                 Title = _title,
                 ClientSize = _size,
-                WindowState = (OpenTK.Windowing.Common.WindowState)_windowState,
+                WindowState = _windowState,
                 StartVisible = false,
-                Vsync = _vSyncMode,
+                Vsync = vsyncMode,
 
                 API = ContextAPI.OpenGL,
                 Profile = ContextProfile.Core,
@@ -505,27 +518,5 @@ namespace CrymexEngine
                 IsEventDriven = false
             };
         }
-    }
-
-    public enum WindowState
-    {
-        //
-        // Summary:
-        //     The GLFWWindow is in its normal state.
-        Normal,
-        //
-        // Summary:
-        //     The GLFWWindow is minimized to the taskbar (also known as 'iconified').
-        Minimized,
-        //
-        // Summary:
-        //     The GLFWWindow covers the whole working area, which includes the desktop but not
-        //     the taskbar and/or panels.
-        Maximized,
-        //
-        // Summary:
-        //     The GLFWWindow covers the whole screen, including all taskbars and/or panels.
-        //     VSync stops working for some odd reason
-        Fullscreen
     }
 }

@@ -21,6 +21,7 @@ namespace CrymexEngine
             GLFW.Init();
 
             Settings.Instance.LoadSettings();
+
             Debug.Instance.Init();
 
             // --- Main application loop --- //

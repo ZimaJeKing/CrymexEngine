@@ -41,17 +41,17 @@ namespace CrymexEngine
         public void LoadSettings()
         {
             string rawSettingsText;
-            string runtimeSettingsPath = Debug.runtimeAssetsPath + "RuntimeSettings.rtmAsset";
-            if (!File.Exists(runtimeSettingsPath))
+            string settingsPath = Debug.runtimeAssetsPath + "RuntimeSettings.rtmAsset";
+            if (!File.Exists(settingsPath))
             {
-                // WindowLoad dynamic settings
+                // Load dynamic settings
                 rawSettingsText = File.ReadAllText(Debug.assetsPath + "GlobalSettings.txt");
             }
             else
             {
                 _precompiled = true;
-                // WindowLoad precompiled settings
-                rawSettingsText = Encoding.Unicode.GetString(AssetCompiler.DecompileData(File.ReadAllBytes(runtimeSettingsPath), out _));
+                // Load precompiled settings
+                rawSettingsText = Encoding.Unicode.GetString(AssetCompiler.DecompileData(File.ReadAllBytes(settingsPath), out _));
             }
 
             string[] settingsLines = rawSettingsText.Split('\n', StringSplitOptions.TrimEntries);
