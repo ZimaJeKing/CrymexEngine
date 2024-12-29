@@ -33,18 +33,17 @@ namespace CrymexEngine.UI
 
         public override void Update()
         {
+            shader.Use();
+
             // Bind shader and texture
             GL.BindTexture(TextureTarget.Texture2D, texture.glTexture);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, Mesh.quad.vbo);
             GL.BindVertexArray(Mesh.quad.vao);
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, Mesh.quad.ebo);
-            GL.UseProgram(shader._glShader);
 
             // Set first three shader parameters for Position, transformation, and color
-            Vector2 glPosition2D = UIElement.Position / Window.HalfSize;
-            Vector3 glPosition3D = new Vector3(glPosition2D.X, glPosition2D.Y, -Depth * 0.01f);
-
-            shader.SetParam(0, glPosition3D);
-            shader.SetParam(1, UIElement.transformationMatrix);
+            shader.SetParam(0, Debug.Vec2ToVec3(UIElement.Position / Window.Size, 0));
+            shader.SetParam(1, UIElement.TransformationMatrix);
             shader.SetParam(2, color);
 
             GL.DrawElements(BeginMode.Triangles, Mesh.quad.indices.Length, DrawElementsType.UnsignedInt, Mesh.quad.ebo);

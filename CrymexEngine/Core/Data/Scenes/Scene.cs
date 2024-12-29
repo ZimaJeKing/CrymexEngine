@@ -1,23 +1,18 @@
 ﻿using CrymexEngine.UI;
 
-namespace CrymexEngine
+namespace CrymexEngine.Scenes
 {
     public class Scene
     {
         public static Scene current;
 
-        public List<Entity> entities = new List<Entity>();
-        public List<ScriptableBehaviour> scriptableBehaviours = new List<ScriptableBehaviour>();
-        public List<Collider> colliders = new List<Collider>();
-        public List<UIElement> uiElements = new List<UIElement>();
+        public List<Entity> entities = new();
+        public List<ScriptableBehaviour> scriptableBehaviours = new();
+        public List<Collider> colliders = new();
+        public List<UIElement> uiElements = new();
+        public List<TextObject> textObjects = new();
 
         public Scene() { }
-        public Scene(List<Entity> entities, List<ScriptableBehaviour> behaviours, List<Collider> colliders)
-        {
-            this.entities = entities;
-            this.scriptableBehaviours = behaviours;
-            this.colliders = colliders;
-        }
 
         public void Clear()
         {

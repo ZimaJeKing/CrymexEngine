@@ -4,16 +4,10 @@ using OpenTK.Mathematics;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using WinColor = System.Drawing.Color;
-using ISColor = SixLabors.ImageSharp.Color;
-using System;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
-using System.Security.AccessControl;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Formats.Png;
-using System.IO;
 
 namespace CrymexEngine
 {
@@ -22,7 +16,7 @@ namespace CrymexEngine
         public byte[] data;
         public readonly int width;
         public readonly int height;
-        public int glTexture;
+        public readonly int glTexture;
 
         public static Texture None;
         public static Texture Missing;
@@ -45,6 +39,7 @@ namespace CrymexEngine
             GL.BindTexture(TextureTarget.Texture2D, glTexture);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+            Apply();
         }
         public Texture(int width, int height, byte[] data)
         {
@@ -202,23 +197,28 @@ namespace CrymexEngine
             {
                 using (Image<Rgba32> image = Image.Load<Rgba32>(memoryStream))
                 {
-                    // Access the pixel memory
-                    IMemoryGroup<Rgba32> pixelMemGroups = image.GetPixelMemoryGroup();
-
-                    // Allocate a byte array to hold the raw pixel data
-                    byte[] rawBytes = new byte[image.Width * image.Height * 4];
-
-                    int offset = 0;
-                    foreach (var memoryGroup in pixelMemGroups)
-                    {
-                        byte[] src = MemoryMarshal.AsBytes(memoryGroup.Span).ToArray();
-                        System.Buffer.BlockCopy(src, 0, rawBytes, offset, src.Length);
-                        offset += src.Length;
-                    }
-
-                    return new Texture(image.Width, image.Height, rawBytes);
+                    return FromImageSharp(image);
                 }
             }
+        }
+
+        public static Texture FromImageSharp(Image<Rgba32> image)
+        {
+            // Access the pixel memory
+            IMemoryGroup<Rgba32> pixelMemGroups = image.GetPixelMemoryGroup();
+
+            // Allocate a byte array to hold the raw pixel data
+            byte[] rawBytes = new byte[image.Width * image.Height * 4];
+
+            int offset = 0;
+            foreach (var memoryGroup in pixelMemGroups)
+            {
+                byte[] src = MemoryMarshal.AsBytes(memoryGroup.Span).ToArray();
+                System.Buffer.BlockCopy(src, 0, rawBytes, offset, src.Length);
+                offset += src.Length;
+            }
+
+            return new Texture(image.Width, image.Height, rawBytes);
         }
 
         /// <summary>

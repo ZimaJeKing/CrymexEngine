@@ -1,7 +1,10 @@
 ﻿using CrymexEngine.Data;
 using CrymexEngine.Debugging;
 using CrymexEngine.Rendering;
+using SixLabors.Fonts;
+using SixLabors.ImageSharp.Drawing;
 using System.Text;
+using SysPath = System.IO.Path;
 
 namespace CrymexEngine
 {
@@ -45,24 +48,34 @@ namespace CrymexEngine
         private static List<TextureAsset> _textureAssets = new();
         private static List<AudioAsset> _audioAssets = new();
         private static List<ShaderAsset> _shaderAssets = new();
+        private static List<FontAsset> _fontAssets = new();
         private static readonly List<DataAsset> _scenes = new();
 
+        private static FontCollection _fontCollecion = new();
         private static bool _precompiled;
         private static int _textureCompressionLevel = 9;
+
+        private static FontFamily _defaultFontFamily;
 
         private static Assets _instance = new Assets();
 
         public static void LoadAssets()
         {
             // Get the texture compression level setting
-            if (Settings.GetSetting("TextureCompressionLevel", out SettingOption texCompLevelOption, SettingType.Int)) _textureCompressionLevel = texCompLevelOption.GetValue<int>();
+            if (Settings.GetSetting("TextureCompressionLevel", out SettingOption texCompLevelOption, SettingType.Int))
+            {
+                _textureCompressionLevel = texCompLevelOption.GetValue<int>();
+            }
+
+            // Get the asset compiler check sum setting
+            if (Settings.GetSetting("AssetCheckSum", out SettingOption checkSumSetting, SettingType.Bool))
+            {
+                AssetCompiler.compareCheckSum = checkSumSetting.GetValue<bool>();
+            }
 
             // Defining Texture.White and Texture.None
             Texture.White = new Texture(1, 1, new byte[] { 255, 255, 255, 255 });
             Texture.None = new Texture(1, 1, new byte[] { 0, 0, 0, 0 });
-
-            // Get the asset compiler check sum setting
-            if (Settings.GetSetting("AssetCheckSum", out SettingOption checkSumSetting, SettingType.Bool)) AssetCompiler.compareCheckSum = checkSumSetting.GetValue<bool>();
 
             //  Whether the application is precompiled
             if (Settings.Precompiled)
@@ -112,6 +125,9 @@ namespace CrymexEngine
                     // Write to a log file and console
                     Debug.WriteToLogFile("\nAsset compilation:\n" + info, LogSeverity.Custom);
                     Debug.WriteToConsole("Compilation:\n" + info, ConsoleColor.Blue);
+
+                    // End the session
+                    Engine.Quit();
                 }
             }
 
@@ -168,12 +184,27 @@ namespace CrymexEngine
             }
             return null;
         }
+        public static FontFamily GetFontFamily(string name)
+        {
+            foreach (FontAsset asset in _fontAssets)
+            {
+                if (asset.name == name)
+                {
+                    return asset.family;
+                }
+            }
+            return _defaultFontFamily;
+        }
+
+        /// <summary>
+        /// Loads a dynamic asset into the Assets registry
+        /// </summary>
         public static void LoadDynamicAsset(string path)
         {
             if (!File.Exists(path)) return;
 
-            string filename = Path.GetFileNameWithoutExtension(path);
-            string fileExtension = Path.GetExtension(path).ToLower();
+            string filename = SysPath.GetFileNameWithoutExtension(path);
+            string fileExtension = SysPath.GetExtension(path).ToLower();
 
             switch (fileExtension.ToLower())
             {
@@ -223,13 +254,18 @@ namespace CrymexEngine
                     }
                 case ".vertex":
                     {
-                        string? fragmentPath = Path.GetDirectoryName(path) + '\\' + filename + ".fragment";
-                        if (fragmentPath != null && File.Exists(fragmentPath))
+                        string fragmentPath = SysPath.GetDirectoryName(path) + '\\' + filename + ".fragment";
+                        if (File.Exists(fragmentPath))
                         {
                             string vertexCode = File.ReadAllText(path);
                             string fragmentCode = File.ReadAllText(fragmentPath);
                             _shaderAssets.Add(new ShaderAsset(path, Shader.LoadFromAsset(vertexCode, fragmentCode), vertexCode, fragmentCode));
                         }
+                        break;
+                    }
+                case ".ttf":
+                    {
+                        AddFont(path, File.ReadAllBytes(path));
                         break;
                     }
             }
@@ -243,6 +279,16 @@ namespace CrymexEngine
             foreach (TextureAsset asset in _textureAssets)
             {
                 asset.texture.Dispose();
+            }
+        }
+
+        public static void AddFont(string path, byte[] data)
+        {
+            using (MemoryStream fileStream = new MemoryStream(data))
+            {
+                FontFamily family = _fontCollecion.Add(fileStream);
+                _fontAssets.Add(new FontAsset(path, family));
+                if (_defaultFontFamily == default) _defaultFontFamily = family;
             }
         }
 
@@ -263,7 +309,7 @@ namespace CrymexEngine
         private static AssetCompilationInfo CompileDataAssets()
         {
             float startTime = Time.GameTime;
-            long textureSize, audioSize, shaderSize;
+            long textureSize, audioSize, shaderSize, fontSize;
 
             // Compiling texture data
             string texturePath = Debug.runtimeAssetsPath + "RuntimeTextures.rtmAsset";
@@ -299,6 +345,17 @@ namespace CrymexEngine
                 shaderSize = shaderFileStream.Length;
             }
 
+            // Compiling fonts
+            string fontPath = Debug.runtimeAssetsPath + "RuntimeFonts.rtmAsset";
+            using (FileStream fontFileStream = File.Create(fontPath))
+            {
+                foreach (FontAsset asset in _fontAssets)
+                {
+                    fontFileStream.Write(AssetCompiler.CompileData(asset.name, File.ReadAllBytes(asset.path)));
+                }
+                fontSize = fontFileStream.Length;
+            }
+
             // Compiling setttings
             string settingsPath = Debug.runtimeAssetsPath + "RuntimeSettings.rtmAsset";
             using (FileStream settingsFileStream = File.Create(settingsPath))
@@ -308,8 +365,7 @@ namespace CrymexEngine
 
             float compilationTime = Time.GameTime - startTime;
 
-            return new AssetCompilationInfo(textureSize, audioSize, shaderSize, compilationTime);
-
+            return new AssetCompilationInfo(textureSize, audioSize, shaderSize, fontSize, compilationTime);
         }
         private static void LoadPrecompiledAssets()
         {
@@ -318,6 +374,12 @@ namespace CrymexEngine
 
             string audioPath = Debug.runtimeAssetsPath + "RuntimeAudioClips.rtmAsset";
             if (File.Exists(audioPath)) _audioAssets = AssetCompiler.DecompileAudioAssets(File.ReadAllBytes(audioPath));
+
+            string fontPath = Debug.runtimeAssetsPath + "RuntimeFonts.rtmAsset";
+            if (File.Exists(fontPath))
+            {
+                _fontAssets = AssetCompiler.DecompileFontAssets(File.ReadAllBytes(fontPath));
+            }
 
             string shaderPath = Debug.runtimeAssetsPath + "RuntimeShaders.rtmAsset";
             if (File.Exists(shaderPath)) _shaderAssets = AssetCompiler.DecompileShaderAssets(File.ReadAllBytes(shaderPath));
@@ -329,14 +391,16 @@ namespace CrymexEngine
         public readonly float compilationTime;
         public readonly long textureCompressedSize;
         public readonly long audioCompressedSize;
+        public readonly long fontSize;
         public readonly long shaderSize;
 
-        public AssetCompilationInfo(long textureCompressedSize, long audioCompressedSize, long shaderSize, float compilationTime)
+        public AssetCompilationInfo(long textureCompressedSize, long audioCompressedSize, long shaderSize, long fontSize, float compilationTime)
         {
             this.compilationTime = compilationTime;
             this.textureCompressedSize = textureCompressedSize;
             this.audioCompressedSize = audioCompressedSize;
             this.shaderSize = shaderSize;
+            this.fontSize = fontSize;
         }
 
         public override string ToString()
@@ -344,6 +408,7 @@ namespace CrymexEngine
             string final = $"Textures: {Debug.ByteCountToString(UsageProfiler.TextureMemoryUsage)} raw, {Debug.ByteCountToString(textureCompressedSize)} compressed\n";
             final += $"Audio: {Debug.ByteCountToString(UsageProfiler.AudioMmeoryUsage)} raw, {Debug.ByteCountToString(audioCompressedSize)} compressed\n";
             final += $"Shaders: {Debug.ByteCountToString(shaderSize)}\n";
+            final += $"Fonts: {Debug.ByteCountToString(fontSize)}\n";
             final += $"Compilation Time: {Debug.FloatToShortString(compilationTime)} seconds";
             return final;
         }

@@ -44,8 +44,18 @@ namespace CrymexEngine
             string settingsPath = Debug.runtimeAssetsPath + "RuntimeSettings.rtmAsset";
             if (!File.Exists(settingsPath))
             {
-                // Load dynamic settings
-                rawSettingsText = File.ReadAllText(Debug.assetsPath + "GlobalSettings.txt");
+                settingsPath = Debug.assetsPath + "GlobalSettings.txt";
+
+                if (!File.Exists(settingsPath))
+                {
+                    Debug.LogWarning($"No settings file found. Created file at \"{settingsPath}\"");
+                    File.Create(settingsPath).Dispose();
+                    return;
+                }
+                else
+                {
+                    rawSettingsText = File.ReadAllText(settingsPath);
+                }
             }
             else
             {
@@ -72,7 +82,8 @@ namespace CrymexEngine
             {
                 if (settings[s].name == name)
                 {
-                    return settings[s];
+                    SettingOption opt = settings[s];
+                    return opt;
                 }
             }
             return null;

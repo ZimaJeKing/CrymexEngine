@@ -1,9 +1,8 @@
 ﻿using OpenTK.Mathematics;
-using System;
 
 namespace CrymexEngine
 {
-    public class GameObject
+    public partial class GameObject
     {
         public bool enabled = true;
         public bool interactible = true;
@@ -114,7 +113,7 @@ namespace CrymexEngine
                 return _halfScale;
             }
         }
-        public Matrix4 transformationMatrix { get; private set; }
+        public Matrix4 TransformationMatrix { get; private set; }
 
         private Vector2 _halfScale;
         private Vector2 _localPosition = Vector2.Zero;
@@ -172,7 +171,7 @@ namespace CrymexEngine
 
         protected void RecalcTransformMatrix()
         {
-            transformationMatrix = Matrix4.CreateScale(Scale.X / (Window.Size.X * 0.5f), Scale.Y / (Window.Size.Y * 0.5f), 1) * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(Rotation));
+            TransformationMatrix = Matrix4.CreateScale(_scale.X / Window.HalfSize.X, _scale.Y / Window.HalfSize.Y, 1) * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(Rotation));
         }
 
         private void RecalcChildTransform(GameObject child)

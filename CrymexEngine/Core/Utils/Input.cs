@@ -12,7 +12,7 @@ namespace CrymexEngine
         {
             get
             {
-                Vector2 pos = Window.GLFWWindow.MousePosition - Window.HalfSize;
+                Vector2 pos = Window.Instance.GLFWWindow.MousePosition - Window.HalfSize;
                 pos.Y = -pos.Y;
                 return pos;
             }
@@ -22,38 +22,40 @@ namespace CrymexEngine
         {
             get
             {
-                return Window.GLFWWindow.MouseState.ScrollDelta;
+                return Window.Instance.GLFWWindow.MouseState.ScrollDelta;
             }
         }
 
         public static bool Key(Key key)
         {
-            return Window.GLFWWindow.IsKeyDown((Keys)key);
+            return Window.Instance.GLFWWindow.IsKeyDown((Keys)key);
         }
         public static bool KeyDown(Key key)
         {
-            return Window.GLFWWindow.IsKeyPressed((Keys)key);
+            return Window.Instance.GLFWWindow.IsKeyPressed((Keys)key);
         }
         public static bool KeyUp(Key key)
         {
-            return Window.GLFWWindow.IsKeyReleased((Keys)key);
+            return Window.Instance.GLFWWindow.IsKeyReleased((Keys)key);
         }
 
         public static bool Mouse(MouseButton button)
         {
-            return Window.GLFWWindow.MouseState.IsButtonDown((OpenTK.Windowing.GraphicsLibraryFramework.MouseButton)button);
+            return Window.Instance.GLFWWindow.MouseState.IsButtonDown((OpenTK.Windowing.GraphicsLibraryFramework.MouseButton)button);
         }
         public static bool MouseDown(MouseButton button)
         {
-            return Window.GLFWWindow.MouseState.IsButtonPressed((OpenTK.Windowing.GraphicsLibraryFramework.MouseButton)button);
+            return Window.Instance.GLFWWindow.MouseState.IsButtonPressed((OpenTK.Windowing.GraphicsLibraryFramework.MouseButton)button);
         }
         public static bool MouseUp(MouseButton button)
         {
-            return Window.GLFWWindow.MouseState.IsButtonReleased((OpenTK.Windowing.GraphicsLibraryFramework.MouseButton)button);
+            return Window.Instance.GLFWWindow.MouseState.IsButtonReleased((OpenTK.Windowing.GraphicsLibraryFramework.MouseButton)button);
         }
 
         public static bool CursorOverlap(Vector2 position, Vector2 scale, float rotation = 0)
         {
+            position *= 0.5f;
+
             Vector2 point = Camera.ScreenSpaceToWorldSpace(MousePosition);
 
             float translatedX = point.X - position.X;
@@ -73,8 +75,8 @@ namespace CrymexEngine
 
             Vector2 point = Camera.ScreenSpaceToWorldSpace(MousePosition);
 
-            float translatedX = point.X - entity.Position.X;
-            float translatedY = entity.Position.Y - point.Y;
+            float translatedX = point.X - entity.Position.X * 0.5f;
+            float translatedY = entity.Position.Y * 0.5f - point.Y;
 
             if (translatedX * translatedX + translatedY * translatedY > entity.Scale.LengthSquared) return false;
 
@@ -99,8 +101,8 @@ namespace CrymexEngine
         {
             if (!element.enabled || !element.interactible) return false;
 
-            float translatedX = MousePosition.X - element.Position.X;
-            float translatedY = element.Position.Y - MousePosition.Y;
+            float translatedX = MousePosition.X - element.Position.X * 0.5f;
+            float translatedY = element.Position.Y * 0.5f - MousePosition.Y;
 
             if (translatedX * translatedX + translatedY * translatedY > element.Scale.LengthSquared) return false;
 
@@ -114,6 +116,30 @@ namespace CrymexEngine
                 int texX = (int)(((rotatedX + element.HalfScale.X) / element.Scale.X) * element.Renderer.texture.width);
                 int texY = (int)(((rotatedY + element.HalfScale.Y) / element.Scale.Y) * element.Renderer.texture.height);
                 if (element.Renderer.texture.GetPixel(texX, element.Renderer.texture.height - texY - 1).A != 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static bool CursorOverlap(TextObject text)
+        {
+            if (!text.enabled) return false;
+
+            Vector2 point = Camera.ScreenSpaceToWorldSpace(MousePosition);
+
+            float translatedX = point.X - text.position.X;
+            float translatedY = text.position.Y - point.Y;
+
+            if (translatedX * translatedX + translatedY * translatedY > (text.Scale.X * text.Scale.X + text.Scale.Y * text.Scale.Y)) return false;
+
+            // Alpha testing
+            if (translatedX >= -text.HalfScale.X && translatedX <= text.HalfScale.X && translatedY >= -text.HalfScale.Y && translatedY <= text.HalfScale.Y)
+            {
+                int texX = (int)(((translatedX + text.HalfScale.X) / text.Scale.X) * text.InternalTexture.width);
+                int texY = (int)(((translatedY + text.HalfScale.Y) / text.Scale.Y) * text.InternalTexture.height);
+                if (text.InternalTexture.GetPixel(texX, texY).A != 0)
                 {
                     return true;
                 }

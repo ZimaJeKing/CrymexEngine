@@ -1,5 +1,4 @@
 ﻿using OpenTK.Audio.OpenAL;
-using OpenTK.Platform.Windows;
 
 namespace CrymexEngine
 {
@@ -16,7 +15,18 @@ namespace CrymexEngine
         {
             get
             {
-                return _playing;
+                if (!_playing) return false;
+                if (Progress >= 1)
+                {
+                    _playing = false;
+                    return false;
+                }
+                return true;
+            }
+            set
+            {
+                if (value) Play();
+                else Stop();
             }
         }
 
@@ -29,12 +39,35 @@ namespace CrymexEngine
 
                 if (mixer != null)
                 {
-                    AL.Source(alSource, ALSourcef.Gain, value * mixer.Volume);
+                    AL.Source(_alSource, ALSourcef.Gain, value * mixer.Volume);
                 }
                 else
                 {
-                    AL.Source(alSource, ALSourcef.Gain, value);
+                    AL.Source(_alSource, ALSourcef.Gain, value);
                 }
+            }
+        }
+
+        /// <summary>
+        /// A value between 0 and 1 representing the play progress
+        /// </summary>
+        public float Progress
+        {
+            get
+            {
+                if (!_playing)
+                {
+                    return _playProgress / lengthWithPitch;
+                }
+
+                float val = (Time.GameTime - _startTime + _playProgress) / lengthWithPitch;
+
+                if (looping)
+                {
+                    val %= 1;
+                }
+
+                return val;
             }
         }
 
@@ -50,27 +83,43 @@ namespace CrymexEngine
         {
             get
             {
-                if (!looping && Time.GameTime - _startTime + _playProgress > lengthWithPitch) return true;
+                if (Progress > 1 && deleteAfterEnd)
+                {
+                    return true;
+                }
 
                 return false;
             }
         }
 
         private readonly int alDataBuffer;
-        private readonly int alSource;
+        private readonly int _alSource;
 
-        private bool _playing;
-        private float _playProgress;
-        private float _startTime;
-        private bool _disposed;
+        private bool _playing = false;
+        private float _playProgress = 0;
+        private float _startTime = -1;
+        private bool _disposed = false;
 
         public AudioSource(AudioClip clip, float volume, bool looping = false, bool playOnStart = true, AudioMixer? mixer = null, bool deleteAfterEnd = true)
         {
+            if (!Audio.Initialized)
+            {
+                Debug.LogError("Audio library not initialized. Cannot create an audio source instance");
+                return;
+            }
             this.clip = clip;
-            this.looping = looping;
             this.mixer = mixer;
-            this.deleteAfterEnd = deleteAfterEnd;
             _startTime = Time.GameTime;
+            if (looping)
+            {
+                this.looping = true;
+                this.deleteAfterEnd = false;
+            }
+            else
+            {
+                this.looping = false;
+                this.deleteAfterEnd = deleteAfterEnd;
+            }
 
             // Calculate modified length
             lengthWithPitch = clip.length;
@@ -81,18 +130,20 @@ namespace CrymexEngine
 
             // Setup OpenAL buffer and source
             alDataBuffer = AL.GenBuffer();
-            alSource = AL.GenSource();
+            _alSource = AL.GenSource();
 
             ALFormat format = Audio.GetSoundFormat(clip.format.Channels, clip.format.BitsPerSample);
 
             AL.BufferData(alDataBuffer, format, clip.soundData, clip.dataSize, clip.format.SampleRate);
 
-            AL.Source(alSource, ALSourcei.Buffer, alDataBuffer);
+            AL.Source(_alSource, ALSourcei.Buffer, alDataBuffer);
 
             if (mixer != null)
             {
-                AL.Source(alSource, ALSourcef.Pitch, mixer.Pitch);
+                AL.Source(_alSource, ALSourcef.Pitch, mixer.Pitch);
             }
+
+            if (looping) AL.Source(_alSource, ALSourceb.Looping, true);
 
             Volume = volume;
 
@@ -101,20 +152,42 @@ namespace CrymexEngine
 
         public void Stop()
         {
-            if (_disposed || _playing) return;
+            if (_disposed || !_playing) return;
 
             _playing = false;
-            AL.SourceStop(alSource);
+            _playProgress = 0;
+            _startTime = 0;
+
+            AL.SourceStop(_alSource);
         }
 
         public void Play()
         {
             if (_disposed || _playing) return;
+            Stop();
 
-            _playProgress = Time.GameTime - _startTime;
-            _startTime = Time.GameTime;
             _playing = true;
-            AL.SourcePlay(alSource);
+            _startTime = Time.GameTime;
+            AL.SourcePlay(_alSource);
+        }
+
+        public void Pause()
+        {
+            if (_disposed) return;
+
+            if (_playing)
+            {
+                _playing = false;
+                _playProgress += Time.GameTime - _startTime;
+                AL.SourcePause(_alSource);
+            }
+            else
+            {
+                _playing = true;
+                _startTime = Time.GameTime;
+                AL.SourcePlay(_alSource);
+            }
+
         }
 
         public void Delete()
@@ -128,8 +201,8 @@ namespace CrymexEngine
             if (_disposed || _playing) return;
 
             _disposed = true;
-            AL.SourceStop(alSource);
-            AL.DeleteSource(alSource);
+            AL.SourceStop(_alSource);
+            AL.DeleteSource(_alSource);
             AL.DeleteBuffer(alDataBuffer);
         }
     }

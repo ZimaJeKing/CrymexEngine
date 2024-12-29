@@ -1,7 +1,4 @@
-﻿using System;
-using System.Xml.Linq;
-using NAudio.CoreAudioApi;
-using OpenTK.Graphics.OpenGL;
+﻿using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 
 namespace CrymexEngine.Rendering
@@ -34,11 +31,12 @@ namespace CrymexEngine.Rendering
             _regular = Assets.GetShader("Regular");
 
             _ui = Assets.GetShader("UI");
+
         }
 
         public Shader(string vertexCode, string fragmentCode, ShaderParam[]? parameters = null)
         {
-            if (parameters == null) parameters = new ShaderParam[0];
+            parameters ??= Array.Empty<ShaderParam>();
 
             this.parameters = new ShaderParam[parameters.Length + 3];
             ShaderParam.defaultParams.CopyTo(this.parameters, 0);
@@ -58,7 +56,7 @@ namespace CrymexEngine.Rendering
             if (success == 0)
             {
                 string infoLog = GL.GetProgramInfoLog(_glShader);
-                Debug.Log($"[Shader] Error linking program: {infoLog}", ConsoleColor.DarkRed);
+                Debug.LogError($"Error linking shader program:\n{infoLog}");
             }
 
             // Clean up shaders
@@ -98,14 +96,15 @@ namespace CrymexEngine.Rendering
         {
             if (param < 0 || param >= parameters.Length)
             {
-                Debug.LogError($"Shader: Wrong parameter location \"{param}\"");
+                Debug.LogError($"Shader: Wrong parameter index \"{param}\"");
+                return;
             }
 
             parameters[param].Set(value);
         }
 
         /// <returns>-1 if not found</returns>
-        public int GetParamLocation(string name)
+        public int GetParamIndex(string name)
         {
             for (int i = 0; i < parameters.Length; i++)
             {
@@ -233,14 +232,16 @@ namespace CrymexEngine.Rendering
 
     public abstract class ShaderParam
     {
-        public string name { get; private set; }
-        public int location { get; private set; }
+        public readonly string name;
+        public int GLLocation => _glLocation;
 
-        public static ShaderParam[] defaultParams = {
+        public static readonly ShaderParam[] defaultParams = {
                     new Vec3ShaderParam("position"),
                     new Mat4ShaderParam("transform"),
                     new Vec4ShaderParam("color")
                 };
+
+        private int _glLocation;
 
         public ShaderParam(string name)
         {
@@ -249,7 +250,7 @@ namespace CrymexEngine.Rendering
 
         public void Init(Shader reference)
         {
-            location = GL.GetUniformLocation(reference._glShader, name);
+            _glLocation = GL.GetUniformLocation(reference._glShader, name);
         }
         public abstract void Set(object _value);
         protected abstract void Refresh();
@@ -265,7 +266,12 @@ namespace CrymexEngine.Rendering
 
         public override void Set(object _value)
         {
-            if (_value.GetType() != typeof(double) && _value.GetType() != typeof(float)) return;
+            if (_value.GetType() == typeof(float)) _value = (double)(float)_value;
+            if (_value.GetType() != typeof(double))
+            {
+                Debug.LogError($"Wrong paramater format for \n{name}\n");
+                return;
+            }
 
             value = (double)_value;
             Refresh();
@@ -273,7 +279,7 @@ namespace CrymexEngine.Rendering
 
         protected override void Refresh()
         {
-            GL.Uniform1(location, value);
+            GL.Uniform1(GLLocation, value);
         }
     }
     public class Vec2ShaderParam : ShaderParam
@@ -287,7 +293,11 @@ namespace CrymexEngine.Rendering
 
         public override void Set(object _value)
         {
-            if (_value.GetType() != typeof(Vector2)) return;
+            if (_value.GetType() != typeof(Vector2))
+            {
+                Debug.LogError($"Wrong paramater format for \n{name}\n");
+                return;
+            }
 
             value = (Vector2)_value;
             Refresh();
@@ -295,7 +305,7 @@ namespace CrymexEngine.Rendering
 
         protected override void Refresh()
         {
-            GL.Uniform2(location, ref value);
+            GL.Uniform2(GLLocation, ref value);
         }
     }
     public class Vec3ShaderParam : ShaderParam
@@ -309,7 +319,11 @@ namespace CrymexEngine.Rendering
 
         public override void Set(object _value)
         {
-            if (_value.GetType() != typeof(Vector3)) return;
+            if (_value.GetType() != typeof(Vector3))
+            {
+                Debug.LogError($"Wrong paramater format for \n{name}\n");
+                return;
+            }
 
             value = (Vector3)_value;
             Refresh();
@@ -317,7 +331,7 @@ namespace CrymexEngine.Rendering
 
         protected override void Refresh()
         {
-            GL.Uniform3(location, ref value);
+            GL.Uniform3(GLLocation, ref value);
         }
     }
     public class Vec4ShaderParam : ShaderParam
@@ -339,7 +353,11 @@ namespace CrymexEngine.Rendering
                 return;
             }
 
-            if (_value.GetType() != typeof(Vector4)) return;
+            if (_value.GetType() != typeof(Vector4))
+            {
+                Debug.LogError($"Wrong paramater format for \n{name}\n");
+                return;
+            }
 
             value = (Vector4)_value;
             Refresh();
@@ -347,7 +365,7 @@ namespace CrymexEngine.Rendering
 
         protected override void Refresh()
         {
-            GL.Uniform4(location, ref value);
+            GL.Uniform4(GLLocation, ref value);
         }
     }
     public class Mat2ShaderParam : ShaderParam
@@ -361,7 +379,11 @@ namespace CrymexEngine.Rendering
 
         public override void Set(object _value)
         {
-            if (_value.GetType() != typeof(Matrix2)) return;
+            if (_value.GetType() != typeof(Matrix2))
+            {
+                Debug.LogError($"Wrong paramater format for \n{name}\n");
+                return;
+            }
 
             value = (Matrix2)_value;
             Refresh();
@@ -369,7 +391,7 @@ namespace CrymexEngine.Rendering
 
         protected override void Refresh()
         {
-            GL.UniformMatrix2(location, false, ref value);
+            GL.UniformMatrix2(GLLocation, false, ref value);
         }
     }
     public class Mat4ShaderParam : ShaderParam
@@ -383,7 +405,11 @@ namespace CrymexEngine.Rendering
 
         public override void Set(object _value)
         {
-            if (_value.GetType() != typeof(Matrix4)) return;
+            if (_value.GetType() != typeof(Matrix4))
+            {
+                Debug.LogError($"Wrong paramater format for \n{name}\n");
+                return;
+            }
 
             value = (Matrix4)_value;
             Refresh();
@@ -391,7 +417,7 @@ namespace CrymexEngine.Rendering
 
         protected override void Refresh()
         {
-            GL.UniformMatrix4(location, false, ref value);
+            GL.UniformMatrix4(GLLocation, false, ref value);
         }
     }
 }

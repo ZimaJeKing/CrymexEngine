@@ -1,5 +1,11 @@
  // Comments like this
 
+----- Settings example -----
+WindowSize: ( 100, 100 )
+LogToConsole: True
+WindowTitle: "My Game"
+WindowIcon: IconImage
+
 ----- Parameter format -----
 
 HEX     | #1A2B3C
@@ -9,8 +15,8 @@ COND    | True/On x False/Off
 VECTOR2 | ( 12, 34 )
 VECTOR3 | ( 12, 34, 56 )
 VECTOR4 | ( 12, 34, 56, 78 )
-STRING  | "ABCD"/'ABCD'
-REF     | ABCD
+STRING  | "ABCD" / 'ABCD'
+REF     | ABCD - An object reference
 
  ----- Possible settings -----
 
@@ -20,7 +26,6 @@ LogToFile [COND] - Whether to log error and debug messages to a log file
 UsageProfiler [COND] - Whether to use the usage profiler
 
 General:
-StartingScene [REF] - A pre-made scene to load on start
 UseAudio [COND] - Whether to Initialize OpenAL on Load
 
 Window:
@@ -32,6 +37,7 @@ ClearColor [HEX] - Window background color
 WindowCursor [REF] - Window cursor texture
 WindowCursorSize [VEC2] - Cursor size in pixels
 WindowCursorHotspot [VEC2] - Cursor hotspot in pixels
+WindowStartFullscreen [COND] - Whether to start as a fullscreen window
 
 Rendering:
 VSync [COND]
@@ -39,6 +45,7 @@ MaxFPS [INT]
 MaxFPSIdle [INT] - Max fps, when the window isn't focused
 RenderDistance [FLOAT] - Render distance in pixels
 MSAASamples [INT] - Multi-sample anti-aliasing - possible values: 0, 2, 4, 8
+CullBackFace [COND] - If only the front face should be visible
 
 Assets:
 LoadPrecompiledAssets [COND] - Enables or disables loading from precompiled assets

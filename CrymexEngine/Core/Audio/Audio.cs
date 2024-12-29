@@ -30,12 +30,14 @@ namespace CrymexEngine
 
         private static Audio _instance = new Audio();
 
-        public void Init()
+        public void InitializeContext()
         {
+            Cleanup();
+
             _alDevice = ALC.OpenDevice(null);
             if (_alDevice == IntPtr.Zero)
             {
-                Debug.Log("Couldn't initialize audio device", ConsoleColor.DarkRed);
+                Debug.LogError("Couldn't initialize audio device");
                 return;
             }
 
@@ -64,7 +66,7 @@ namespace CrymexEngine
 
             AudioSource source = new AudioSource(clip, volume, looping, true, mixer);
 
-           if (deleteAfterEnd) _sources.Add(source);
+           _sources.Add(source);
 
             return source;
         }

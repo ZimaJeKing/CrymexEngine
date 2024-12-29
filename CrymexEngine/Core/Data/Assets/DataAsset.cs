@@ -1,5 +1,6 @@
 ﻿using CrymexEngine.Rendering;
-using System;
+using CrymexEngine.UI;
+using SixLabors.Fonts;
 
 namespace CrymexEngine.Data
 {
@@ -28,6 +29,16 @@ namespace CrymexEngine.Data
         }
     }
 
+    public class FontAsset : DataAsset
+    {
+        public readonly FontFamily family;
+
+        public FontAsset(string path, FontFamily family) : base(path)
+        {
+            this.family = family;
+        }
+    }
+
     public class AudioAsset : DataAsset
     {
         public readonly AudioClip clip;
@@ -51,5 +62,4 @@ namespace CrymexEngine.Data
             this.fragmentAssetCode = fragmentAssetCode;
         }
     }
-
 }

@@ -1,8 +1,6 @@
 ﻿using CrymexEngine.Rendering;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
-using OpenTK.Platform.Windows;
-using System.Drawing;
 
 namespace CrymexEngine
 {
@@ -41,11 +39,8 @@ namespace CrymexEngine
                 GL.UseProgram(shader._glShader);
 
                 // Set first three shader parameters for Position, transformation, and color
-                Vector2 glPosition2D = (Entity.Position - Camera.position) / Window.HalfSize;
-                Vector3 glPosition3D = new Vector3(glPosition2D.X, glPosition2D.Y, -Depth * 0.01f);
-
-                shader.SetParam(0, glPosition3D);
-                shader.SetParam(1, Entity.transformationMatrix);
+                shader.SetParam(0, Debug.Vec2ToVec3((Entity.Position - Camera.position) / Window.HalfSize, -Depth * 0.001f));
+                shader.SetParam(1, Entity.TransformationMatrix);
                 shader.SetParam(2, color);
 
                 Entity.PreRender();

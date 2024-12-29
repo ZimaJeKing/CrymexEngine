@@ -20,19 +20,23 @@ namespace CrymexEngine
         /// <summary>
         /// An internal instance
         /// </summary>
-        public static Window Instance
-        {
-            get
-            {
-                return _instance;
-            }
-        }
+        public static Window Instance => _instance;
+        public GameWindow GLFWWindow => _glfwWindow;
 
-        public static GameWindow GLFWWindow
+        public static bool Loaded => _loaded;
+        public static int FramesPerSecond => _framesPerSecond;
+        public static Vector2 HalfSize => _halfSize;
+
+        public static string Title
         {
             get
             {
-                return _glfwWindow;
+                return _title;
+            }
+            set
+            {
+                _title = value;
+                _glfwWindow.Title = value;
             }
         }
         public static unsafe bool Resizable
@@ -43,7 +47,7 @@ namespace CrymexEngine
             }
             set
             {
-                GLFW.SetWindowAttrib(GLFWWindow.WindowPtr, WindowAttribute.Resizable, value);
+                GLFW.SetWindowAttrib(_glfwWindow.WindowPtr, WindowAttribute.Resizable, value);
                 _resizable = value;
             }
         }
@@ -57,7 +61,7 @@ namespace CrymexEngine
             {
                 _size = value;
                 _halfSize = value.ToVector2() * 0.5f;
-                GLFWWindow.ClientSize = value;
+                _glfwWindow.ClientSize = value;
             }
         }
         public static Texture Icon
@@ -68,16 +72,7 @@ namespace CrymexEngine
             }
             set
             {
-                if (value == null) return;
-
-                Texture texture = value.Resize(32, 32);
-
-                _windowIcon = texture.Clone();
-
-                texture.FlipY();
-
-                OpenTK.Windowing.Common.Input.Image img = new OpenTK.Windowing.Common.Input.Image(32, 32, texture.data);
-                GLFWWindow.Icon = new WindowIcon(img);
+                SetWindowIcon(value);
             }
         }
         public static WindowCursor Cursor
@@ -94,7 +89,7 @@ namespace CrymexEngine
 
                 _windowCursor = value;
                 MouseCursor cursor = new MouseCursor(value.hotspot.X, value.hotspot.Y, value.size.X, value.size.Y, texture.data);
-                GLFWWindow.Cursor = cursor;
+                _glfwWindow.Cursor = cursor;
             }
         }
         public static bool VSync
@@ -110,18 +105,6 @@ namespace CrymexEngine
                 else _glfwWindow.VSync = VSyncMode.Off;
             }
         }
-        public static string Title
-        {
-            get
-            {
-                return _title;
-            }
-            set
-            {
-                _title = value;
-                GLFWWindow.Title = value;
-            }
-        }
         public static WindowState WindowState
         {
             get
@@ -130,6 +113,7 @@ namespace CrymexEngine
             }
             set
             {
+                _glfwWindow.WindowState = value;
                 _windowState = value;
             }
         }
@@ -157,48 +141,27 @@ namespace CrymexEngine
                 _maxFPSIdle = value;
             }
         }
-        public static bool IsLoaded
-        {
-            get
-            {
-                return _isLoaded;
-            }
-        }
-        public static int FramesPerSecond
-        {
-            get
-            {
-                return _framesPerSecond;
-            }
-        }
-        public static Vector2 HalfSize
-        {
-            get
-            {
-                return _halfSize;
-            }
-        }
 
-        private static bool _vSync;
         private static GameWindow _glfwWindow;
         private static WindowState _windowState;
         private static string _title = "";
-        private static Vector2i _size;
+        private static Vector2i _size = new Vector2i(256);
         private static bool _resizable;
+        private static bool _vSync;
         private static int _maxFPS;
         private static int _maxFPSIdle;
         private static int _framesPerSecond = 0;
         private static int _fpsCounter = 0;
-        private static bool _isLoaded;
-        private static Vector2 _halfSize;
+        private static bool _loaded;
+        private static Vector2 _halfSize = new Vector2(128, 128);
         private static WindowCursor _windowCursor;
         private static Texture _windowIcon;
 
         private static readonly Window _instance = new Window();
 
-        public static void Run()
+        public void Run()
         {
-            if (_isLoaded) return;
+            if (_loaded) return;
 
             _windowIcon = Texture.None;
 
@@ -221,7 +184,7 @@ namespace CrymexEngine
             _glfwWindow.Run();
         }
 
-        public static void End()
+        public void End()
         {
             _glfwWindow?.Close();
         }
@@ -243,7 +206,7 @@ namespace CrymexEngine
             // Initialize audio
             if (Settings.GetSetting("UseAudio", out SettingOption audioSettingOption, SettingType.Bool) && audioSettingOption.GetValue<bool>())
             {
-                Audio.Instance.Init();
+                Audio.Instance.InitializeContext();
             }
 
             UsageProfiler.Instance.Init();
@@ -257,7 +220,7 @@ namespace CrymexEngine
             // Loads scriptableBehaviours and calls Load
             ScriptLoader.LoadBehaviours();
 
-            _isLoaded = true;
+            _loaded = true;
         }
 
         private static void WindowUpdate(FrameEventArgs e)
@@ -306,8 +269,8 @@ namespace CrymexEngine
 
         private static void WindowFocusChanged(FocusedChangedEventArgs args)
         {
-            if (args.IsFocused) GLFWWindow.UpdateFrequency = MaxFPS;
-            else GLFWWindow.UpdateFrequency = MaxFPSIdle;
+            if (args.IsFocused) _glfwWindow.UpdateFrequency = MaxFPS;
+            else _glfwWindow.UpdateFrequency = MaxFPSIdle;
         }
 
         /// <summary>
@@ -372,6 +335,12 @@ namespace CrymexEngine
                 if (element.enabled) element.Update();
             }
 
+            // Render Text
+            foreach (TextObject textObject in Scene.current.textObjects)
+            {
+                if (textObject.enabled) textObject.Render();
+            }
+
             GL.Disable(EnableCap.Blend);
             GL.Enable(EnableCap.DepthTest);
             GL.DepthMask(true);
@@ -432,6 +401,12 @@ namespace CrymexEngine
                 Resizable = windowResizableSetting.GetValue<bool>();
             }
 
+            // Window fullscreen
+            if (Settings.GetSetting("WindowStartFullscreen", out SettingOption windowFullscreenSetting, SettingType.Bool) && windowFullscreenSetting.GetValue<bool>())
+            {
+                _glfwWindow.MakeFullscreen(_glfwWindow.CurrentMonitor.Handle);
+            }
+
             // Window icon
             if (Settings.GetSetting("WindowIcon", out SettingOption windowIconSetting, SettingType.RefString))
             {
@@ -490,6 +465,18 @@ namespace CrymexEngine
 
             // MSAA
             if (Camera.msaaSamples != 0) GL.Enable(EnableCap.Multisample);
+        }
+
+        private static void SetWindowIcon(Texture texture)
+        {
+            Texture windowIcon = texture.Resize(32, 32);
+
+            _windowIcon = windowIcon.Clone();
+
+            windowIcon.FlipY();
+
+            OpenTK.Windowing.Common.Input.Image img = new OpenTK.Windowing.Common.Input.Image(32, 32, windowIcon.data);
+            _glfwWindow.Icon = new WindowIcon(img);
         }
 
         private static NativeWindowSettings GetWindowSettings()

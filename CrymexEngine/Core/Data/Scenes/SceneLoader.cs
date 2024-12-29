@@ -1,8 +1,8 @@
 ﻿using OpenTK.Mathematics;
-using System;
 
 namespace CrymexEngine.Scenes
 {
+    // WIP
     public static class SceneLoader
     {
         public static bool LoadScene(string path)
@@ -14,7 +14,7 @@ namespace CrymexEngine.Scenes
 
             string[] precompiled = File.ReadAllLines(path);
 
-            Scene scene = SceneLanguageCompiler.CompileScene(precompiled);
+            Scene scene = SceneCompiler.CompileScene(precompiled);
 
             Scene.current = scene;
 
@@ -22,17 +22,14 @@ namespace CrymexEngine.Scenes
         }
     }
 
-    static class SceneLanguageCompiler
+    // WIP
+    static class SceneCompiler
     {
         static Scene scene;
 
         public static Scene CompileScene(string[] lines)
         {
-            List<Entity> entities = new List<Entity>();
-            List<ScriptableBehaviour> behaviours = new List<ScriptableBehaviour>();
-            List<Collider> colliders = new List<Collider>();
-
-            scene = new Scene(entities, behaviours, colliders);
+            scene = new Scene();
             for (int l = 0; l < lines.Length; l++) 
             {
                 if (string.IsNullOrEmpty(lines[l])) continue;
@@ -69,6 +66,7 @@ namespace CrymexEngine.Scenes
             return scene;
         }
 
+        // WIP
         private static Entity CompileEntity(string name, string[] parameters)
         {
             Texture texture = Texture.Missing;
@@ -82,42 +80,39 @@ namespace CrymexEngine.Scenes
                 string[] parts = parameters[p].Split(':', StringSplitOptions.TrimEntries);
                 if (parts.Length != 2) continue;
 
+                float.TryParse(parts[1], out float parsed);
+                if (!float.IsNormal(parsed)) parsed = 0;
+
                 switch (parts[0])
                 {
                     case "X":
                         {
-                            if (!int.TryParse(parts[1], out int x)) continue;
-                            position.X = x;
+                            position.X = parsed;
                             break;
                         }
                     case "Y":
                         {
-                            if (!int.TryParse(parts[1], out int y)) continue;
-                            position.Y = y;
+                            position.Y = parsed;
                             break;
                         }
                     case "LocalX":
                         {
-                            if (!int.TryParse(parts[1], out int x)) continue;
-                            localPosition.X = x;
+                            localPosition.X = parsed;
                             break;
                         }
                     case "LocalY":
                         {
-                            if (!int.TryParse(parts[1], out int y)) continue;
-                            localPosition.Y = y;
+                            localPosition.Y = parsed;
                             break;
                         }
                     case "Width":
                         {
-                            if (!int.TryParse(parts[1], out int x)) continue;
-                            scale.X = x;
+                            scale.X = parsed;
                             break;
                         }
                     case "Height":
                         {
-                            if (!int.TryParse(parts[1], out int y)) continue;
-                            scale.Y = y;
+                            scale.Y = parsed;
                             break;
                         }
                     case "Texture":

@@ -1,16 +1,11 @@
-﻿using OpenTK.Windowing.GraphicsLibraryFramework;
+﻿using CrymexEngine.Scenes;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace CrymexEngine
 {
     public static class Engine
     {
-        public static string[] StartingArgs
-        {
-            get
-            {
-                return _startingArgs;
-            }
-        }
+        public static string[] StartingArgs => _startingArgs;
 
         private static string[] _startingArgs;
 
@@ -25,7 +20,7 @@ namespace CrymexEngine
             Debug.Instance.Init();
 
             // --- Main application loop --- //
-            Window.Run();
+            Window.Instance.Run();
 
             // --- On program end --- //
             LogQuitDebugInfo();
@@ -34,7 +29,7 @@ namespace CrymexEngine
 
         public static void Quit()
         {
-            Window.End();
+            Window.Instance.End();
         }
 
         public static void ErrorQuit(string errorMessage)

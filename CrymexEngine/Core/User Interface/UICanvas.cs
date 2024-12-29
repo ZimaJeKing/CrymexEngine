@@ -1,4 +1,5 @@
-﻿using OpenTK.Mathematics;
+﻿using CrymexEngine.Scenes;
+using OpenTK.Mathematics;
 
 namespace CrymexEngine.UI
 {
@@ -62,14 +63,14 @@ namespace CrymexEngine.UI
                 }
             }
 
-
             if (hover == null)
             {
                 _hover?.OnCursorExit();
                 _hover = null;
                 return;
             }
-            else if (hover != _hover)
+
+            if (hover != _hover)
             {
                 _hover?.OnCursorExit();
             }

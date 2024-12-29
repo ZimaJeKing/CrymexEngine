@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using OpenTK.Mathematics;
+using System.Text;
 
 namespace CrymexEngine
 {
@@ -33,7 +34,7 @@ namespace CrymexEngine
         private static FileStream logFileStream;
         private static bool _logToFile;
 
-        private static Debug _instance = new Debug();
+        private static readonly Debug _instance = new Debug();
 
         /// <summary>
         /// A function to close
@@ -210,6 +211,11 @@ namespace CrymexEngine
             }
 
             return sum;
+        }
+
+        public static Vector3 Vec2ToVec3(Vector2 xy, float z)
+        {
+            return new Vector3(xy.X, xy.Y, z);
         }
     }
 

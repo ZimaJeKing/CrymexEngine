@@ -1,4 +1,5 @@
 ﻿using CrymexEngine.Rendering;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -21,9 +22,9 @@ namespace CrymexEngine.Data
 
             byte[] final = new byte[4 + nameBytes.Length + 4 + data.Length + 4];
 
-            using (MemoryStream stream = new MemoryStream(final))
+            using (MemoryStream memStream = new MemoryStream(final))
             {
-                using (BinaryWriter writer = new BinaryWriter(stream))
+                using (BinaryWriter writer = new BinaryWriter(memStream))
                 {
                     writer.Write((int)nameBytes.Length);
                     writer.Write(nameBytes);
@@ -49,9 +50,9 @@ namespace CrymexEngine.Data
 
             byte[] final = new byte[4 + nameBytes.Length + 4 + soundData.Length + 4];
 
-            using (MemoryStream stream = new MemoryStream(final))
+            using (MemoryStream memStream = new MemoryStream(final))
             {
-                using (BinaryWriter writer = new BinaryWriter(stream))
+                using (BinaryWriter writer = new BinaryWriter(memStream))
                 {
                     writer.Write((int)nameBytes.Length);
                     writer.Write(nameBytes);
@@ -80,9 +81,9 @@ namespace CrymexEngine.Data
 
             byte[] final = new byte[4 + nameBytes.Length + 4 + vertexBytes.Length + 4 + fragmentBytes.Length + 4];
 
-            using (MemoryStream stream = new MemoryStream(final))
+            using (MemoryStream memStream = new MemoryStream(final))
             {
-                using (BinaryWriter writer = new BinaryWriter(stream))
+                using (BinaryWriter writer = new BinaryWriter(memStream))
                 {
                     writer.Write((int)nameBytes.Length);
                     writer.Write(nameBytes);
@@ -126,9 +127,9 @@ namespace CrymexEngine.Data
 
         public static byte[] DecompileData(byte[] data, out string name)
         {
-            using (MemoryStream stream = new MemoryStream(data))
+            using (MemoryStream memStream = new MemoryStream(data))
             {
-                using (BinaryReader reader = new BinaryReader(stream))
+                using (BinaryReader reader = new BinaryReader(memStream))
                 {
                     name = Encoding.Unicode.GetString(reader.ReadBytes(reader.ReadInt32()));
 
@@ -146,11 +147,11 @@ namespace CrymexEngine.Data
         public static List<TextureAsset> DecompileTextureAssets(byte[] data)
         {
             List<TextureAsset> textureAssets = new List<TextureAsset>();
-            using (MemoryStream stream = new MemoryStream(data))
+            using (MemoryStream memStream = new MemoryStream(data))
             {
-                using (BinaryReader reader = new BinaryReader(stream))
+                using (BinaryReader reader = new BinaryReader(memStream))
                 {
-                    while (stream.Position < stream.Length - 1)
+                    while (memStream.Position < memStream.Length - 1)
                     {
                         string name = Encoding.Unicode.GetString(reader.ReadBytes(reader.ReadInt32()));
                         int dataLength = reader.ReadInt32();
@@ -166,14 +167,37 @@ namespace CrymexEngine.Data
             return textureAssets;
         }
 
+        public static List<FontAsset> DecompileFontAssets(byte[] data)
+        {
+            List<FontAsset> fontAssets = new List<FontAsset>();
+            using (MemoryStream memStream = new MemoryStream(data))
+            {
+                using (BinaryReader reader = new BinaryReader(memStream))
+                {
+                    while (memStream.Position < memStream.Length - 1)
+                    {
+                        string name = Encoding.Unicode.GetString(reader.ReadBytes(reader.ReadInt32()));
+                        int dataLength = reader.ReadInt32();
+                        byte[] fontData = reader.ReadBytes(dataLength);
+
+                        int checkSum = reader.ReadInt32();
+                        if (compareCheckSum && checkSum != Debug.GetCheckSum(fontData)) continue;
+
+                        Assets.AddFont(name, fontData);
+                    }
+                }
+            }
+            return fontAssets;
+        }
+
         public static List<AudioAsset> DecompileAudioAssets(byte[] data)
         {
             List<AudioAsset> audioAssets = new List<AudioAsset>();
-            using (MemoryStream stream = new MemoryStream(data))
+            using (MemoryStream memStream = new MemoryStream(data))
             {
-                using (BinaryReader reader = new BinaryReader(stream))
+                using (BinaryReader reader = new BinaryReader(memStream))
                 {
-                    while (stream.Position < stream.Length - 1)
+                    while (memStream.Position < memStream.Length - 1)
                     {
                         int nameLen = reader.ReadInt32();
                         string name = Encoding.Unicode.GetString(reader.ReadBytes(nameLen));
@@ -193,11 +217,11 @@ namespace CrymexEngine.Data
         public static List<ShaderAsset> DecompileShaderAssets(byte[] data)
         {
             List<ShaderAsset> shaderAssets = new List<ShaderAsset>();
-            using (MemoryStream stream = new MemoryStream(data))
+            using (MemoryStream memStream = new MemoryStream(data))
             {
-                using (BinaryReader reader = new BinaryReader(stream))
+                using (BinaryReader reader = new BinaryReader(memStream))
                 {
-                    while (stream.Position < stream.Length - 1)
+                    while (memStream.Position < memStream.Length - 1)
                     {
                         string name = Encoding.Unicode.GetString(reader.ReadBytes(reader.ReadInt32()));
                         byte[] vertexBytes = reader.ReadBytes(reader.ReadInt32());

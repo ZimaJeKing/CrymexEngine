@@ -1,4 +1,5 @@
-﻿using OpenTK.Mathematics;
+﻿using CrymexEngine.Scenes;
+using OpenTK.Mathematics;
 using OpenTK.Platform.Windows;
 
 namespace CrymexEngine.UI
