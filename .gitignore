@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 /CrymexEngine/Scripts/Behaviours/MyBehaviourScript.cs
 /CrymexEngine/Scripts/ScriptLoader.cs
+/CrymexEngine/Scripts/Behaviours/MusicPlayerExample.cs
