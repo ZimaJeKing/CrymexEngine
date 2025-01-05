@@ -39,7 +39,6 @@ namespace CrymexEngine.UI
         public override void OnMouseDown(MouseButton mouseButton)
         {
             onClick?.Invoke(mouseButton);
-
             if (!colorTransitions) return;
             Renderer.color = pressedColor;
         }

@@ -1,4 +1,5 @@
-﻿using CrymexEngine.Debugging;
+﻿using CrymexEngine.Core.UI;
+using CrymexEngine.Debugging;
 using CrymexEngine.Scenes;
 using CrymexEngine.Scripting;
 using CrymexEngine.UI;
@@ -237,8 +238,12 @@ namespace CrymexEngine
             UICanvas.Instance.Update();
             EventSystem.Instance.Update();
 
+            TextEditor.Instance.Update();
+
             // Call Update on all loaded behaviours
             UpdateBehaviours();
+
+            Input.textInput = "";
 
             HandleErrors();
 
@@ -269,6 +274,7 @@ namespace CrymexEngine
 
         private static void WindowFocusChanged(FocusedChangedEventArgs args)
         {
+            TextEditor.Deselect();
             if (args.IsFocused) _glfwWindow.UpdateFrequency = MaxFPS;
             else _glfwWindow.UpdateFrequency = MaxFPSIdle;
         }
@@ -344,6 +350,10 @@ namespace CrymexEngine
             GL.Disable(EnableCap.Blend);
             GL.Enable(EnableCap.DepthTest);
             GL.DepthMask(true);
+
+            TextEditor.Instance.RenderCursor();
+
+            Scene.current.UpdateDeleteQueue();
         }
 
         private static void ApplyPreLoadSettings()

@@ -6,6 +6,7 @@ namespace CrymexEngine
     {
         public bool enabled = true;
         public bool interactible = true;
+        public bool cursorAlphaTest = true;
 
         public string name;
         public Vector2 Position

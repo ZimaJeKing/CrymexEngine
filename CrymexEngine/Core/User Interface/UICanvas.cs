@@ -40,7 +40,7 @@ namespace CrymexEngine.UI
             float highestDepth = float.MinValue;
             foreach (Entity entity in Scene.current.entities)
             {
-                if (entity.enabled && entity.Renderer != null && entity.Renderer.enabled && Input.CursorOverlap(entity))
+                if (entity.enabled && entity.Renderer != null && entity.Renderer.enabled && entity.interactible && Input.CursorOverlap(entity, entity.cursorAlphaTest))
                 {
                     if (entity.Renderer.Depth >= highestDepth)
                     {
@@ -53,7 +53,7 @@ namespace CrymexEngine.UI
             highestDepth = float.MinValue;
             foreach (UIElement element in Scene.current.uiElements)
             {
-                if (element.enabled && Input.CursorOverlap(element))
+                if (element.enabled && element.interactible && Input.CursorOverlap(element, element.cursorAlphaTest))
                 {
                     if (element.Renderer.Depth >= highestDepth)
                     {

@@ -4,6 +4,14 @@ namespace CrymexEngine
 {
     public sealed class Entity : GameObject
     {
+        public Vector2 Forward
+        {
+            get
+            {
+                return new Vector2(MathF.Cos(MathHelper.DegreesToRadians(Rotation)), MathF.Sin(MathHelper.DegreesToRadians(Rotation)));
+            }
+        }
+
         public EntityRenderer? Renderer
         {
             get
@@ -14,7 +22,10 @@ namespace CrymexEngine
 
         private EntityRenderer? _renderer;
 
-        public static Entity? GetEntity(string name)
+        /// <summary>
+        /// Returns null, if the Entity wasn't found
+        /// </summary>
+        public static Entity GetEntity(string name)
         {
             for (int e = 0; e < Scene.current.entities.Count; e++)
             {
@@ -25,7 +36,11 @@ namespace CrymexEngine
             }
             return null;
         }
-        public static Entity? GetEntity(string name, Scene scene)
+
+        /// <summary>
+        /// Returns null, if the Entity wasn't found
+        /// </summary>
+        public static Entity GetEntity(string name, Scene scene)
         {
             foreach (Entity entity in scene.entities)
             {
@@ -146,7 +161,7 @@ namespace CrymexEngine
             return false;
         }
 
-        public T? GetComponent<T>() where T : EntityComponent
+        public T GetComponent<T>() where T : EntityComponent
         {
             for (int i = 0; i < components.Count; i++)
             {
@@ -172,6 +187,12 @@ namespace CrymexEngine
             component = null;
 #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
             return false;
+        }
+
+        public void Delete()
+        {
+            enabled = false;
+            Scene.current.entityDeleteQueue.Add(this);
         }
     }
 }

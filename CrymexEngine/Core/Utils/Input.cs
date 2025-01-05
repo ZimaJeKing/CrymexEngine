@@ -54,8 +54,6 @@ namespace CrymexEngine
 
         public static bool CursorOverlap(Vector2 position, Vector2 scale, float rotation = 0)
         {
-            position *= 0.5f;
-
             Vector2 point = Camera.ScreenSpaceToWorldSpace(MousePosition);
 
             float translatedX = point.X - position.X;
@@ -69,16 +67,16 @@ namespace CrymexEngine
             return rotatedX >= -halfScale.X && rotatedX <= halfScale.X && rotatedY >= -halfScale.Y && rotatedY <= halfScale.Y;
         }
 
-        public static bool CursorOverlap(Entity entity)
+        public static bool CursorOverlap(Entity entity, bool alphaTest = true)
         {
             if (!entity.enabled || entity.Renderer == null || !entity.interactible) return false;
 
             Vector2 point = Camera.ScreenSpaceToWorldSpace(MousePosition);
 
-            float translatedX = point.X - entity.Position.X * 0.5f;
-            float translatedY = entity.Position.Y * 0.5f - point.Y;
+            float translatedX = point.X - entity.Position.X;
+            float translatedY = entity.Position.Y - point.Y;
 
-            if (translatedX * translatedX + translatedY * translatedY > entity.Scale.LengthSquared) return false;
+            if ((translatedX * translatedX + translatedY * translatedY) * 2 > entity.Scale.LengthSquared) return false;
 
             float radians = MathHelper.DegreesToRadians(-entity.Rotation);
             float rotatedX = MathF.Cos(radians) * translatedX - MathF.Sin(radians) * translatedY;
@@ -87,6 +85,8 @@ namespace CrymexEngine
             // Alpha testing
             if (rotatedX >= -entity.HalfScale.X && rotatedX <= entity.HalfScale.X && rotatedY >= -entity.HalfScale.Y && rotatedY <= entity.HalfScale.Y)
             {
+                if (!alphaTest) return true;
+
                 int texX = (int)(((rotatedX + entity.HalfScale.X) / entity.Scale.X) * entity.Renderer.texture.width);
                 int texY = (int)(((rotatedY + entity.HalfScale.Y) / entity.Scale.Y) * entity.Renderer.texture.height);
                 if (entity.Renderer.texture.GetPixel(texX, entity.Renderer.texture.height - texY - 1).A != 0)
@@ -97,12 +97,12 @@ namespace CrymexEngine
             return false;
         }
 
-        public static bool CursorOverlap(UIElement element)
+        public static bool CursorOverlap(UIElement element, bool alphaTest = true)
         {
             if (!element.enabled || !element.interactible) return false;
 
-            float translatedX = MousePosition.X - element.Position.X * 0.5f;
-            float translatedY = element.Position.Y * 0.5f - MousePosition.Y;
+            float translatedX = MousePosition.X - element.Position.X;
+            float translatedY = element.Position.Y - MousePosition.Y;
 
             if (translatedX * translatedX + translatedY * translatedY > element.Scale.LengthSquared) return false;
 
@@ -113,6 +113,8 @@ namespace CrymexEngine
             // Alpha testing
             if (rotatedX >= -element.HalfScale.X && rotatedX <= element.HalfScale.X && rotatedY >= -element.HalfScale.Y && rotatedY <= element.HalfScale.Y)
             {
+                if (!alphaTest) return true;
+
                 int texX = (int)(((rotatedX + element.HalfScale.X) / element.Scale.X) * element.Renderer.texture.width);
                 int texY = (int)(((rotatedY + element.HalfScale.Y) / element.Scale.Y) * element.Renderer.texture.height);
                 if (element.Renderer.texture.GetPixel(texX, element.Renderer.texture.height - texY - 1).A != 0)
@@ -123,7 +125,7 @@ namespace CrymexEngine
             return false;
         }
 
-        public static bool CursorOverlap(TextObject text)
+        public static bool CursorOverlap(TextObject text, bool alphaTest = true)
         {
             if (!text.enabled) return false;
 
@@ -137,6 +139,8 @@ namespace CrymexEngine
             // Alpha testing
             if (translatedX >= -text.HalfScale.X && translatedX <= text.HalfScale.X && translatedY >= -text.HalfScale.Y && translatedY <= text.HalfScale.Y)
             {
+                if (!alphaTest) return true;
+
                 int texX = (int)(((translatedX + text.HalfScale.X) / text.Scale.X) * text.InternalTexture.width);
                 int texY = (int)(((translatedY + text.HalfScale.Y) / text.Scale.Y) * text.InternalTexture.height);
                 if (text.InternalTexture.GetPixel(texX, texY).A != 0)

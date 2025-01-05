@@ -5,6 +5,7 @@ namespace CrymexEngine
 {
     public static class Engine
     {
+        public static Version version = new Version(0, 0, 0, 0);
         public static string[] StartingArgs => _startingArgs;
 
         private static string[] _startingArgs;

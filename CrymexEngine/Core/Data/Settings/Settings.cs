@@ -9,28 +9,10 @@ namespace CrymexEngine
         /// <summary>
         /// An internal instance
         /// </summary>
-        public static Settings Instance
-        {
-            get
-            {
-                return _instance;
-            }
-        }
+        public static Settings Instance => _instance;
 
-        public static string SettingsText
-        {
-            get
-            {
-                return _settingsText;
-            }
-        }
-        public static bool Precompiled
-        {
-            get
-            {
-                return _precompiled;
-            }
-        }
+        public static string SettingsText => _settingsText;
+        public bool Precompiled => _precompiled;
 
         private static readonly List<SettingOption> settings = new List<SettingOption>();
         private static string _settingsText;

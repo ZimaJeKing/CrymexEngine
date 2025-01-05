@@ -27,6 +27,7 @@ UsageProfiler [COND] - Whether to use the usage profiler
 
 General:
 UseAudio [COND] - Whether to Initialize OpenAL on Load
+UseMetaFiles [COND] - Whether to compile and use meta files
 
 Window:
 WindowResizable [COND]
@@ -49,6 +50,5 @@ CullBackFace [COND] - If only the front face should be visible
 
 Assets:
 LoadPrecompiledAssets [COND] - Enables or disables loading from precompiled assets
-AssetCheckSum [COND] - Load only precompiled assets with a valid checksum
 PrecompileAssets [COND] - Whether to precompile all assets on the next run
 TextureCompressionLevel [INT] - A number between 0 and 9, where 0 is best speed and 9 is best compression

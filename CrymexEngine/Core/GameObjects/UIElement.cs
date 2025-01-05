@@ -14,14 +14,15 @@ namespace CrymexEngine.UI
             }
         }
 
-        private UIRenderer _renderer;
+        private readonly UIRenderer _renderer;
 
-        public UIElement(Texture texture, Vector2 position, Vector2 scale, UIElement? parent = null, float depth = 0)
+        public UIElement(Texture texture, Vector2 position, Vector2 scale, UIElement? parent = null, string name = "", float depth = 0)
         {
             Parent = parent;
             Scale = scale;
             LocalPosition = position;
 
+            this.name = name;
             _renderer = new UIRenderer(depth);
             _renderer.UIElement = this;
             _renderer.texture = texture;
@@ -36,7 +37,7 @@ namespace CrymexEngine.UI
         {
             if (!enabled) return;
 
-            foreach (UIComponent component in components)
+            foreach (Component component in components)
             {
                 if (component.enabled) component.Update();
             }
@@ -82,6 +83,12 @@ namespace CrymexEngine.UI
                 }
             }
             return null;
+        }
+
+        public void Delete()
+        {
+            enabled = false;
+            Scene.current.uiElementDeleteQueue.Add(this);
         }
     }
 }

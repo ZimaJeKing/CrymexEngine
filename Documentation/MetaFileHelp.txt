@@ -1,0 +1,19 @@
+----- Property example -----
+MaxSizeX: 64
+IncludeInRelease: True
+
+----- Parameter format -----
+
+INT     | 1234
+FLOAT   | 1.234
+BOOL    | True/On x False/Off
+STRING  | ABCD
+
+----- Possible settings -----
+
+General:
+IncludeInRelease - Whether to include this asset in precompiled files
+
+Textures:
+MaxSizeX [INT] - Max size for loading the texture
+MaxSizeY [INT] - -||-

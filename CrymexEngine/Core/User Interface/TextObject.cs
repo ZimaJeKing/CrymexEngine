@@ -1,4 +1,5 @@
 ﻿using CrymexEngine.Rendering;
+using CrymexEngine.Utils;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using SixLabors.Fonts;
@@ -15,6 +16,32 @@ namespace CrymexEngine.UI
 
         public Vector2 position;
 
+        public bool BestFit
+        {
+            set
+            {
+                _bestFit = value;
+                ReDraw();
+            }
+            get
+            {
+                return _bestFit;
+            }
+        }
+
+        public int MaxBestFitSize
+        {
+            get
+            {
+                return _maxBestFitSize;
+            }
+            set
+            {
+                _maxBestFitSize = value;
+                ReDraw();
+            }
+        }
+
         public Vector2i Scale
         {
             get
@@ -23,7 +50,7 @@ namespace CrymexEngine.UI
             }
             set
             {
-                _halfScale = value;
+                _halfScale = value.ToVector2() * 0.5f;
                 _scale = value;
             }
         }
@@ -37,7 +64,10 @@ namespace CrymexEngine.UI
             set
             {
                 if (_text == value) return;
-                _text = value;
+
+                if (value == null) _text = "";
+                else _text = value;
+
                 ReDraw();
             }
         }
@@ -137,7 +167,7 @@ namespace CrymexEngine.UI
         public Texture InternalTexture => _texture;
         public Vector2 HalfScale => _halfScale;
 
-        private string _text;
+        private string _text = "";
         private FontFamily _family;
         private FontStyle _style;
         private float _fontSize;
@@ -151,6 +181,8 @@ namespace CrymexEngine.UI
         private Vector2 _textPadding;
             
         private Vector2 _physicalTextSize;
+        private bool _bestFit;
+        private int _maxBestFitSize = int.MaxValue;
 
         public TextObject(Vector2 position, Vector2i scale, string text, FontFamily family, float fontSize, Alignment textAlignment = Alignment.MiddleCenter, FontStyle style = FontStyle.Regular)
         {
@@ -162,8 +194,6 @@ namespace CrymexEngine.UI
             _style = style;
             _fontSize = fontSize;
             _alignment = textAlignment;
-
-            _physicalTextSize = Measure(Family.CreateFont(_fontSize, _style));
 
             Scenes.Scene.current.textObjects.Add(this);
 
@@ -182,7 +212,7 @@ namespace CrymexEngine.UI
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, Mesh.quad.ebo);
 
             // Set first three shader parameters for Position, transformation, and color
-            Shader.UI.SetParam(0, Debug.Vec2ToVec3(position / Window.HalfSize, 0));
+            Shader.UI.SetParam(0, VectorUtility.Vec2ToVec3(position / Window.HalfSize, 0));
             Shader.UI.SetParam(1, _scaleMatrix);
             Shader.UI.SetParam(2, Color4.White);
 
@@ -193,18 +223,17 @@ namespace CrymexEngine.UI
         {
             if (_family == default) return;
 
-            Vector2 alignmentOffset = GetAlignmentOffset(_alignment);
-            System.Drawing.Color sysBackColor = System.Drawing.Color.FromArgb(_backgroundColor.ToArgb());
-            System.Drawing.Color sysFontColor = System.Drawing.Color.FromArgb(_fontColor.ToArgb());
-
-            _texture?.Dispose();
+            if (_bestFit) _fontSize = GetBestFit();
 
             // Measure the text and calculate hotspot
             Font font = Family.CreateFont(_fontSize, _style);
             _physicalTextSize = Measure(font);
 
-            alignmentOffset.X -= _physicalTextSize.X / 2f;
-            alignmentOffset.Y -= _physicalTextSize.Y / 2f;
+            Vector2 alignmentOffset = GetAlignmentOffset(_alignment);
+            System.Drawing.Color sysBackColor = System.Drawing.Color.FromArgb(_backgroundColor.ToArgb());
+            System.Drawing.Color sysFontColor = System.Drawing.Color.FromArgb(_fontColor.ToArgb());
+
+            _texture?.Dispose();
 
             using (Image<Rgba32> image = new Image<Rgba32>(_scale.X, _scale.Y))
             {
@@ -220,28 +249,51 @@ namespace CrymexEngine.UI
             }
 
             _texture.FlipY();
-            _scaleMatrix = Matrix4.CreateScale(Debug.Vec2ToVec3(_scale / Window.HalfSize, 1));
+            _scaleMatrix = Matrix4.CreateScale(VectorUtility.Vec2ToVec3(_scale / Window.HalfSize, 1));
         }
 
         private Vector2 GetAlignmentOffset(Alignment alignment)
         {
             // Precomputed scale offsets
-            float fullWidth = _scale.X;
-            float fullHeight = _scale.Y;
+            float width = _scale.X;
+            float height = _scale.Y;
+
+            float halfPhysicalX = _physicalTextSize.X * 0.5f;
+            float halfPhysicalY = _physicalTextSize.Y * 0.5f;
 
             return alignment switch
             {
                 Alignment.TopLeft => new Vector2(0, 0),
-                Alignment.TopCenter => new Vector2(fullWidth / 2f, 0),
-                Alignment.TopRight => new Vector2(fullWidth, 0),
-                Alignment.MiddleLeft => new Vector2(0, fullHeight / 2f),
-                Alignment.MiddleCenter => new Vector2(fullWidth / 2f, fullHeight / 2f),
-                Alignment.MiddleRight => new Vector2(fullWidth, fullHeight / 2f),
-                Alignment.BottomLeft => new Vector2(0, fullHeight),
-                Alignment.BottomCenter => new Vector2(fullWidth / 2f, fullHeight),
-                Alignment.BottomRight => new Vector2(fullWidth, fullHeight),
+                Alignment.TopCenter => new Vector2(width / 2f - halfPhysicalX, 0),
+                Alignment.TopRight => new Vector2(width - halfPhysicalX, 0),
+                Alignment.MiddleLeft => new Vector2(0, height / 2f - halfPhysicalY),
+                Alignment.MiddleCenter => new Vector2(width / 2f - halfPhysicalX, height / 2f - halfPhysicalY),
+                Alignment.MiddleRight => new Vector2(width - halfPhysicalX, height / 2f - halfPhysicalY),
+                Alignment.BottomLeft => new Vector2(0, height - _physicalTextSize.Y),
+                Alignment.BottomCenter => new Vector2(width / 2f - halfPhysicalX, height - _physicalTextSize.Y),
+                Alignment.BottomRight => new Vector2(width - halfPhysicalX, height - _physicalTextSize.Y),
                 _ => Vector2.Zero // Default case
             };
+        }
+
+        private int GetBestFit()
+        {
+            for (int size = Math.Min(_scale.Y - (int)_textPadding.Y, _maxBestFitSize); size > 0; size--)
+            {
+                Font font = Family.CreateFont(size, _style);
+                if (Measure(font).X + _textPadding.X <= _scale.X * 0.8f) return size;
+            }
+            return 0;
+        }
+
+        public Vector2 Measure(string text)
+        {
+            var textOptions = new TextOptions(Family.CreateFont(FontSize, _style))
+            {
+                Origin = PointF.Empty
+            };
+            FontRectangle rect = TextMeasurer.MeasureSize(text, textOptions);
+            return new Vector2(rect.Width, rect.Height);
         }
 
         private Vector2 Measure(Font font)
@@ -252,6 +304,11 @@ namespace CrymexEngine.UI
             };
             FontRectangle rect = TextMeasurer.MeasureSize(_text, textOptions);
             return new Vector2(rect.Width, rect.Height);
+        }
+
+        public void Delete()
+        {
+            Scenes.Scene.current.textObjectDeleteQueue.Add(this);
         }
     }
 

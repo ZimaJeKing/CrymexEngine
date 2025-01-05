@@ -2,7 +2,6 @@
 using CrymexEngine.Debugging;
 using CrymexEngine.Rendering;
 using SixLabors.Fonts;
-using SixLabors.ImageSharp.Drawing;
 using System.Text;
 using SysPath = System.IO.Path;
 
@@ -21,16 +20,11 @@ namespace CrymexEngine
             }
         }
 
-        public static bool Precompiled
-        {
-            get
-            {
-                return _precompiled;
-            }
-        }
+        public static bool Precompiled => _precompiled;
+        public static bool UseMeta => _useMeta;
 
         /// <summary>
-        /// A number between 0 and 9. 0 for no compression, 1 for best speed, and 9 for best compression
+        /// A number between 0 and 9. 0 for no compression. 1 for best speed, and 9 for best compression
         /// </summary>
         public static int AssetTextureCompressionLevel
         {
@@ -45,32 +39,35 @@ namespace CrymexEngine
             }
         }
 
+        public static FontFamily DefaultFontFamily => _defaultFontFamily;
+
         private static List<TextureAsset> _textureAssets = new();
         private static List<AudioAsset> _audioAssets = new();
         private static List<ShaderAsset> _shaderAssets = new();
         private static List<FontAsset> _fontAssets = new();
         private static readonly List<DataAsset> _scenes = new();
 
-        private static FontCollection _fontCollecion = new();
+        private static readonly FontCollection _fontCollecion = new();
+        private static bool _useMeta = false;
         private static bool _precompiled;
         private static int _textureCompressionLevel = 9;
 
         private static FontFamily _defaultFontFamily;
 
-        private static Assets _instance = new Assets();
+        private static readonly Assets _instance = new Assets();
 
         public static void LoadAssets()
         {
             // Get the texture compression level setting
-            if (Settings.GetSetting("TextureCompressionLevel", out SettingOption texCompLevelOption, SettingType.Int))
+            if (Settings.GetSetting("TextureCompressionLevel", out SettingOption texCompLevelSetting, SettingType.Int))
             {
-                _textureCompressionLevel = texCompLevelOption.GetValue<int>();
+                _textureCompressionLevel = texCompLevelSetting.GetValue<int>();
             }
 
-            // Get the asset compiler check sum setting
-            if (Settings.GetSetting("AssetCheckSum", out SettingOption checkSumSetting, SettingType.Bool))
+            // Get the meta file setting
+            if (Settings.GetSetting("UseMetaFiles", out SettingOption useMetaSetting, SettingType.Bool) && useMetaSetting.GetValue<bool>())
             {
-                AssetCompiler.compareCheckSum = checkSumSetting.GetValue<bool>();
+                _useMeta = true;
             }
 
             // Defining Texture.White and Texture.None
@@ -78,7 +75,7 @@ namespace CrymexEngine
             Texture.None = new Texture(1, 1, new byte[] { 0, 0, 0, 0 });
 
             //  Whether the application is precompiled
-            if (Settings.Precompiled)
+            if (Settings.Instance.Precompiled)
             {
                 Debug.LogStatus("Running on precompiled assets");
                 _precompiled = true;
@@ -210,41 +207,44 @@ namespace CrymexEngine
             {
                 case ".png":
                     {
-                        _textureAssets.Add(new TextureAsset(path, Texture.Load(path)));
+                        TextureAsset texAsset = new TextureAsset(path, Texture.Load(path, MetaFileManager.DecodeMetaFromFile(path + ".meta")));
+                        _textureAssets.Add(texAsset);
                         break;
                     }
                 case ".jpg":
                     {
-                        _textureAssets.Add(new TextureAsset(path, Texture.Load(path)));
-                        break;
+                        TextureAsset texAsset = new TextureAsset(path, Texture.Load(path, MetaFileManager.DecodeMetaFromFile(path + ".meta")));
+                        _textureAssets.Add(texAsset); break;
                     }
                 case ".jpeg":
                     {
-                        _textureAssets.Add(new TextureAsset(path, Texture.Load(path)));
-                        break;
+                        TextureAsset texAsset = new TextureAsset(path, Texture.Load(path, MetaFileManager.DecodeMetaFromFile(path + ".meta")));
+                        _textureAssets.Add(texAsset); break;
                     }
                 case ".bmp":
                     {
-                        _textureAssets.Add(new TextureAsset(path, Texture.Load(path)));
-                        break;
+                        TextureAsset texAsset = new TextureAsset(path, Texture.Load(path, MetaFileManager.DecodeMetaFromFile(path + ".meta")));
+                        _textureAssets.Add(texAsset); break;
                     }
                 case ".gif":
                     {
-                        _textureAssets.Add(new TextureAsset(path, Texture.Load(path)));
-                        break;
+                        TextureAsset texAsset = new TextureAsset(path, Texture.Load(path, MetaFileManager.DecodeMetaFromFile(path + ".meta")));
+                        _textureAssets.Add(texAsset); break;
                     }
                 case ".wav":
                     {
                         AudioClip? clip = AudioClip.Load(path);
                         if (clip == null) break;
-                        _audioAssets.Add(new AudioAsset(path, clip));
+                        AudioAsset audioAsset = new AudioAsset(path, clip, MetaFileManager.DecodeMetaFromFile(path + ".meta"));
+                        _audioAssets.Add(audioAsset);
                         break;
                     }
                 case ".mp3":
                     {
                         AudioClip? clip = AudioClip.Load(path);
                         if (clip == null) break;
-                        _audioAssets.Add(new AudioAsset(path, clip)); 
+                        AudioAsset audioAsset = new AudioAsset(path, clip, MetaFileManager.DecodeMetaFromFile(path + ".meta"));
+                        _audioAssets.Add(audioAsset);
                         break;
                     }
                 case ".scene":
@@ -259,13 +259,18 @@ namespace CrymexEngine
                         {
                             string vertexCode = File.ReadAllText(path);
                             string fragmentCode = File.ReadAllText(fragmentPath);
-                            _shaderAssets.Add(new ShaderAsset(path, Shader.LoadFromAsset(vertexCode, fragmentCode), vertexCode, fragmentCode));
+                            ShaderAsset shaderAsset = new ShaderAsset(path, Shader.LoadFromAsset(vertexCode, fragmentCode), vertexCode, fragmentCode, MetaFileManager.DecodeMetaFromFile(path + ".meta"));
+                            _shaderAssets.Add(shaderAsset);
                         }
                         break;
                     }
                 case ".ttf":
                     {
-                        AddFont(path, File.ReadAllBytes(path));
+                        LoadFontFromData(path, File.ReadAllBytes(path));
+                        break;
+                    }
+                case ".meta":
+                    {
                         break;
                     }
             }
@@ -282,14 +287,13 @@ namespace CrymexEngine
             }
         }
 
-        public static void AddFont(string path, byte[] data)
+        public static void LoadFontFromData(string path, byte[] data)
         {
-            using (MemoryStream fileStream = new MemoryStream(data))
-            {
-                FontFamily family = _fontCollecion.Add(fileStream);
-                _fontAssets.Add(new FontAsset(path, family));
-                if (_defaultFontFamily == default) _defaultFontFamily = family;
-            }
+            using MemoryStream fileStream = new MemoryStream(data);
+
+            FontFamily family = _fontCollecion.Add(fileStream);
+            _fontAssets.Add(new FontAsset(path, family));
+            if (_defaultFontFamily == default) _defaultFontFamily = family;
         }
 
         private static void AssetSearchDirectory(string path)
@@ -376,10 +380,7 @@ namespace CrymexEngine
             if (File.Exists(audioPath)) _audioAssets = AssetCompiler.DecompileAudioAssets(File.ReadAllBytes(audioPath));
 
             string fontPath = Debug.runtimeAssetsPath + "RuntimeFonts.rtmAsset";
-            if (File.Exists(fontPath))
-            {
-                _fontAssets = AssetCompiler.DecompileFontAssets(File.ReadAllBytes(fontPath));
-            }
+            if (File.Exists(fontPath)) _fontAssets = AssetCompiler.DecompileFontAssets(File.ReadAllBytes(fontPath));
 
             string shaderPath = Debug.runtimeAssetsPath + "RuntimeShaders.rtmAsset";
             if (File.Exists(shaderPath)) _shaderAssets = AssetCompiler.DecompileShaderAssets(File.ReadAllBytes(shaderPath));

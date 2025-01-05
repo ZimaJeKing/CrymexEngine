@@ -212,11 +212,6 @@ namespace CrymexEngine
 
             return sum;
         }
-
-        public static Vector3 Vec2ToVec3(Vector2 xy, float z)
-        {
-            return new Vector3(xy.X, xy.Y, z);
-        }
     }
 
     public enum LogSeverity { Message, Status, Warning, Error, Custom }

@@ -11,7 +11,7 @@ using SixLabors.ImageSharp.Formats.Png;
 
 namespace CrymexEngine
 {
-    public class Texture : IDisposable
+    public sealed class Texture : IDisposable
     {
         public byte[] data;
         public readonly int width;
@@ -59,7 +59,7 @@ namespace CrymexEngine
             Apply();
         }
 
-        public static unsafe Texture Load(string path)
+        public static Texture Load(string path, MetaFile? meta = null)
         {
             if (!File.Exists(path))
             {
@@ -67,30 +67,32 @@ namespace CrymexEngine
                 return Missing;
             }
 
-            using (Image<Rgba32> image = Image.Load<Rgba32>(path))
+            using Image<Rgba32> image = Image.Load<Rgba32>(path);
+
+            // Access the pixel memory
+            IMemoryGroup<Rgba32> pixelMemGroups = image.GetPixelMemoryGroup();
+
+            // Allocate a byte array to hold the raw pixel data
+            int byteCount = image.Width * image.Height * 4; // 4 bytes per pixel (RGBA)
+            byte[] rawBytes = new byte[byteCount];
+
+            int offset = 0;
+            foreach (var memoryGroup in pixelMemGroups)
             {
-                // Access the pixel memory
-                IMemoryGroup<Rgba32> pixelMemGroups = image.GetPixelMemoryGroup();
-
-                // Allocate a byte array to hold the raw pixel data
-                int byteCount = image.Width * image.Height * 4; // 4 bytes per pixel (RGBA)
-                byte[] rawBytes = new byte[byteCount];
-
-                int offset = 0;
-                foreach (var memoryGroup in pixelMemGroups)
-                {
-                    byte[] src = MemoryMarshal.AsBytes(memoryGroup.Span).ToArray();
-                    System.Buffer.BlockCopy(src, 0, rawBytes, offset, src.Length);
-                    offset += src.Length;
-                }
-
-                // Create the texture
-                Texture loadedTexture = new Texture(image.Width, image.Height, rawBytes);
-
-                loadedTexture.FlipY();
-
-                return loadedTexture;
+                byte[] src = MemoryMarshal.AsBytes(memoryGroup.Span).ToArray();
+                System.Buffer.BlockCopy(src, 0, rawBytes, offset, src.Length);
+                offset += src.Length;
             }
+
+            // Create the texture
+            Texture loadedTexture = new Texture(image.Width, image.Height, rawBytes);
+
+            loadedTexture.FlipY();
+
+            Texture finalTexture = ApplyMetaData(meta, loadedTexture);
+            if (finalTexture != loadedTexture) loadedTexture.Dispose();
+
+            return finalTexture;
         }
 
         public void SetPixel(int x, int y, Color4 color)
@@ -175,7 +177,6 @@ namespace CrymexEngine
             }
         }
 
-        /// <param name="level"></param>
         public byte[] CompressData(int level)
         {
             level = Math.Clamp(level, 0, 9);
@@ -183,23 +184,22 @@ namespace CrymexEngine
             Image<Rgba32> isImage = Image.LoadPixelData<Rgba32>(data, width, height);
 
             // Save the Image as PNG in a MemoryStream
-            using (MemoryStream memoryStream = new MemoryStream())
-            {
-                isImage.Save(memoryStream, new PngEncoder() { CompressionLevel = (PngCompressionLevel)level});
+            using MemoryStream memoryStream = new MemoryStream();
+            isImage.Save(memoryStream, new PngEncoder() { CompressionLevel = (PngCompressionLevel)level });
 
-                return memoryStream.ToArray();
-            }
+            return memoryStream.ToArray();
         }
 
-        public static Texture FromCompressed(byte[] data)
+        public static Texture FromCompressed(byte[] data, MetaFile? meta = null)
         {
-            using (MemoryStream memoryStream = new MemoryStream(data))
-            {
-                using (Image<Rgba32> image = Image.Load<Rgba32>(memoryStream))
-                {
-                    return FromImageSharp(image);
-                }
-            }
+            using MemoryStream memoryStream = new MemoryStream(data);
+            using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
+
+            Texture loaded = FromImageSharp(image);
+            Texture final = ApplyMetaData(meta, loaded);
+            if (final != loaded) loaded.Dispose();
+
+            return final;
         }
 
         public static Texture FromImageSharp(Image<Rgba32> image)
@@ -218,7 +218,8 @@ namespace CrymexEngine
                 offset += src.Length;
             }
 
-            return new Texture(image.Width, image.Height, rawBytes);
+            Texture texture = new Texture(image.Width, image.Height, rawBytes);
+            return texture;
         }
 
         /// <summary>
@@ -299,6 +300,25 @@ namespace CrymexEngine
         public void Dispose()
         {
             GL.DeleteBuffer(glTexture);
+        }
+
+        private static Texture ApplyMetaData(MetaFile? metadata, Texture texture)
+        {
+            if (metadata == null || !Assets.UseMeta) return texture;
+
+            int maxX = metadata.GetIntProperty("MaxSizeX");
+            int maxY = metadata.GetIntProperty("MaxSizeY");
+
+            if (maxX > 0 && maxY > 0)
+            {
+                if (maxX < texture.width || maxY < texture.height)
+                {
+                    Texture original = texture; 
+                    texture = original.Resize(maxX, maxY);
+                    original.Dispose();
+                }
+            }
+            return texture;
         }
     }
 

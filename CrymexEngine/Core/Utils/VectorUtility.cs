@@ -14,14 +14,30 @@ namespace CrymexEngine.Utils
             return origin + dir.Normalized() * distance;
         }
 
-        public static float Angle(Vector2 origin, Vector2 target)
+        public static float AngleBetween(Vector2 vectorA, Vector2 vectorB)
         {
-            Vector2 dir = target - origin;
-            float angle = MathF.Atan(dir.Y / dir.X);
+            Vector2 direction = vectorA - vectorB;
 
-            if (!float.IsNormal(angle)) angle = 0;
+            // Use Atan2 to compute the angle in radians
+            float angleInRadians = MathF.Atan2(direction.Y, direction.X);
 
-            return MathHelper.RadiansToDegrees(angle);
+            // Convert the angle to degrees
+            float angleInDegrees = MathHelper.RadiansToDegrees(angleInRadians);
+
+            // Normalize the angle to the range [0, 360)
+            angleInDegrees = (angleInDegrees + 360) % 360;
+
+            return -angleInDegrees;
+        }
+
+        public static Vector3 Vec2ToVec3(Vector2 xy, float z)
+        {
+            return new Vector3(xy.X, xy.Y, z);
+        }
+
+        public static Vector2i RoundToInt(Vector2 xy)
+        {
+            return new Vector2i((int)xy.X, (int)xy.Y);
         }
     }
 }

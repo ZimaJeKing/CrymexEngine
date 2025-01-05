@@ -1,4 +1,5 @@
 ﻿using CrymexEngine.Rendering;
+using CrymexEngine.Utils;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 
@@ -42,7 +43,7 @@ namespace CrymexEngine.UI
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, Mesh.quad.ebo);
 
             // Set first three shader parameters for Position, transformation, and color
-            shader.SetParam(0, Debug.Vec2ToVec3(UIElement.Position / Window.Size, 0));
+            shader.SetParam(0, VectorUtility.Vec2ToVec3(UIElement.Position / Window.HalfSize, 0));
             shader.SetParam(1, UIElement.TransformationMatrix);
             shader.SetParam(2, color);
 
