@@ -364,3 +364,7 @@ FodyWeavers.xsd
 /CrymexEngine/Scripts/Behaviours/MyBehaviourScript.cs
 /CrymexEngine/Scripts/ScriptLoader.cs
 /CrymexEngine/Scripts/Behaviours/MusicPlayerExample.cs
+/CrymexEngine/Scripts/Examples/InputFieldExample.cs
+/CrymexEngine/Scripts/Examples/MusicPlayerExample.cs
+/CrymexEngine/Scripts/Examples/SimpleGameExample.cs
+/CrymexEngine/Scripts/Examples/TextExample.cs

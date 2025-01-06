@@ -5,27 +5,39 @@ namespace CrymexEngine.Examples
 {
     public class MusicPlayerExample : ScriptableBehaviour
     {
-        UIElement playButton;
-
+        UIElement buttonElement;
         Entity progressBar;
 
-        bool playing = true;
+        bool playing = false;
 
+        InputField inputField;
         AudioSource source;
 
+        Texture playingTexture;
+        Texture stoppedTexture;
+
+        // Made for a 512x512 window
         public override void Load()
         {
-            AudioClip clip = Assets.GetAudioClip("YourAudioClip");
+            playingTexture = Assets.GetTexture("Play");
+            stoppedTexture = Assets.GetTexture("Stop");
 
-            source = Audio.Play(clip, 0.1f, true, null);
+            // Input field
+            UIElement inputFieldElement = new UIElement(Texture.White, new Vector2(0, 100), new Vector2(256, 32));
+            inputField = inputFieldElement.AddComponent<InputField>();
+            inputField.CharacterLimit = 20;
+            inputField.PreviewText = "Audio clip...";
+            inputField.DisplayText.FontSize = 20;
+            inputField.onSubmit = PlayClip;
 
-            playButton = new UIElement(Assets.GetTexture("Play"), new Vector2(0, -100), new Vector2(200));
-            Button buttonComponent = playButton.AddComponent<Button>();
+            buttonElement = new UIElement(stoppedTexture, new Vector2(0, -100), new Vector2(200));
+            buttonElement.cursorAlphaTest = false;
+            Button buttonComponent = buttonElement.AddComponent<Button>();
             buttonComponent.hoverColor = new Color4(0, 0, 0, 210);
             buttonComponent.pressedColor = new Color4(0, 0, 0, 180);
             buttonComponent.onClick = PlayButtonClick;
 
-            progressBar = new Entity(Texture.White, new Vector2(0, 256), new Vector2(512, 100));
+            progressBar = new Entity(Texture.White, new Vector2(0, 256), new Vector2(512, 50));
             progressBar.Renderer.color = Color4.Red;
         }
 
@@ -38,15 +50,38 @@ namespace CrymexEngine.Examples
 
         void PlayButtonClick(MouseButton button)
         {
+            if (source == null)
+            {
+                PlayClip(inputField.Value);
+                return;
+            }
+
             if (playing)
             {
+                buttonElement.Renderer.texture = stoppedTexture;
                 source.Pause();
             }
             else
             {
+                buttonElement.Renderer.texture = playingTexture;
                 source.Play();
             }
             playing = !playing;
+        }
+
+        void PlayClip(string clip)
+        {
+            source?.Delete();
+
+            AudioClip audioClip = Assets.GetAudioClip(clip);
+            if (audioClip == null) return;
+
+            source = new AudioSource(audioClip, 0.2f, true, false);
+            source.Play();
+
+            playing = true;
+            buttonElement.Renderer.texture = playingTexture;
+            TextEditor.Deselect();
         }
     }
 }
