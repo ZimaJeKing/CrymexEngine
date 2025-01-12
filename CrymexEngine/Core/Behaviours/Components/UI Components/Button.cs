@@ -2,7 +2,7 @@
 
 namespace CrymexEngine.UI
 {
-    public sealed class Button : UIComponent
+    public sealed class Button : UIComponent, IMouseClick, IMouseHover
     {
         public Color4 defaultColor = Color4.White;
         public Color4 hoverColor = Color4.WhiteSmoke;
@@ -14,7 +14,7 @@ namespace CrymexEngine.UI
         public Action onHoverEnter;
         public Action onHoverExit;
 
-        public override void OnMouseExit()
+        public void OnMouseExit()
         {
             onHoverExit?.Invoke();
 
@@ -22,13 +22,13 @@ namespace CrymexEngine.UI
             Renderer.color = defaultColor;
         }
 
-        public override void OnMouseUp()
+        public void OnMouseUp()
         {
             if (!colorTransitions) return;
             Renderer.color = hoverColor;
         }
 
-        public override void OnMouseEnter()
+        public void OnMouseEnter()
         {
             onHoverEnter?.Invoke();
 
@@ -36,11 +36,21 @@ namespace CrymexEngine.UI
             Renderer.color = hoverColor;
         }
 
-        public override void OnMouseDown(MouseButton mouseButton)
+        public void OnMouseDown(MouseButton mouseButton)
         {
             onClick?.Invoke(mouseButton);
             if (!colorTransitions) return;
             Renderer.color = pressedColor;
         }
+
+        public override void PreRender() { }
+
+        protected override void Load() { }
+
+        protected override void Update() { }
+
+        public void OnMouseHold(MouseButton mouseButton, float time) { }
+
+        public void OnMouseStay(float time) { }
     }
 }

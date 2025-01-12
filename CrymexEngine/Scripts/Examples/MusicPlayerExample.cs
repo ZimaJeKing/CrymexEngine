@@ -17,7 +17,7 @@ namespace CrymexEngine.Examples
         Texture stoppedTexture;
 
         // Made for a 512x512 window
-        public override void Load()
+        protected override void Load()
         {
             playingTexture = Assets.GetTexture("Play");
             stoppedTexture = Assets.GetTexture("Stop");
@@ -41,9 +41,11 @@ namespace CrymexEngine.Examples
             progressBar.Renderer.color = Color4.Red;
         }
 
-        public override void Update()
+        protected override void Update()
         {
             if (!playing) return;
+
+            // Update the progress bar
             progressBar.Scale = new Vector2(source.Progress * 512, 50);
             progressBar.Position = new Vector2(source.Progress * 256 - 256, 250);
         }
@@ -71,10 +73,10 @@ namespace CrymexEngine.Examples
 
         void PlayClip(string clip)
         {
-            source?.Delete();
-
             AudioClip audioClip = Assets.GetAudioClip(clip);
             if (audioClip == null) return;
+
+            source?.Delete();
 
             source = new AudioSource(audioClip, 0.2f, true, false);
             source.Play();

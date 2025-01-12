@@ -86,7 +86,7 @@ namespace CrymexEngine
                 LoadPrecompiledAssets();
 
                 float loadingTime = Time.GameTime - startTime;
-                Debug.LogStatus($"Precompiled assets loaded in {Debug.FloatToShortString(loadingTime)} seconds");
+                Debug.LogStatus($"Precompiled assets loaded in {CEUtilities.FloatToShortString(loadingTime, 2)} seconds");
             }
             else
             {
@@ -97,10 +97,10 @@ namespace CrymexEngine
 
                 // Starts a recursive loop of searching directories in the "Assets" folder
                 // Responsible for loading all dynamic assets
-                AssetSearchDirectory(Debug.assetsPath);
+                AssetSearchDirectory(IO.assetsPath);
 
                 float loadingTime = Time.GameTime - startTime;
-                Debug.LogStatus($"Dynamic assets loaded in {Debug.FloatToShortString(loadingTime)} seconds");
+                Debug.LogStatus($"Dynamic assets loaded in {CEUtilities.FloatToShortString(loadingTime, 2)} seconds");
 
                 // Compile assets if specified in settings
                 if (Settings.GetSetting("PrecompileAssets", out SettingOption precompileAssetsOption, SettingType.Bool) && precompileAssetsOption.GetValue<bool>())
@@ -111,7 +111,7 @@ namespace CrymexEngine
                     AssetCompilationInfo info = CompileDataAssets();
 
                     // Create a compilation log
-                    using (FileStream fileStream = File.Create($"{Debug.logFolderPath}{Time.CurrentDateTimeShortString} CompilationLog.log"))
+                    using (FileStream fileStream = File.Create($"{IO.logFolderPath}{Time.CurrentDateTimeShortString} CompilationLog.log"))
                     {
                         string final = "Compilation log:\n";
                         final += info.ToString();
@@ -137,13 +137,16 @@ namespace CrymexEngine
             GC.Collect();
         }
 
+        /// <summary>
+        /// Gets a loaded compressed texture and decompresses it. Try using 'Assets.GetTextureCompressed' if you don't plan on modifying it
+        /// </summary>
         public static Texture GetTexture(string name)
         {
-            foreach (TextureAsset texture in _textureAssets)
+            foreach (TextureAsset asset in _textureAssets)
             {
-                if (texture.name == name)
+                if (asset.name == name)
                 {
-                    return texture.texture;
+                    return asset.texture;
                 }
             }
             return Texture.Missing;
@@ -316,7 +319,7 @@ namespace CrymexEngine
             long textureSize, audioSize, shaderSize, fontSize;
 
             // Compiling texture data
-            string texturePath = Debug.runtimeAssetsPath + "RuntimeTextures.rtmAsset";
+            string texturePath = IO.runtimeAssetsPath + "RuntimeTextures.rtmAsset";
 
             using (FileStream textureFileStream = File.Create(texturePath))
             {
@@ -328,7 +331,7 @@ namespace CrymexEngine
             }
 
             // Compiling audio data
-            string audioPath = Debug.runtimeAssetsPath + "RuntimeAudioClips.rtmAsset";
+            string audioPath = IO.runtimeAssetsPath + "RuntimeAudioClips.rtmAsset";
             using (FileStream audioFileStream = File.Create(audioPath))
             {
                 foreach (AudioAsset asset in _audioAssets)
@@ -339,7 +342,7 @@ namespace CrymexEngine
             }
 
             // Compiling shaders
-            string shaderPath = Debug.runtimeAssetsPath + "RuntimeShaders.rtmAsset";
+            string shaderPath = IO.runtimeAssetsPath + "RuntimeShaders.rtmAsset";
             using (FileStream shaderFileStream = File.Create(shaderPath))
             {
                 foreach (ShaderAsset asset in _shaderAssets)
@@ -350,7 +353,7 @@ namespace CrymexEngine
             }
 
             // Compiling fonts
-            string fontPath = Debug.runtimeAssetsPath + "RuntimeFonts.rtmAsset";
+            string fontPath = IO.runtimeAssetsPath + "RuntimeFonts.rtmAsset";
             using (FileStream fontFileStream = File.Create(fontPath))
             {
                 foreach (FontAsset asset in _fontAssets)
@@ -361,7 +364,7 @@ namespace CrymexEngine
             }
 
             // Compiling setttings
-            string settingsPath = Debug.runtimeAssetsPath + "RuntimeSettings.rtmAsset";
+            string settingsPath = IO.runtimeAssetsPath + "RuntimeSettings.rtmAsset";
             using (FileStream settingsFileStream = File.Create(settingsPath))
             {
                 settingsFileStream.Write(AssetCompiler.CompileData("GLOBALSETTINGS", Encoding.Unicode.GetBytes(Settings.SettingsText)));
@@ -373,45 +376,17 @@ namespace CrymexEngine
         }
         private static void LoadPrecompiledAssets()
         {
-            string texturePath = Debug.runtimeAssetsPath + "RuntimeTextures.rtmAsset";
+            string texturePath = IO.runtimeAssetsPath + "RuntimeTextures.rtmAsset";
             if (File.Exists(texturePath)) _textureAssets = AssetCompiler.DecompileTextureAssets(File.ReadAllBytes(texturePath));
 
-            string audioPath = Debug.runtimeAssetsPath + "RuntimeAudioClips.rtmAsset";
+            string audioPath = IO.runtimeAssetsPath + "RuntimeAudioClips.rtmAsset";
             if (File.Exists(audioPath)) _audioAssets = AssetCompiler.DecompileAudioAssets(File.ReadAllBytes(audioPath));
 
-            string fontPath = Debug.runtimeAssetsPath + "RuntimeFonts.rtmAsset";
+            string fontPath = IO.runtimeAssetsPath + "RuntimeFonts.rtmAsset";
             if (File.Exists(fontPath)) _fontAssets = AssetCompiler.DecompileFontAssets(File.ReadAllBytes(fontPath));
 
-            string shaderPath = Debug.runtimeAssetsPath + "RuntimeShaders.rtmAsset";
+            string shaderPath = IO.runtimeAssetsPath + "RuntimeShaders.rtmAsset";
             if (File.Exists(shaderPath)) _shaderAssets = AssetCompiler.DecompileShaderAssets(File.ReadAllBytes(shaderPath));
-        }
-    }
-
-    public class AssetCompilationInfo
-    {
-        public readonly float compilationTime;
-        public readonly long textureCompressedSize;
-        public readonly long audioCompressedSize;
-        public readonly long fontSize;
-        public readonly long shaderSize;
-
-        public AssetCompilationInfo(long textureCompressedSize, long audioCompressedSize, long shaderSize, long fontSize, float compilationTime)
-        {
-            this.compilationTime = compilationTime;
-            this.textureCompressedSize = textureCompressedSize;
-            this.audioCompressedSize = audioCompressedSize;
-            this.shaderSize = shaderSize;
-            this.fontSize = fontSize;
-        }
-
-        public override string ToString()
-        {
-            string final = $"Textures: {Debug.ByteCountToString(UsageProfiler.TextureMemoryUsage)} raw, {Debug.ByteCountToString(textureCompressedSize)} compressed\n";
-            final += $"Audio: {Debug.ByteCountToString(UsageProfiler.AudioMmeoryUsage)} raw, {Debug.ByteCountToString(audioCompressedSize)} compressed\n";
-            final += $"Shaders: {Debug.ByteCountToString(shaderSize)}\n";
-            final += $"Fonts: {Debug.ByteCountToString(fontSize)}\n";
-            final += $"Compilation Time: {Debug.FloatToShortString(compilationTime)} seconds";
-            return final;
         }
     }
 }

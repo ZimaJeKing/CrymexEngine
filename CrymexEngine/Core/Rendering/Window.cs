@@ -1,5 +1,4 @@
-﻿using CrymexEngine.Core.UI;
-using CrymexEngine.Debugging;
+﻿using CrymexEngine.Debugging;
 using CrymexEngine.Scenes;
 using CrymexEngine.Scripting;
 using CrymexEngine.UI;
@@ -213,10 +212,7 @@ namespace CrymexEngine
             UsageProfiler.Instance.Init();
 
             // WindowLoad the user specified scene, otherwise create a new scene
-            if (!Settings.GetSetting("StartingScene", out SettingOption startingSceneSetting, SettingType.RefString) || !SceneLoader.LoadScene(Assets.GetScenePath(startingSceneSetting.GetValue<string>())))
-            {
-                Scene.current = new Scene();
-            }
+            if (Settings.GetSetting("StartingScene", out SettingOption startingSceneSetting, SettingType.RefString)) SceneLoader.LoadScene(Assets.GetScenePath(startingSceneSetting.GetValue<string>()));
 
             // Loads scriptableBehaviours and calls Load
             ScriptLoader.LoadBehaviours();
@@ -243,12 +239,12 @@ namespace CrymexEngine
             // Call Update on all loaded behaviours
             UpdateBehaviours();
 
-            Input.textInput = "";
+            Input.textInput = string.Empty;
 
             HandleErrors();
 
             // Minimize the window with Tab + X
-            if (Input.Key(Key.Tab) && Input.Key(Key.X)) _glfwWindow.WindowState = (OpenTK.Windowing.Common.WindowState)WindowState.Minimized;
+            if (Input.Key(Key.Tab) && Input.Key(Key.X)) _glfwWindow.WindowState = WindowState.Minimized;
 
             _glfwWindow.SwapBuffers();
 
@@ -320,15 +316,15 @@ namespace CrymexEngine
         private static void UpdateBehaviours()
         {
             // Update scriptable behaviours
-            foreach (ScriptableBehaviour behaviour in Scene.current.scriptableBehaviours)
+            foreach (ScriptableBehaviour behaviour in Scene.Current.scriptableBehaviours)
             {
-                if (behaviour.enabled) behaviour.Update();
+                if (behaviour.enabled) Behaviour.UpdateBehaviour(behaviour);
             }
 
             // Update entities
-            foreach (Entity entity in Scene.current.entities)
+            foreach (Entity entity in Scene.Current.entities)
             {
-                if (entity.enabled) entity.Update();
+                if (entity.enabled) GameObject.GameObjectUpdate(entity);
             }
 
             // Update UI elements and configure transparency
@@ -336,24 +332,26 @@ namespace CrymexEngine
             GL.Enable(EnableCap.Blend);
             GL.DepthMask(false);
 
-            foreach (UIElement element in Scene.current.uiElements)
+            // Render elemets
+            foreach (UIElement element in Scene.Current.uiElements)
             {
-                if (element.enabled) element.Update();
+                if (element.enabled) GameObject.GameObjectUpdate(element);
             }
 
             // Render Text
-            foreach (TextObject textObject in Scene.current.textObjects)
+            foreach (TextObject textObject in Scene.Current.textObjects)
             {
-                if (textObject.enabled) textObject.Render();
+                if (textObject.enabled) TextObject.RenderText(textObject);
             }
+
+            // Render text cursor
+            TextEditor.Instance.RenderCursor();
 
             GL.Disable(EnableCap.Blend);
             GL.Enable(EnableCap.DepthTest);
             GL.DepthMask(true);
 
-            TextEditor.Instance.RenderCursor();
-
-            Scene.current.UpdateDeleteQueue();
+            Scene.UpdateQueues();
         }
 
         private static void ApplyPreLoadSettings()
@@ -368,6 +366,11 @@ namespace CrymexEngine
             if (Settings.GetSetting("DebugMode", out SettingOption debugModeSetting, SettingType.Bool))
             {
                 Debug.logToConsole = debugModeSetting.GetValue<bool>();
+
+                if (Debug.logToConsole)
+                {
+                    
+                }
             }
 
             // Window Title

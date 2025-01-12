@@ -6,13 +6,7 @@ namespace CrymexEngine.UI
 {
     public class UIElement : GameObject
     {
-        public UIRenderer Renderer
-        {
-            get
-            {
-                return _renderer;
-            }
-        }
+        public UIRenderer Renderer => _renderer;
 
         private readonly UIRenderer _renderer;
 
@@ -28,36 +22,58 @@ namespace CrymexEngine.UI
             _renderer.texture = texture;
             _renderer.Depth = depth;
 
-            Scene.current.uiElements.Add(this);
+            Scene.Current.uiElements.Add(this);
 
             UICanvas.Instance.SortElements();
         }
 
-        public void Update()
+        protected override void Update()
         {
             if (!enabled) return;
 
             foreach (Component component in components)
             {
-                if (component.enabled) component.Update();
+                if (component.enabled)
+                {
+                    Behaviour.UpdateBehaviour(component);
+                }
             }
-            Renderer.Update();
+            Behaviour.UpdateBehaviour(_renderer);
         }
 
+        protected override void PreRender()
+        {
+            if (!enabled) return;
+
+            foreach (Component component in components)
+            {
+                if (component.enabled) component.PreRender();
+            }
+        }
+
+        /// <summary>
+        /// Adds a component of the specified type to the Element
+        /// </summary>
+        /// <returns>The new component</returns>
         public T AddComponent<T>() where T : UIComponent
         {
+            if (Attribute.IsDefined(typeof(T), typeof(FreeComponentAttribute))) return null;
+
             object? _instance = Activator.CreateInstance(typeof(T));
             if (_instance == null) return null;
 
+            if (_instance is IMouseClick _ || _instance is IMouseHover _) _handlesClickEvents = true;
+
             T instance = (T)_instance;
             instance.UIElement = this;
-            instance.Load();
+            Behaviour.LoadBehaviour(instance);
 
             components.Add(instance);
 
             return instance;
         }
 
+        /// <returns>If the operation was successful</returns>
         public bool RemoveComponent<T>() where T : UIComponent
         {
             for (int i = 0; i < components.Count; i++)
@@ -73,6 +89,9 @@ namespace CrymexEngine.UI
             return false;
         }
 
+        /// <summary>
+        /// Returns a component of a certain type. Returns null if no matching component found
+        /// </summary>
         public T GetComponent<T>() where T : UIComponent
         {
             for (int i = 0; i < components.Count; i++)
@@ -85,10 +104,13 @@ namespace CrymexEngine.UI
             return null;
         }
 
-        public void Delete()
+        /// <summary>
+        /// Removes an element from the game. Happens next frame
+        /// </summary>
+        public override void Delete()
         {
             enabled = false;
-            Scene.current.uiElementDeleteQueue.Add(this);
+            Scene.Current.uiElementDeleteQueue.Add(this);
         }
     }
 }

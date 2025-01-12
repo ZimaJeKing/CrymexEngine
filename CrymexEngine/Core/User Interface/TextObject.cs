@@ -158,7 +158,16 @@ namespace CrymexEngine.UI
             }
             set
             {
-                _fontSize = value;
+                if (value <= 0)
+                {
+                    _fontSize = 0;
+                    _bestFit = true;
+                }
+                else
+                {
+                    _bestFit = false;
+                    _fontSize = value;
+                }
                 ReDraw();
             }
         }
@@ -193,14 +202,17 @@ namespace CrymexEngine.UI
             _family = family;
             _style = style;
             _fontSize = fontSize;
+            if (_fontSize == 0) _bestFit = true;
             _alignment = textAlignment;
 
-            Scenes.Scene.current.textObjects.Add(this);
+            Scenes.Scene.Current.textObjects.Add(this);
 
             ReDraw();
         }
 
-        public void Render()
+        public static void RenderText(TextObject textObject) => textObject.Render();
+
+        private void Render()
         {
             if (_family == default) return;
 
@@ -308,7 +320,7 @@ namespace CrymexEngine.UI
 
         public void Delete()
         {
-            Scenes.Scene.current.textObjectDeleteQueue.Add(this);
+            Scenes.Scene.Current.textObjectDeleteQueue.Add(this);
         }
     }
 

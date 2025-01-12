@@ -1,4 +1,5 @@
 ﻿using CrymexEngine.Scenes;
+using CrymexEngine.UI;
 using OpenTK.Mathematics;
 namespace CrymexEngine
 {
@@ -27,11 +28,11 @@ namespace CrymexEngine
         /// </summary>
         public static Entity GetEntity(string name)
         {
-            for (int e = 0; e < Scene.current.entities.Count; e++)
+            for (int e = 0; e < Scene.Current.entities.Count; e++)
             {
-                if (Scene.current.entities[e].name == name)
+                if (Scene.Current.entities[e].name == name)
                 {
-                    return Scene.current.entities[e];
+                    return Scene.Current.entities[e];
                 }
             }
             return null;
@@ -52,31 +53,6 @@ namespace CrymexEngine
             return null;
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        public void Update()
-        {
-            foreach (EntityComponent component in components)
-            {
-                if (component.enabled)
-                {
-                    component.Update();
-                }
-            }
-        }
-
-        public void PreRender()
-        {
-            foreach (EntityComponent component in components)
-            {
-                if (component.enabled)
-                {
-                    component.PreRender();
-                }
-            }
-        }
-
         public Entity(Texture texture, Vector2 position, Vector2 scale, Entity? parent = null, string name = "")
         {
             Parent = parent;
@@ -84,7 +60,7 @@ namespace CrymexEngine
             Scale = scale;
             Rotation = 0;
 
-            Scene.current.entities.Add(this);
+            Scene.Current.entities.Add(this);
 
             _renderer = AddComponent<EntityRenderer>();
             Renderer.texture = texture;
@@ -117,20 +93,29 @@ namespace CrymexEngine
             Position = position;
             Scale = scale;
             Rotation = 0;
+            this.name = name;
 
-            Scene.current.entities.Add(this);
+            Scene.Current.entities.Add(this);
         }
 
+        /// <summary>
+        /// Adds a component of the specified type to the Entity
+        /// </summary>
+        /// <returns>The new component</returns>
         public T AddComponent<T>() where T : EntityComponent
         {
+            if (Attribute.IsDefined(typeof(T), typeof(FreeComponentAttribute))) return null;
+
             object? _instance = Activator.CreateInstance(typeof(T));
             if (_instance == null) return null;
 
+            if (_instance is IMouseClick _ || _instance is IMouseHover _) _handlesClickEvents = true;
+
             T instance = (T)_instance;
-            instance.Entity = this;
+            instance.entity = this;
             components.Add(instance);
 
-            instance.Load();
+            Behaviour.LoadBehaviour(instance);
 
             return instance;
         }
@@ -161,6 +146,9 @@ namespace CrymexEngine
             return false;
         }
 
+        /// <summary>
+        /// Returns a component of a certain type. Returns null if no matching component found
+        /// </summary>
         public T GetComponent<T>() where T : EntityComponent
         {
             for (int i = 0; i < components.Count; i++)
@@ -173,26 +161,35 @@ namespace CrymexEngine
             return null;
         }
 
-        public bool GetComponent<T>(out T component) where T : EntityComponent
-        {
-            for (int i = 0; i < components.Count; i++)
-            {
-                if (components[i].GetType() == typeof(T))
-                {
-                    component = (T)components[i];
-                    return true;
-                }
-            }
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-            component = null;
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
-            return false;
-        }
-
-        public void Delete()
+        /// <summary>
+        /// Removes an element from the game. Happens next frame
+        /// </summary>
+        public override void Delete()
         {
             enabled = false;
-            Scene.current.entityDeleteQueue.Add(this);
+            Scene.Current.entityDeleteQueue.Add(this);
+        }
+
+        protected override void Update()
+        {
+            foreach (EntityComponent component in components)
+            {
+                if (component.enabled)
+                {
+                    Behaviour.UpdateBehaviour(component);
+                }
+            }
+        }
+
+        protected override void PreRender()
+        {
+            foreach (EntityComponent component in components)
+            {
+                if (component.enabled)
+                {
+                    component.PreRender();
+                }
+            }
         }
     }
 }

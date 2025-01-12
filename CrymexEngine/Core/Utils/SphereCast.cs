@@ -8,7 +8,7 @@ namespace CrymexEngine
     {
         public static bool Cast(Vector2 start, float angle, float width, float range, out PhysicsCastHit hit)
         {
-            if (Scene.current.colliders.Count == 0)
+            if (Scene.Current.colliders.Count == 0)
             {
                 hit = new PhysicsCastHit();
                 return false;
@@ -25,7 +25,7 @@ namespace CrymexEngine
                 // Get the closest distance from any collider
                 Collider? c = null;
                 float closestDistance = float.MaxValue;
-                foreach (Collider collider in Scene.current.colliders)
+                foreach (Collider collider in Scene.Current.colliders)
                 {
                     if (!collider.enabled) continue;
 
@@ -53,7 +53,7 @@ namespace CrymexEngine
 
                 if (closestDistance < width)
                 {
-                    hit = new PhysicsCastHit(newPoint, c.Entity);
+                    hit = new PhysicsCastHit(newPoint, c.entity);
                     return true;
                 }
             }

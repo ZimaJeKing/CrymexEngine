@@ -2,13 +2,13 @@
 
 namespace CrymexEngine.UI
 {
-    public class UIComponent : Component
+    public abstract class UIComponent : Component
     {
         public UIRenderer Renderer
         {
             get
             {
-                return (UIRenderer)_renderer;
+                return (UIRenderer)_rendererComponent;
             }
         }
 
@@ -27,7 +27,7 @@ namespace CrymexEngine.UI
                     return;
                 }
 
-                _renderer = value.Renderer;
+                _rendererComponent = value.Renderer;
                 _uiElement = value;
             }
         }

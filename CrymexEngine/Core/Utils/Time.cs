@@ -34,7 +34,7 @@ namespace CrymexEngine
         {
             get
             {
-                return $"{DateTime.Now.Hour}h:{DateTime.Now.Minute}m:{DateTime.Now.Second}s:{DateTime.Now.Millisecond}ms";
+                return CEUtilities.SecondsToTimeString((float)TimeOnly.FromDateTime(DateTime.Now).ToTimeSpan().TotalSeconds);
             }
         }
 

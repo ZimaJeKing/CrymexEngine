@@ -5,7 +5,7 @@ namespace CrymexEngine
 {
     public class EntityComponent : Component
     {
-        public Entity Entity
+        public Entity entity
         {
             get
             {
@@ -14,7 +14,7 @@ namespace CrymexEngine
             set
             {
                 _entity = value;
-                _renderer = value.GetComponent<EntityRenderer>();
+                _rendererComponent = value.GetComponent<EntityRenderer>();
             }
         }
 
@@ -22,10 +22,16 @@ namespace CrymexEngine
         {
             get
             {
-                return (EntityRenderer?)_renderer;
+                return (EntityRenderer?)_rendererComponent;
             }
         }
 
         private Entity _entity;
+
+        public override void PreRender() { }
+
+        protected override void Load() { }
+
+        protected override void Update() { }
     }
 }

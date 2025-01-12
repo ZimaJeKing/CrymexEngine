@@ -1,7 +1,6 @@
 ﻿namespace CrymexEngine
 {
-    public class ScriptableBehaviour : Behaviour
+    public abstract class ScriptableBehaviour : Behaviour
     {
-
     }
 }

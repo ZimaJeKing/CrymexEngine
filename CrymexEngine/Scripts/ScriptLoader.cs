@@ -14,7 +14,7 @@ namespace CrymexEngine.Scripting
             //             \ /                 //
             //              ˇ                  //
 
-            Add<CrymexEngineCompiler>();
+            Add<MusicPlayerExample>();
 
             // - - - - - - - - - - - - - - - - //
         }

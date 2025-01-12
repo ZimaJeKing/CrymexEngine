@@ -136,8 +136,8 @@ namespace CrymexEngine.Debugging
         {
             string profile = "\nUsage Profiler:\n";
             profile += $"Time: {Time.CurrentTimeString}\n";
-            profile += $"Ram usage: {Debug.ByteCountToString(MemoryUsage)}\n";
-            profile += $"Avarage processor time: {Debug.FloatToShortString(ProcessorTime * 1000)}ms\n";
+            profile += $"Ram usage: {CEUtilities.ByteCountToString(MemoryUsage)}\n";
+            profile += $"Avarage processor time: {CEUtilities.FloatToShortString(ProcessorTime * 1000, 2)}ms\n";
             profile += $"Thread count: {ThreadCount}\n";
             profile += $"FPS: {Window.FramesPerSecond}";
             return profile;
@@ -152,9 +152,9 @@ namespace CrymexEngine.Debugging
 
             Debug.WriteToLogFile($"Max supported MSAA samples: {maxMsaaSamples}", LogSeverity.Custom);
 
-            Debug.WriteToLogFile($"Texture memory usage: {Debug.ByteCountToString(TextureMemoryUsage)}", LogSeverity.Custom);
-            Debug.WriteToLogFile($"Audio memory usage: {Debug.ByteCountToString(AudioMmeoryUsage)}", LogSeverity.Custom);
-            Debug.WriteToLogFile($"Total memory usage: {Debug.ByteCountToString(_currentProcess.PrivateMemorySize64)}", LogSeverity.Custom);
+            Debug.WriteToLogFile($"Texture memory usage: {CEUtilities.ByteCountToString(TextureMemoryUsage)}", LogSeverity.Custom);
+            Debug.WriteToLogFile($"Audio memory usage: {CEUtilities.ByteCountToString(AudioMmeoryUsage)}", LogSeverity.Custom);
+            Debug.WriteToLogFile($"Total memory usage: {CEUtilities.ByteCountToString(_currentProcess.PrivateMemorySize64)}", LogSeverity.Custom);
         }
     }
 

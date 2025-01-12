@@ -16,7 +16,7 @@ namespace CrymexEngine.Scenes
 
             Scene scene = SceneCompiler.CompileScene(precompiled);
 
-            Scene.current = scene;
+            Scene.Load(scene);
 
             return true;
         }

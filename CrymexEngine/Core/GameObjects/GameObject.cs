@@ -106,6 +106,7 @@ namespace CrymexEngine
                 value.BindChild(this);
             }
         }
+        public bool HandlesClickEvents => _handlesClickEvents;
 
         public Vector2 HalfScale
         {
@@ -123,57 +124,89 @@ namespace CrymexEngine
         private float _rotation;
         private Vector2 _scale = Vector2.Zero;
         private GameObject? _parent;
+        protected bool _handlesClickEvents;
 
         protected List<GameObject> children = new List<GameObject>();
         protected List<Component> components = new List<Component>();
 
-        public void OnCursorEnter()
+        private void OnMouseEnter()
         {
             foreach (Component component in components)
             {
-                component.OnMouseEnter();
+                if (component is IMouseHover mouseHover)
+                {
+                    mouseHover.OnMouseEnter();
+                }
             }
         }
-        public void OnCursorStay(float time)
+        private void OnMouseStay(float time)
         {
             foreach (Component component in components)
             {
-                component.OnMouseStay(time);
+                if (component is IMouseHover mouseHover)
+                {
+                    mouseHover.OnMouseStay(time);
+                }
             }
         }
-        public void OnCursorExit()
+        private void OnMouseExit()
         {
             foreach (Component component in components)
             {
-                component.OnMouseExit();
+                if (component is IMouseHover mouseHover)
+                {
+                    mouseHover.OnMouseExit();
+                }
             }
         }
-        public void OnCursorDown(MouseButton mouseButton)
+        private void OnMouseDown(MouseButton mouseButton)
         {
             foreach (Component component in components)
             {
-                component.OnMouseDown(mouseButton);
+                if (component is IMouseClick mouseClick)
+                {
+                    mouseClick.OnMouseDown(mouseButton);
+                }
             }
         }
-        public void OnCursorHold(MouseButton mouseButton, float time)
+        private void OnMouseHold(MouseButton mouseButton, float time)
         {
             foreach (Component component in components)
             {
-                component.OnMouseHold(mouseButton, time);
+                if (component is IMouseClick mouseClick)
+                {
+                    mouseClick.OnMouseHold(mouseButton, time);
+                }
             }
         }
-        public void OnCursorUp()
+        private void OnMouseUp()
         {
             foreach (Component component in components)
             {
-                component.OnMouseUp();
+                if (component is IMouseClick mouseClick)
+                {
+                    mouseClick.OnMouseUp();
+                }
             }
         }
+
+        public static void GameObjectUpdate(GameObject gameObject) => gameObject.Update();
+        public static void GameObjectPreRender(GameObject gameObject) => gameObject.PreRender();
+        public static void GameObjectCursorEnter(GameObject gameObject) => gameObject.OnMouseEnter();
+        public static void GameObjectCursorStay(GameObject gameObject, float time) => gameObject.OnMouseStay(time);
+        public static void GameObjectCursorExit(GameObject gameObject) => gameObject.OnMouseExit();
+        public static void GameObjectCursorDown(GameObject gameObject, MouseButton button) => gameObject.OnMouseDown(button);
+        public static void GameObjectCursorHold(GameObject gameObject, MouseButton button, float holdTime) => gameObject.OnMouseHold(button, holdTime);
+        public static void GameObjectCursorUp(GameObject gameObject) => gameObject.OnMouseUp();
 
         protected void RecalcTransformMatrix()
         {
             TransformationMatrix = Matrix4.CreateScale(_scale.X / Window.HalfSize.X, _scale.Y / Window.HalfSize.Y, 1) * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(Rotation));
         }
+
+        protected virtual void Update() { }
+        protected virtual void PreRender() { }
+        public virtual void Delete() { }
 
         private void RecalcChildTransform(GameObject child)
         {

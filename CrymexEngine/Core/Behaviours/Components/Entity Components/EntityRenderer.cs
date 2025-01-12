@@ -28,23 +28,24 @@ namespace CrymexEngine
 
         private float _depth;
 
-        public override void Update()
+        protected override void Update()
         {
-            if (Vector2.DistanceSquared(Entity.Position, Camera.position) < Camera.renderDistanceSquared)
+            if (Vector2.DistanceSquared(entity.Position, Camera.position) < Camera.renderDistanceSquared)
             {
+                GL.UseProgram(shader._glShader);
+
+                // Bind buffers
                 GL.BindTexture(TextureTarget.Texture2D, texture.glTexture);
                 GL.BindBuffer(BufferTarget.ArrayBuffer, mesh.vbo);
                 GL.BindVertexArray(mesh.vao);
                 GL.BindBuffer(BufferTarget.ElementArrayBuffer, mesh.ebo);
 
-                GL.UseProgram(shader._glShader);
-
                 // Set first three shader parameters for Position, transformation, and color
-                shader.SetParam(0, VectorUtility.Vec2ToVec3((Entity.Position - Camera.position) / Window.HalfSize, -Depth * 0.001f));
-                shader.SetParam(1, Entity.TransformationMatrix);
+                shader.SetParam(0, VectorUtility.Vec2ToVec3((entity.Position - Camera.position) / Window.HalfSize, -Depth * 0.001f));
+                shader.SetParam(1, entity.TransformationMatrix);
                 shader.SetParam(2, color);
 
-                Entity.PreRender();
+                GameObject.GameObjectPreRender(entity);
 
                 GL.DrawElements(BeginMode.Triangles, mesh.indices.Length, DrawElementsType.UnsignedInt, mesh.ebo);
             }

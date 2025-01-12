@@ -30,7 +30,7 @@ namespace CrymexEngine.UI
 
         public void SortElements()
         {
-            Scene.current.uiElements.Sort((a, b) => -b.Renderer.Depth.CompareTo(a.Renderer.Depth));
+            Scene.Current.uiElements.Sort((a, b) => -b.Renderer.Depth.CompareTo(a.Renderer.Depth));
         }
 
         private static void HandleMouseInput()
@@ -38,9 +38,9 @@ namespace CrymexEngine.UI
             // Find overlaping entities and flter entities EntityRenderer.Depth
             GameObject? hover = null;
             float highestDepth = float.MinValue;
-            foreach (Entity entity in Scene.current.entities)
+            foreach (Entity entity in Scene.Current.entities)
             {
-                if (entity.enabled && entity.Renderer != null && entity.Renderer.enabled && entity.interactible && Input.CursorOverlap(entity, entity.cursorAlphaTest))
+                if (entity.enabled && entity.Renderer != null && entity.Renderer.enabled && entity.interactible && entity.HandlesClickEvents && Input.CursorOverlap(entity, entity.cursorAlphaTest))
                 {
                     if (entity.Renderer.Depth >= highestDepth)
                     {
@@ -51,9 +51,9 @@ namespace CrymexEngine.UI
             }
 
             highestDepth = float.MinValue;
-            foreach (UIElement element in Scene.current.uiElements)
+            foreach (UIElement element in Scene.Current.uiElements)
             {
-                if (element.enabled && element.interactible && Input.CursorOverlap(element, element.cursorAlphaTest))
+                if (element.enabled && element.interactible && element.HandlesClickEvents && Input.CursorOverlap(element, element.cursorAlphaTest))
                 {
                     if (element.Renderer.Depth >= highestDepth)
                     {
@@ -65,14 +65,14 @@ namespace CrymexEngine.UI
 
             if (hover == null)
             {
-                _hover?.OnCursorExit();
+                if (_hover != null) GameObject.GameObjectCursorExit(_hover);
                 _hover = null;
                 return;
             }
 
             if (hover != _hover)
             {
-                _hover?.OnCursorExit();
+                if (_hover != null) GameObject.GameObjectCursorExit(_hover);
             }
 
             HandleCursorLogic(hover);
@@ -88,7 +88,7 @@ namespace CrymexEngine.UI
             // Hover events
             if (_hover == null || _hover != gameObject)
             {
-                gameObject.OnCursorEnter();
+                GameObject.GameObjectCursorEnter(gameObject);
                 if (_hold == _hover)
                 {
                     _hold = gameObject;
@@ -98,13 +98,13 @@ namespace CrymexEngine.UI
             }
             else
             {
-                gameObject.OnCursorStay(Time.GameTime - _hoverTime);
+                GameObject.GameObjectCursorStay(gameObject, Time.GameTime - _hoverTime);
             }
 
             // No input
             if (input == null)
             {
-                _hold?.OnCursorUp();
+                if (_hold != null) GameObject.GameObjectCursorUp(gameObject);
                 _hold = null;
                 return;
             }
@@ -112,13 +112,13 @@ namespace CrymexEngine.UI
             // Click events
             if (_hold == null)
             {
-                gameObject.OnCursorDown(input.Value);
+                GameObject.GameObjectCursorDown(gameObject, input.Value);
                 _hold = gameObject;
                 _holdTime = Time.GameTime;
             }
             else
             {
-                gameObject.OnCursorHold(input.Value, Time.GameTime - _holdTime);
+                GameObject.GameObjectCursorHold(gameObject, input.Value, Time.GameTime - _holdTime);
             }
         }
     }

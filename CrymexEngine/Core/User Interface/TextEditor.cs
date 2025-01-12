@@ -5,7 +5,7 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using System.Windows.Forms;
 
-namespace CrymexEngine.Core.UI
+namespace CrymexEngine.UI
 {
     public class TextEditor
     {
@@ -20,6 +20,33 @@ namespace CrymexEngine.Core.UI
 
         private static readonly TextEditor _instance = new TextEditor();
 
+
+        [STAThread]
+        public static void SaveToClipboard(string text)
+        {
+            try
+            {
+                Clipboard.SetText(text);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to save to clipboard:" + ex.Message);
+            }
+        }
+
+        [STAThread]
+        public static string GetFromClipboard()
+        {
+            try
+            {
+                return Clipboard.GetText();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to load from clipboard:" + ex.Message);
+                return "";
+            }
+        }
         public static void Select(InputField? inputField, int index)
         {
             if (_selected == inputField)
@@ -65,14 +92,14 @@ namespace CrymexEngine.Core.UI
 
             if (input.Length == 0) // First input
             {
-                if (Input.Key(Key.LeftControl) && Input.Key(Key.V))
+                if (Input.Key(Key.LeftControl) && Input.Key(Key.V)) // Pasting
                 {
                     _lastEditTime = Time.GameTime;
                     final = GetFromClipboard();
                     edited = true;
                     _selectedIndex = final.Length - 1;
                 }
-                else if (Input.textInput.Length != 0)
+                else if (Input.textInput.Length != 0) // Text input
                 {
                     final = Input.textInput;
                     edited = true;
@@ -89,7 +116,7 @@ namespace CrymexEngine.Core.UI
             string secondPart = "";
             if (input.Length >= _selectedIndex + 1) secondPart = input.Substring(_selectedIndex + 1);
 
-            if (Input.Key(Key.Backspace) && editTimeDif > 0.1f) // Erasing
+            if (Input.Key(Key.Backspace) && editTimeDif > 0.1f && _selectedIndex >= 0) // Erasing
             {
                 _lastEditTime = Time.GameTime;
 
@@ -102,7 +129,7 @@ namespace CrymexEngine.Core.UI
             {
                 _lastEditTime = Time.GameTime;
                 _selectedIndex += arrowMovement;
-                _selectedIndex = Math.Clamp(_selectedIndex, 0, input.Length - 1);
+                _selectedIndex = Math.Clamp(_selectedIndex, -1, input.Length - 1);
             }
             else if (Input.Key(Key.LeftControl) && editTimeDif > 0.25f) // Copying & Pasting
             {
@@ -135,11 +162,11 @@ namespace CrymexEngine.Core.UI
         {
             if (_selected == null) return;
 
-            if (((int)(Time.GameTime * 2)) % 2 == 0) return;
+            if (((int)(Time.GameTime * 2)) % 2 == 0) return; // Cursor blinking in half second interval
 
             Shader.Regular.Use();
 
-            // Bind shader and texture
+            // Bind buffers
             GL.BindTexture(TextureTarget.Texture2D, Texture.White.glTexture);
             GL.BindBuffer(BufferTarget.ArrayBuffer, Mesh.quad.vbo);
             GL.BindVertexArray(Mesh.quad.vao);
@@ -157,41 +184,14 @@ namespace CrymexEngine.Core.UI
         {
             _cursorTransform = Matrix4.CreateScale(VectorUtility.Vec2ToVec3(new Vector2(Math.Max(2, _selected.DisplayText.FontSize * 0.05f), _selected.DisplayText.FontSize) / Window.HalfSize, 0));
 
-            if (newText.Length == 0)
+            if (newText.Length == 0 || _selectedIndex == -1)
             {
                 _cursorPosition = _selected.UIElement.Position - new Vector2(_selected.UIElement.HalfScale.X - _selected.DisplayText.TextPadding.X, 0);
                 return;
             }
 
             string firstTextPart = newText.Substring(0, _selectedIndex + 1);
-            _cursorPosition = _selected.UIElement.Position - new Vector2(_selected.UIElement.HalfScale.X - _selected.DisplayText.Measure(firstTextPart).X - _selected.DisplayText.TextPadding.X - _selected.DisplayText.FontSize * 0.2f, 0);
-        }
-
-        [STAThread]
-        private static void SaveToClipboard(string text)
-        {
-            try
-            {
-                Clipboard.SetText(text);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Failed to save to clipboard:" + ex.Message);
-            }
-        }
-
-        [STAThread]
-        private static string GetFromClipboard()
-        {
-            try
-            {
-                return Clipboard.GetText();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Failed to load from clipboard:" + ex.Message);
-                return "";
-            }
+            _cursorPosition = _selected.UIElement.Position - new Vector2(_selected.UIElement.HalfScale.X - _selected.DisplayText.Measure(firstTextPart).X - _selected.DisplayText.TextPadding.X - 1, 0);
         }
     }
 }

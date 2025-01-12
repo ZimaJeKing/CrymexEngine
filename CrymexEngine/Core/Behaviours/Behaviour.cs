@@ -1,10 +1,24 @@
 ﻿namespace CrymexEngine
 {
-    public class Behaviour
+    public abstract class Behaviour
     {
         public bool enabled = true;
 
-        public virtual void Load() { }
-        public virtual void Update() { }
+        protected abstract void Load();
+        protected abstract void Update();
+
+        public static void LoadBehaviour(Behaviour behaviour)
+        {
+            if (behaviour == null) return;
+
+            behaviour.Load();
+        }
+
+        public static void UpdateBehaviour(Behaviour behaviour)
+        {
+            if (behaviour == null) return;
+
+            behaviour.Update();
+        }
     }
 }

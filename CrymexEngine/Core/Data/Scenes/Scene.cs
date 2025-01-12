@@ -4,35 +4,87 @@ namespace CrymexEngine.Scenes
 {
     public class Scene
     {
-        public static Scene current;
+        public static Scene Current => _current;
 
-        public List<Entity> entities = new();
-        public List<ScriptableBehaviour> scriptableBehaviours = new();
-        public List<Collider> colliders = new();
-        public List<UIElement> uiElements = new();
-        public List<TextObject> textObjects = new();
+        public readonly List<Entity> entities = new();
+        public readonly List<ScriptableBehaviour> scriptableBehaviours = new();
+        public readonly List<Collider> colliders = new();
+        public readonly List<UIElement> uiElements = new();
+        public readonly List<TextObject> textObjects = new();
 
-        public List<Entity> entityDeleteQueue = new();
-        public List<UIElement> uiElementDeleteQueue = new();
-        public List<TextObject> textObjectDeleteQueue = new();
+        public readonly List<Entity> entityDeleteQueue = new();
+        public readonly List<UIElement> uiElementDeleteQueue = new();
+        public readonly List<TextObject> textObjectDeleteQueue = new();
+
+        private static Scene _current = new Scene();
+        private static Scene? _nextToLoad = null;
+
+        private bool _shouldClear = false;
 
         public Scene() { }
 
+        /// <summary>
+        /// Clear the scene and deletes loaded gameObjects and textObjects. QUEUED FOR NEXT FRAME
+        /// </summary>
         public void Clear()
         {
-            UpdateDeleteQueue();
-
-            entities = new List<Entity>();
-            scriptableBehaviours = new List<ScriptableBehaviour>();
-            colliders = new List<Collider>();
-            uiElements = new List<UIElement>();
+            _shouldClear = true;
         }
 
-        public void UpdateDeleteQueue()
+        /// <summary>
+        /// Sets the scene as current. QUEUED FOR NEXT FRAME
+        /// </summary>
+        public static void Load(Scene scene)
         {
-            foreach (Entity entity in entityDeleteQueue) { entities.Remove(entity); }
-            foreach (UIElement element in uiElementDeleteQueue) { uiElements.Remove(element); }
-            foreach (TextObject text in textObjectDeleteQueue) { textObjects.Remove(text); }
+            _nextToLoad = scene;
+        }
+
+        public static void UpdateQueues()
+        {
+            // Object deletion queues
+            if (_current.entityDeleteQueue.Count > 0 || _current.uiElementDeleteQueue.Count > 0 || _current.textObjectDeleteQueue.Count > 0)
+            {
+                foreach (Entity entity in _current.entityDeleteQueue) { _current.entities.Remove(entity); }
+                foreach (UIElement element in _current.uiElementDeleteQueue) { _current.uiElements.Remove(element); }
+                foreach (TextObject text in _current.textObjectDeleteQueue) { _current.textObjects.Remove(text); }
+                _current.entityDeleteQueue.Clear();
+                _current.uiElementDeleteQueue.Clear();
+                _current.textObjectDeleteQueue.Clear();
+            }
+
+            // Clearing Queue
+            if (_current._shouldClear || _nextToLoad != null) _current.SafeClear();
+
+            // Loading Queue
+            if (_nextToLoad != null) _current = _nextToLoad;
+        }
+
+        private void SafeClear()
+        {
+            // Clear entities
+            foreach (Entity entity in entities)
+            {
+                entity.Delete();
+            }
+            entities.Clear();
+
+            // Clear elements
+            foreach (UIElement element in uiElements)
+            {
+                element.Delete();
+            }
+            uiElements.Clear();
+
+            // Clear textObjects
+            foreach (TextObject text in textObjects)
+            {
+                text.Delete();
+            }
+            textObjects.Clear();
+
+            // Clear behaviours and colliders
+            scriptableBehaviours.Clear();
+            colliders.Clear();
         }
     }
 }

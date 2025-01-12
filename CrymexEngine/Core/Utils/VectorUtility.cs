@@ -18,13 +18,10 @@ namespace CrymexEngine.Utils
         {
             Vector2 direction = vectorA - vectorB;
 
-            // Use Atan2 to compute the angle in radians
             float angleInRadians = MathF.Atan2(direction.Y, direction.X);
 
-            // Convert the angle to degrees
             float angleInDegrees = MathHelper.RadiansToDegrees(angleInRadians);
 
-            // Normalize the angle to the range [0, 360)
             angleInDegrees = (angleInDegrees + 360) % 360;
 
             return -angleInDegrees;

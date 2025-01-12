@@ -1,18 +1,14 @@
-﻿using CrymexEngine.Core.UI;
-using CrymexEngine.UI;
-using CrymexEngine.Utils;
+﻿using CrymexEngine.Utils;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common.Input;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CrymexEngine.UI
 {
-    public class InputField : UIComponent
+    public class InputField : UIComponent, IMouseClick, IMouseHover
     {
+        /// <summary>
+        /// Happens if the user presses the enter key with the InputField selected
+        /// </summary>
         public Action<string> onSubmit;
         public Action<string> onTextInput;
 
@@ -20,6 +16,42 @@ namespace CrymexEngine.UI
         public TextObject DisplayText => _displayText;
 
         public bool changeCursor = true;
+
+        public string PreviewText
+        {
+            get
+            {
+                return _previewText;
+            }
+            set 
+            { 
+                _previewText = value;
+                ShowPreviewText();
+            }
+        }
+
+        public Color4 PreviewTextColor
+        {
+            get
+            {
+                return _previewTextColor;
+            }
+            set
+            {
+                _previewTextColor = value;
+            }
+        }
+        public Color4 TextColor
+        {
+            get
+            {
+                return _textColor;
+            }
+            set
+            {
+                _textColor = value;
+            }
+        }
 
         public string Value
         {
@@ -29,17 +61,27 @@ namespace CrymexEngine.UI
             }
             set
             {
-                if (value == null)
+                if (string.IsNullOrEmpty(value))
                 {
-                    _value = "";
-                    _displayText.Text = "";
+                    if (!_selected) ShowPreviewText();
+                    _value = string.Empty;
+                    _displayText.Text = string.Empty;
+                    return;
                 }
-                else
+
+                // Make text one line
+                value = value.Replace("\n", string.Empty);
+
+                // If value is an empty string display preview
+                if (string.IsNullOrEmpty(value) && !_selected)
                 {
-                    value = value.Replace("\n", "");
-                    _value = value;
-                    _displayText.Text = value;
+                    _displayText.FontColor = _previewTextColor;
+                    _displayText.Text = _previewText;
                 }
+
+                _value = value;
+                _displayText.FontColor = _textColor;
+                _displayText.Text = value;
             }
         }
         public int CharacterLimit
@@ -57,10 +99,14 @@ namespace CrymexEngine.UI
 
         private Button _buttonComponent;
         private TextObject _displayText;
-        private string _value = "";
+        private string _value = string.Empty;
         private int _characterLimit = int.MaxValue;
+        private string _previewText = string.Empty;
+        private Color4 _previewTextColor = new Color4(0, 0, 0, 128);
+        private Color4 _textColor = Color4.Black;
+        private bool _selected = false;
 
-        public override void Load()
+        protected override void Load()
         {
             _displayText = new TextObject(UIElement.Position, VectorUtility.RoundToInt(UIElement.Scale), "", Assets.DefaultFontFamily, (int)(UIElement.Scale.Y * 0.8f), Alignment.MiddleLeft);
             _displayText.BestFit = true;
@@ -73,21 +119,70 @@ namespace CrymexEngine.UI
                 _buttonComponent = UIElement.AddComponent<Button>();
             }
             _buttonComponent.onClick = Select;
+
+            ShowPreviewText();
         }
 
-        public override void OnMouseEnter()
+        public void OnMouseEnter()
         {
             if (changeCursor) Window.Instance.GLFWWindow.Cursor = MouseCursor.IBeam;
         }
 
-        public override void OnMouseExit()
+        public void OnMouseExit()
         {
             if (changeCursor) Window.Cursor = Window.Cursor;
         }
 
         private void Select(MouseButton button)
         {
+            _selected = !_selected;
+
+            if (_selected)
+            {
+                if (string.IsNullOrEmpty(_value))
+                {
+                    _displayText.Text = string.Empty;
+                    _displayText.FontColor = _textColor;
+                }
+            }
+            else
+            {
+                ShowPreviewText();
+            }
             TextEditor.Select(this, Math.Max(_value.Length - 1, 0));
+        }
+
+        private void ShowPreviewText()
+        {
+            if (string.IsNullOrEmpty(_value))
+            {
+                _displayText.Text = _previewText;
+                _displayText.FontColor = _previewTextColor;
+            }
+        }
+
+        public override void PreRender()
+        {
+        }
+
+        protected override void Update()
+        {
+        }
+
+        public void OnMouseDown(MouseButton mouseButton)
+        {
+        }
+
+        public void OnMouseHold(MouseButton mouseButton, float time)
+        {
+        }
+
+        public void OnMouseUp()
+        {
+        }
+
+        public void OnMouseStay(float time)
+        {
         }
     }
 }

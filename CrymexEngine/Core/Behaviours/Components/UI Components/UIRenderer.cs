@@ -5,6 +5,7 @@ using OpenTK.Mathematics;
 
 namespace CrymexEngine.UI
 {
+    [FreeComponent]
     public class UIRenderer : UIComponent
     {
         public Texture texture;
@@ -32,7 +33,7 @@ namespace CrymexEngine.UI
             UICanvas.Instance.SortElements();
         }
 
-        public override void Update()
+        protected override void Update()
         {
             shader.Use();
 
@@ -48,6 +49,14 @@ namespace CrymexEngine.UI
             shader.SetParam(2, color);
 
             GL.DrawElements(BeginMode.Triangles, Mesh.quad.indices.Length, DrawElementsType.UnsignedInt, Mesh.quad.ebo);
+        }
+
+        public override void PreRender()
+        {
+        }
+
+        protected override void Load()
+        {
         }
     }
 }

@@ -22,11 +22,13 @@ namespace CrymexEngine
 
         public void LoadSettings()
         {
+            InitializeDirectories();
+
             string rawSettingsText;
-            string settingsPath = Debug.runtimeAssetsPath + "RuntimeSettings.rtmAsset";
+            string settingsPath = IO.runtimeAssetsPath + "RuntimeSettings.rtmAsset";
             if (!File.Exists(settingsPath))
             {
-                settingsPath = Debug.assetsPath + "GlobalSettings.txt";
+                settingsPath = IO.assetsPath + "GlobalSettings.txt";
 
                 if (!File.Exists(settingsPath))
                 {
@@ -175,6 +177,14 @@ namespace CrymexEngine
                 return new SettingOption(name, SettingType.Bool, false);
             }
             return new SettingOption(name, SettingType.RefString, value);
+        }
+
+        private static void InitializeDirectories()
+        {
+            if (!Directory.Exists(IO.assetsPath)) Directory.CreateDirectory(IO.assetsPath);
+            if (!Directory.Exists(IO.runtimeAssetsPath)) Directory.CreateDirectory(IO.runtimeAssetsPath);
+            if (!Directory.Exists(IO.logFolderPath)) Directory.CreateDirectory(IO.logFolderPath);
+            if (!Directory.Exists(IO.saveFolderPath)) Directory.CreateDirectory(IO.saveFolderPath);
         }
     }
 }

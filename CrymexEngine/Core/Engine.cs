@@ -5,15 +5,10 @@ namespace CrymexEngine
 {
     public static class Engine
     {
-        public static Version version = new Version(0, 0, 0, 0);
-        public static string[] StartingArgs => _startingArgs;
+        public static readonly Version version = new Version(0, 0, 0, 0);
 
-        private static string[] _startingArgs;
-
-        private static unsafe void Main(string[] args)
+        private static unsafe void Main()
         {
-            _startingArgs = args;
-
             GLFW.Init();
 
             Settings.Instance.LoadSettings();
@@ -41,8 +36,8 @@ namespace CrymexEngine
 
         private static void LogQuitDebugInfo()
         {
-            Debug.LogStatus($"Ended after {Debug.FloatToShortString(Time.GameTime)} seconds");
-            Debug.LogStatus($"Loaded {Scene.current.scriptableBehaviours.Count} behaviours and {Scene.current.entities.Count + Scene.current.uiElements.Count} game objects before quit");
+            Debug.LogStatus($"Ended after: {CEUtilities.SecondsToTimeString(Time.GameTime)}");
+            Debug.LogStatus($"Loaded {Scene.Current.scriptableBehaviours.Count} behaviours and {Scene.Current.entities.Count + Scene.Current.uiElements.Count} game objects before quit");
         }
 
         private static void PerformCleanup()

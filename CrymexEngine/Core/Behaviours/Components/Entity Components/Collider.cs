@@ -1,39 +1,30 @@
 ﻿using CrymexEngine.Scenes;
+using CrymexEngine.Utils;
 using OpenTK.Mathematics;
 
 namespace CrymexEngine
 {
     public class Collider : EntityComponent
     {
-        public override void Load()
+        protected override void Load()
         {
-            Scene.current.colliders.Add(this);
+            Scene.Current.colliders.Add(this);
         }
 
-        public virtual float GetClosestPoint(Collider c)
-        {
-            if (c.GetType() == typeof(SphereCollider)) return Vector2.Distance(Entity.Position, c.Entity.Position) - ((SphereCollider)c).radius;
-            return Vector2.Distance(Entity.Position, c.Entity.Position);
-        }
         public virtual float GetClosestPoint(Vector2 point)
         {
-            return Vector2.Distance(point, Entity.Position);
+            return Vector2.Distance(point, entity.Position);
         }
     }
 
-    public class SphereCollider : Collider
+    public class CircleCollider : Collider
     {
         public float radius;
         public Vector2 offset;
 
-        public override float GetClosestPoint(Collider c)
-        {
-            if (c.GetType() == typeof(SphereCollider)) return Vector2.Distance(Entity.Position + offset, c.Entity.Position) - ((SphereCollider)c).radius - radius;
-            return Vector2.Distance(Entity.Position + offset, c.Entity.Position) - radius;
-        }
         public override float GetClosestPoint(Vector2 point)
         {
-            return Vector2.Distance(point, Entity.Position + offset) - radius;
+            return Vector2.Distance(point, entity.Position + offset) - radius;
         }
     }
 
@@ -42,27 +33,25 @@ namespace CrymexEngine
         public Vector2 size;
         public Vector2 offset;
 
-        public override float GetClosestPoint(Collider c)
-        {
-            if (c.GetType() == typeof(BoxCollider))
-            {
-                BoxCollider bc = (BoxCollider)c;
-
-                float dist = MathF.Sqrt(MathF.Pow(c.Entity.Position.X - Entity.Position.X, 2) + MathF.Pow(c.Entity.Position.Y - Entity.Position.Y, 2));
-
-                float distX = dist - (size.X * 0.5f) - (bc.size.X * 0.5f);
-                float distY = dist - (size.Y * 0.5f) - (bc.size.Y * 0.5f);
-
-                return MathF.Min(distX, distY);
-            }
-            return -1;
-        }
         public override float GetClosestPoint(Vector2 point)
         {
-            float distX = MathF.Max(0, MathF.Abs(point.X - Entity.Position.X) - (size.X / 2));
-            float distY = MathF.Max(0, MathF.Abs(point.Y - Entity.Position.Y) - (size.Y / 2));
+            // Step 1: Translate the point into the rectangle's local coordinate system
+            // Translate the point to the rectangle's local space by subtracting the rectangle center
+            Vector2 translatedPoint = new Vector2(point.X - entity.Position.X, point.Y - entity.Position.Y);
 
-            return MathF.Sqrt(MathF.Pow(distX, 2) + MathF.Pow(distY, 2));
+            // Step 2: Rotate the point by the negative rotation of the rectangle to align it with axes
+            Vector2 rotatedPoint = GeometryHelper.RotatePoint(translatedPoint, MathHelper.DegreesToRadians(entity.Rotation));
+
+            // Step 3: Clamp the point to the axis-aligned rectangle's bounds
+            float closestX = Math.Max(-size.X / 2, Math.Min(rotatedPoint.X, size.X / 2));
+            float closestY = Math.Max(-size.Y / 2, Math.Min(rotatedPoint.Y, size.Y / 2));
+
+            // Step 4: Calculate the Euclidean distance from the rotated point to the closest point on the rectangle
+            float distanceX = rotatedPoint.X - closestX;
+            float distanceY = rotatedPoint.Y - closestY;
+            float closestDistance = (float)Math.Sqrt(distanceX * distanceX + distanceY * distanceY);
+
+            return closestDistance;
         }
     }
 }
