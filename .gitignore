@@ -368,3 +368,4 @@ FodyWeavers.xsd
 /CrymexEngine/Scripts/Examples/MusicPlayerExample.cs
 /CrymexEngine/Scripts/Examples/SimpleGameExample.cs
 /CrymexEngine/Scripts/Examples/TextExample.cs
+/CrymexEngine/Scripts/CrymexEngineCompiler.cs
