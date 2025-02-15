@@ -1,4 +1,5 @@
-﻿using OpenTK.Windowing.GraphicsLibraryFramework;
+﻿using CrymexEngine.Utils;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace CrymexEngine
 {
@@ -34,7 +35,7 @@ namespace CrymexEngine
         {
             get
             {
-                return CEUtilities.SecondsToTimeString((float)TimeOnly.FromDateTime(DateTime.Now).ToTimeSpan().TotalSeconds);
+                return DataUtilities.SecondsToTimeString((float)TimeOnly.FromDateTime(DateTime.Now).ToTimeSpan().TotalSeconds);
             }
         }
 

@@ -18,7 +18,7 @@ namespace CrymexEngine.UI
 
             this.name = name;
             _renderer = new UIRenderer(depth);
-            _renderer.UIElement = this;
+            _renderer.uiElement = this;
             _renderer.texture = texture;
             _renderer.Depth = depth;
 
@@ -65,7 +65,7 @@ namespace CrymexEngine.UI
             if (_instance is IMouseClick _ || _instance is IMouseHover _) _handlesClickEvents = true;
 
             T instance = (T)_instance;
-            instance.UIElement = this;
+            instance.uiElement = this;
             Behaviour.LoadBehaviour(instance);
 
             components.Add(instance);

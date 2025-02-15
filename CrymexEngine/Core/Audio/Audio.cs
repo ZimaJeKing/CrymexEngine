@@ -30,9 +30,9 @@ namespace CrymexEngine
 
         private static Audio _instance = new Audio();
 
-        public void InitializeContext()
+        internal void InitializeContext()
         {
-            Cleanup();
+            if (_initialized) return;
 
             _alDevice = ALC.OpenDevice(null);
             if (_alDevice == IntPtr.Zero)
@@ -45,6 +45,32 @@ namespace CrymexEngine
             ALC.MakeContextCurrent(_alContext);
 
             _initialized = true;
+
+            Debug.LogLocalInfo("Audio Handler", $"Audio context initialized with device '{ALC.GetString(_alDevice, AlcGetString.AllDevicesSpecifier)}'");
+        }
+
+        public void OverrideContext(string? deviceName = null)
+        {
+            if (!_initialized) return;
+
+            Cleanup();
+
+            _alDevice = ALC.OpenDevice(deviceName);
+            if (_alDevice == IntPtr.Zero)
+            {
+                Debug.LogError("Couldn't initialize audio device");
+                return;
+            }
+
+            _alContext = ALC.CreateContext(_alDevice, (int[]?)null);
+            ALC.MakeContextCurrent(_alContext);
+
+            Debug.LogLocalInfo("Audio Handler", $"Audio context override for device '{ALC.GetString(_alDevice, AlcGetString.AllDevicesSpecifier)}'");
+        }
+
+        public string[] GetAvailableDevices()
+        {
+            return ALC.GetStringList(GetEnumerationStringList.DeviceSpecifier).ToArray();
         }
 
         public void RemoveInactiveSources()

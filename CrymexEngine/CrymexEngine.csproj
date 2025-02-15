@@ -19,7 +19,6 @@
 	<PropertyGroup>
 		<EnableComInterop>true</EnableComInterop>
 		<PublishTrimmed>false</PublishTrimmed>
-		<!-- You can also try disabling trimming if needed -->
 	</PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -47,17 +46,19 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Aether.Physics2D" Version="2.1.0" />
     <PackageReference Include="FreeTypeSharp" Version="3.0.0" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="NAudio.Lame" Version="2.1.0" />
     <PackageReference Include="OpenTK" Version="4.9.3" />
-    <PackageReference Include="SixLabors.Fonts" Version="2.0.7" />
+    <PackageReference Include="SixLabors.Fonts" Version="2.0.9" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.6" />
-    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.4" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.5" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Scripts\Components\" />
+    <Folder Include="Scripts\Examples\Basics\" />
   </ItemGroup>
 
 </Project>

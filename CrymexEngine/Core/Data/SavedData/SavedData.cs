@@ -1,4 +1,5 @@
 ﻿using CrymexEngine.Data;
+using CrymexEngine.Utils;
 using OpenTK.Mathematics;
 using System.Text;
 
@@ -9,7 +10,7 @@ namespace CrymexEngine
         public static void WriteInt32(string name, int value)
         {
             // Remove special characters
-            if (CEUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
+            if (DataUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
 
             using (FileStream fileStream = File.OpenWrite(IO.saveFolderPath + name + "Int32.bin"))
             {
@@ -37,7 +38,7 @@ namespace CrymexEngine
         public static void WriteFloat(string name, float value)
         {
             // Remove special characters
-            if (CEUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
+            if (DataUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
 
             using (FileStream fileStream = File.OpenWrite(IO.saveFolderPath + name + "Float32.bin"))
             {
@@ -65,7 +66,7 @@ namespace CrymexEngine
         public static void WriteString(string name, string value)
         {
             // Remove special characters
-            if (CEUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
+            if (DataUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
 
             using (FileStream fileStream = File.OpenWrite(IO.saveFolderPath + name + "Str.bin"))
             {
@@ -74,7 +75,7 @@ namespace CrymexEngine
                     byte[] bytes = Encoding.Unicode.GetBytes(value);
                     writer.Write((int)bytes.Length);
                     writer.Write(bytes);
-                    writer.Write((int)CEUtilities.GetCheckSum(bytes));
+                    writer.Write((int)DataUtilities.GetCheckSum(bytes));
                 }
             }
         }
@@ -91,7 +92,7 @@ namespace CrymexEngine
                     byte[] bytes = reader.ReadBytes(reader.ReadInt32());
                     int checkSum = reader.ReadInt32();
 
-                    if (checkSum != CEUtilities.GetCheckSum(bytes)) return null;
+                    if (checkSum != DataUtilities.GetCheckSum(bytes)) return null;
                     return Encoding.Unicode.GetString(bytes);
                 }
             }
@@ -100,7 +101,7 @@ namespace CrymexEngine
         public static void WriteBytes(string name, byte[] value)
         {
             // Remove special characters
-            if (CEUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
+            if (DataUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
 
             using (FileStream fileStream = File.OpenWrite(IO.saveFolderPath + name + "Bytes.bin"))
             {
@@ -108,7 +109,7 @@ namespace CrymexEngine
                 {
                     writer.Write((int)value.Length);
                     writer.Write(value);
-                    writer.Write((int)CEUtilities.GetCheckSum(value));
+                    writer.Write((int)DataUtilities.GetCheckSum(value));
                 }
             }
         }
@@ -125,7 +126,7 @@ namespace CrymexEngine
                     byte[] bytes = reader.ReadBytes(reader.ReadInt32());
                     int checkSum = reader.ReadInt32();
 
-                    if (checkSum != CEUtilities.GetCheckSum(bytes)) return null;
+                    if (checkSum != DataUtilities.GetCheckSum(bytes)) return null;
                     return bytes;
                 }
             }
@@ -134,7 +135,7 @@ namespace CrymexEngine
         public static void WriteVector2(string name, Vector2 value)
         {
             // Remove special characters
-            if (CEUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
+            if (DataUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
 
             using (FileStream fileStream = File.OpenWrite(IO.saveFolderPath + name + "Vec2.bin"))
             {
@@ -165,7 +166,7 @@ namespace CrymexEngine
         public static void WriteVector3(string name, Vector3 value)
         {
             // Remove special characters
-            if (CEUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
+            if (DataUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
 
             using (FileStream fileStream = File.OpenWrite(IO.saveFolderPath + name + "Vec3.bin"))
             {
@@ -198,7 +199,7 @@ namespace CrymexEngine
         public static void WriteVector4(string name, Vector4 value)
         {
             // Remove special characters
-            if (CEUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
+            if (DataUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
 
             using (FileStream fileStream = File.OpenWrite(IO.saveFolderPath + name + "Vec4.bin"))
             {

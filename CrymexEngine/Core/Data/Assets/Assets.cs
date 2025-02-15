@@ -1,6 +1,7 @@
 ﻿using CrymexEngine.Data;
 using CrymexEngine.Debugging;
 using CrymexEngine.Rendering;
+using CrymexEngine.Utils;
 using SixLabors.Fonts;
 using System.Text;
 using SysPath = System.IO.Path;
@@ -58,6 +59,8 @@ namespace CrymexEngine
 
         public static void LoadAssets()
         {
+            if (Window.Loaded) return;
+
             // Get the texture compression level setting
             if (Settings.GetSetting("TextureCompressionLevel", out SettingOption texCompLevelSetting, SettingType.Int))
             {
@@ -77,7 +80,7 @@ namespace CrymexEngine
             //  Whether the application is precompiled
             if (Settings.Instance.Precompiled)
             {
-                Debug.LogStatus("Running on precompiled assets");
+                Debug.LogLocalInfo("Asset Loader", "Running on precompiled assets");
                 _precompiled = true;
 
                 float startTime = Time.GameTime;
@@ -86,11 +89,11 @@ namespace CrymexEngine
                 LoadPrecompiledAssets();
 
                 float loadingTime = Time.GameTime - startTime;
-                Debug.LogStatus($"Precompiled assets loaded in {CEUtilities.FloatToShortString(loadingTime, 2)} seconds");
+                Debug.LogLocalInfo("Asset Loader", $"Precompiled assets loaded in {DataUtilities.FloatToShortString(loadingTime, 2)} seconds");
             }
             else
             {
-                Debug.LogStatus("Running on dynamic assets");
+                Debug.LogLocalInfo("Asset Loader", "Running on dynamic assets");
                 _precompiled = false;
 
                 float startTime = Time.GameTime;
@@ -100,7 +103,7 @@ namespace CrymexEngine
                 AssetSearchDirectory(IO.assetsPath);
 
                 float loadingTime = Time.GameTime - startTime;
-                Debug.LogStatus($"Dynamic assets loaded in {CEUtilities.FloatToShortString(loadingTime, 2)} seconds");
+                Debug.LogLocalInfo("Asset Loader", $"Dynamic assets loaded in {DataUtilities.FloatToShortString(loadingTime, 2)} seconds");
 
                 // Compile assets if specified in settings
                 if (Settings.GetSetting("PrecompileAssets", out SettingOption precompileAssetsOption, SettingType.Bool) && precompileAssetsOption.GetValue<bool>())
@@ -210,28 +213,33 @@ namespace CrymexEngine
             {
                 case ".png":
                     {
-                        TextureAsset texAsset = new TextureAsset(path, Texture.Load(path, MetaFileManager.DecodeMetaFromFile(path + ".meta")));
+                        MetaFile meta = MetaFileManager.DecodeMetaFromFile(path + ".meta");
+                        TextureAsset texAsset = new TextureAsset(path, Texture.Load(path, meta), meta);
                         _textureAssets.Add(texAsset);
                         break;
                     }
                 case ".jpg":
                     {
-                        TextureAsset texAsset = new TextureAsset(path, Texture.Load(path, MetaFileManager.DecodeMetaFromFile(path + ".meta")));
+                        MetaFile meta = MetaFileManager.DecodeMetaFromFile(path + ".meta");
+                        TextureAsset texAsset = new TextureAsset(path, Texture.Load(path, meta), meta);
                         _textureAssets.Add(texAsset); break;
                     }
                 case ".jpeg":
                     {
-                        TextureAsset texAsset = new TextureAsset(path, Texture.Load(path, MetaFileManager.DecodeMetaFromFile(path + ".meta")));
+                        MetaFile meta = MetaFileManager.DecodeMetaFromFile(path + ".meta");
+                        TextureAsset texAsset = new TextureAsset(path, Texture.Load(path, meta), meta);
                         _textureAssets.Add(texAsset); break;
                     }
                 case ".bmp":
                     {
-                        TextureAsset texAsset = new TextureAsset(path, Texture.Load(path, MetaFileManager.DecodeMetaFromFile(path + ".meta")));
+                        MetaFile meta = MetaFileManager.DecodeMetaFromFile(path + ".meta");
+                        TextureAsset texAsset = new TextureAsset(path, Texture.Load(path, meta), meta); 
                         _textureAssets.Add(texAsset); break;
                     }
                 case ".gif":
                     {
-                        TextureAsset texAsset = new TextureAsset(path, Texture.Load(path, MetaFileManager.DecodeMetaFromFile(path + ".meta")));
+                        MetaFile meta = MetaFileManager.DecodeMetaFromFile(path + ".meta");
+                        TextureAsset texAsset = new TextureAsset(path, Texture.Load(path, meta), meta);
                         _textureAssets.Add(texAsset); break;
                     }
                 case ".wav":

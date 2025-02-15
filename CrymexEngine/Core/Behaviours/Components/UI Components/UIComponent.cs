@@ -12,7 +12,7 @@ namespace CrymexEngine.UI
             }
         }
 
-        public UIElement UIElement
+        public UIElement uiElement
         {
             get
             {

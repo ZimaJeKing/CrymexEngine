@@ -13,16 +13,16 @@ namespace CrymexEngine
         /// <summary>
         /// Enables or disables console output
         /// </summary>
-        public static bool logToConsole;
+        public static bool logToConsole = false;
 
         public static bool LogToFile => _logToFile;
 
         private static FileStream _logFileStream;
-        private static bool _logToFile;
-
+        private static bool _logToFile = false;
+        private static bool _logAdditionalInfo;
         private static readonly Debug _instance = new Debug();
 
-        public void Cleanup()
+        internal void Cleanup()
         {
             if (!_logToFile) return;
 
@@ -31,22 +31,23 @@ namespace CrymexEngine
             _logFileStream.Close();
         }
 
-        public void Init()
+        internal void LoadSettings()
         {
-            if (Settings.GetSetting("LogToConsole", out SettingOption logToConsoleSetting, SettingType.Bool))
+            if (Settings.GetSetting("LogToConsole", out SettingOption logToConsoleSetting, SettingType.Bool) && logToConsoleSetting.GetValue<bool>())
             {
-                logToConsole = logToConsoleSetting.GetValue<bool>();
-                if (logToConsole) { Console.Clear(); Console.ResetColor(); }
+                logToConsole = true;
+                Console.Clear(); 
+                Console.ResetColor(); 
             }
 
-            // Create a log file
-            if (Settings.GetSetting("LogToFile", out SettingOption logToFileSetting, SettingType.Bool))
+            if (Settings.GetSetting("AdditionalDebugInfo", out SettingOption additionalDebugInfoSetting, SettingType.Bool) && additionalDebugInfoSetting.GetValue<bool>())
             {
-                _logToFile = logToFileSetting.GetValue<bool>();
+                _logAdditionalInfo = true;
             }
 
-            if (_logToFile)
+            if (Settings.GetSetting("LogToFile", out SettingOption logToFileSetting, SettingType.Bool) && logToFileSetting.GetValue<bool>())
             {
+                _logToFile = true;
                 _logFileStream = File.Create($"{IO.logFolderPath}{Time.CurrentDateTimeShortString}.log");
             }
         }
@@ -86,15 +87,6 @@ namespace CrymexEngine
             WriteToConsole(message, ConsoleColor.Yellow);
         }
 
-        public static void LogStatus(object? message)
-        {
-            if (!logToConsole) return;
-
-            WriteToLogFile(message, LogSeverity.Status);
-
-            WriteToConsole(message, ConsoleColor.Blue);
-        }
-
         public static void WriteToLogFile(object? message, LogSeverity severity)
         {
             if (!_logToFile || _logFileStream == null || !_logFileStream.CanWrite || message == null || !logToConsole) return;
@@ -121,7 +113,14 @@ namespace CrymexEngine
             Console.WriteLine(message);
             Console.ForegroundColor = ConsoleColor.White;
         }
+
+        internal static void LogLocalInfo(string sender, object? message)
+        {
+            if (!_logAdditionalInfo) return;
+
+            Log($"[{sender}]: {message}", ConsoleColor.Blue);
+        }
     }
 
-    public enum LogSeverity { Message, Status, Warning, Error, Custom }
+    public enum LogSeverity { Message, Warning, Error, Custom }
 }

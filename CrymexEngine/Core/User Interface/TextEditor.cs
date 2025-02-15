@@ -180,18 +180,18 @@ namespace CrymexEngine.UI
             GL.DrawElements(BeginMode.Triangles, Mesh.quad.indices.Length, DrawElementsType.UnsignedInt, Mesh.quad.ebo);
         }
 
-        private static void RecalcCursor(string newText)
+        public static void RecalcCursor(string newText)
         {
             _cursorTransform = Matrix4.CreateScale(VectorUtility.Vec2ToVec3(new Vector2(Math.Max(2, _selected.DisplayText.FontSize * 0.05f), _selected.DisplayText.FontSize) / Window.HalfSize, 0));
 
             if (newText.Length == 0 || _selectedIndex == -1)
             {
-                _cursorPosition = _selected.UIElement.Position - new Vector2(_selected.UIElement.HalfScale.X - _selected.DisplayText.TextPadding.X, 0);
+                _cursorPosition = _selected.uiElement.Position - new Vector2(_selected.uiElement.HalfScale.X - _selected.DisplayText.TextPadding.X, 0);
                 return;
             }
 
             string firstTextPart = newText.Substring(0, _selectedIndex + 1);
-            _cursorPosition = _selected.UIElement.Position - new Vector2(_selected.UIElement.HalfScale.X - _selected.DisplayText.Measure(firstTextPart).X - _selected.DisplayText.TextPadding.X - 1, 0);
+            _cursorPosition = _selected.uiElement.Position - new Vector2(_selected.uiElement.HalfScale.X - _selected.DisplayText.Measure(firstTextPart).X - _selected.DisplayText.TextPadding.X - 1, 0);
         }
     }
 }

@@ -31,7 +31,6 @@ namespace CrymexEngine.Rendering
             _regular = Assets.GetShader("Regular");
 
             _ui = Assets.GetShader("UI");
-
         }
 
         public Shader(string vertexCode, string fragmentCode, ShaderParam[]? parameters = null)

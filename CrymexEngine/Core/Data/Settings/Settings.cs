@@ -17,11 +17,14 @@ namespace CrymexEngine
         private static readonly List<SettingOption> settings = new List<SettingOption>();
         private static string _settingsText;
         private static bool _precompiled;
+        private static bool _settingsLoaded = false;
 
         private static Settings _instance = new Settings();
 
-        public void LoadSettings()
+        internal void LoadSettings()
         {
+            if (_settingsLoaded) return;
+
             InitializeDirectories();
 
             string rawSettingsText;
@@ -30,6 +33,7 @@ namespace CrymexEngine
             {
                 settingsPath = IO.assetsPath + "GlobalSettings.txt";
 
+                // Load dynamic settings
                 if (!File.Exists(settingsPath))
                 {
                     Debug.LogWarning($"No settings file found. Created file at \"{settingsPath}\"");
@@ -48,6 +52,7 @@ namespace CrymexEngine
                 rawSettingsText = Encoding.Unicode.GetString(AssetCompiler.DecompileData(File.ReadAllBytes(settingsPath), out _));
             }
 
+            // Load settings from text data
             string[] settingsLines = rawSettingsText.Split('\n', StringSplitOptions.TrimEntries);
             for (int i = 0; i < settingsLines.Length; i++)
             {
@@ -58,15 +63,17 @@ namespace CrymexEngine
                 if (newSetting == null) continue;
                 settings.Add(newSetting);
             }
+
+            _settingsLoaded = true;
         }
 
         public static SettingOption? GetSetting(string name)
         {
-            for (int s = 0; s < settings.Count; s++)
+            foreach (SettingOption option in settings)
             {
-                if (settings[s].name == name)
+                if (option.name == name)
                 {
-                    SettingOption opt = settings[s];
+                    SettingOption opt = option;
                     return opt;
                 }
             }
@@ -79,13 +86,13 @@ namespace CrymexEngine
         /// <returns>If the setting was found</returns>
         public static bool GetSetting(string name, out SettingOption setting, SettingType? type = null)
         {
-            for (int s = 0; s < settings.Count; s++)
+            foreach (SettingOption option in settings)
             {
-                if (settings[s].name == name)
+                if (option.name == name)
                 {
-                    if (type == settings[s].type || type == null)
+                    if (type == option.type || type == null)
                     {
-                        setting = settings[s];
+                        setting = option;
                         return true;
                     }
                 }

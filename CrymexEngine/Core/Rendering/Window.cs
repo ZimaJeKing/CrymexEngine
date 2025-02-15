@@ -2,6 +2,7 @@
 using CrymexEngine.Scenes;
 using CrymexEngine.Scripting;
 using CrymexEngine.UI;
+using CrymexEngine.Utils;
 using OpenTK.Audio.OpenAL;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
@@ -17,6 +18,26 @@ namespace CrymexEngine
 {
     public class Window
     {
+
+        private static GameWindow _glfwWindow;
+        private static WindowState _windowState;
+        private static string _title = "";
+        private static Vector2i _size = new Vector2i(256);
+        private static bool _resizable;
+        private static bool _vSync;
+        private static int _maxFPS;
+        private static int _maxFPSIdle;
+        private static int _framesPerSecond = 0;
+        private static int _fpsCounter = 0;
+        private static bool _loaded;
+        private static Version _glVersion = new Version(4, 5);
+        private static Vector2 _halfSize = new Vector2(128, 128);
+        private static WindowCursor _windowCursor;
+        private static Texture _windowIcon;
+        private static WindowBorder _windowBorder = WindowBorder.Fixed;
+
+        private static readonly Window _instance = new Window();
+
         /// <summary>
         /// An internal instance
         /// </summary>
@@ -27,6 +48,26 @@ namespace CrymexEngine
         public static int FramesPerSecond => _framesPerSecond;
         public static Vector2 HalfSize => _halfSize;
 
+        public static bool HideWindowBorder
+        {
+            get
+            {
+                if (_windowBorder == WindowBorder.Hidden) return true;
+                else return false;
+            }
+            set
+            {
+                if (value)
+                {
+                    _windowBorder = WindowBorder.Hidden;
+                }
+                else
+                {
+                    _windowBorder = WindowBorder.Fixed;
+                }
+                _glfwWindow.WindowBorder = _windowBorder;
+            }
+        }
         public static string Title
         {
             get
@@ -142,23 +183,6 @@ namespace CrymexEngine
             }
         }
 
-        private static GameWindow _glfwWindow;
-        private static WindowState _windowState;
-        private static string _title = "";
-        private static Vector2i _size = new Vector2i(256);
-        private static bool _resizable;
-        private static bool _vSync;
-        private static int _maxFPS;
-        private static int _maxFPSIdle;
-        private static int _framesPerSecond = 0;
-        private static int _fpsCounter = 0;
-        private static bool _loaded;
-        private static Vector2 _halfSize = new Vector2(128, 128);
-        private static WindowCursor _windowCursor;
-        private static Texture _windowIcon;
-
-        private static readonly Window _instance = new Window();
-
         public void Run()
         {
             if (_loaded) return;
@@ -195,6 +219,7 @@ namespace CrymexEngine
 
             _glfwWindow.CenterWindow();
 
+            // Create engine repeat events
             EventSystem.AddEventRepeat("CE_SecondLoop", new Action(SecondLoop), 1f);
 
             // Initializing CrymexEngine components
@@ -214,7 +239,9 @@ namespace CrymexEngine
             // WindowLoad the user specified scene, otherwise create a new scene
             if (Settings.GetSetting("StartingScene", out SettingOption startingSceneSetting, SettingType.RefString)) SceneLoader.LoadScene(Assets.GetScenePath(startingSceneSetting.GetValue<string>()));
 
-            // Loads scriptableBehaviours and calls Load
+            Physics.Init();
+
+            // Loads scriptable behaviours and calls Load
             ScriptLoader.LoadBehaviours();
 
             _loaded = true;
@@ -356,30 +383,32 @@ namespace CrymexEngine
 
         private static void ApplyPreLoadSettings()
         {
-            // Render Distance
+            // OpenGL version
+            if (Settings.GetSetting("HideWindowBorder", out SettingOption windowBorderSetting, SettingType.Bool) && windowBorderSetting.GetValue<bool>())
+            {
+                _windowBorder = WindowBorder.Hidden;
+            }
+
+            // OpenGL version
+            if (Settings.GetSetting("GLVersion", out SettingOption glVersionSetting, SettingType.Vector2))
+            {
+                Vector2i version = VectorUtility.RoundToInt(glVersionSetting.GetValue<Vector2>());
+                _glVersion = new Version(version.X, version.Y);
+            }
+
+            // Render distance
             if (Settings.GetSetting("RenderDistance", out SettingOption renderDistSetting, SettingType.Float))
             {
                 Camera.RenderDistance = renderDistSetting.GetValue<float>();
             }
 
-            // Debug Mode
-            if (Settings.GetSetting("DebugMode", out SettingOption debugModeSetting, SettingType.Bool))
-            {
-                Debug.logToConsole = debugModeSetting.GetValue<bool>();
-
-                if (Debug.logToConsole)
-                {
-                    
-                }
-            }
-
-            // Window Title
+            // Window title
             if (Settings.GetSetting("WindowTitle", out SettingOption windowTitleSetting, SettingType.String))
             {
                 _title = windowTitleSetting.GetValue<string>();
             }
 
-            // Window Size
+            // Window size
             if (Settings.GetSetting("WindowSize", out SettingOption windowSizeSetting, SettingType.Vector2))
             {
                 _size = (Vector2i)windowSizeSetting.GetValue<Vector2>();
@@ -414,8 +443,8 @@ namespace CrymexEngine
                 Resizable = windowResizableSetting.GetValue<bool>();
             }
 
-            // Window fullscreen
-            if (Settings.GetSetting("WindowStartFullscreen", out SettingOption windowFullscreenSetting, SettingType.Bool) && windowFullscreenSetting.GetValue<bool>())
+            // Window start fullscreen
+            if (Settings.GetSetting("StartFullscreen", out SettingOption startFullscreenSetting, SettingType.Bool) && startFullscreenSetting.GetValue<bool>())
             {
                 _glfwWindow.MakeFullscreen(_glfwWindow.CurrentMonitor.Handle);
             }
@@ -463,9 +492,9 @@ namespace CrymexEngine
         {
             // Log version info
             GLFW.GetVersion(out int glfwMajor, out int glfwMinor, out int glfwRevision);
-            Debug.LogStatus($"GLFW Version: {glfwMajor}.{glfwMinor}.{glfwRevision}");
-            Debug.LogStatus($"OpenGL Version: {GL.GetString(StringName.Version)}");
-            Debug.LogStatus($"GLSL Version: {GL.GetString(StringName.ShadingLanguageVersion)}");
+            Debug.LogLocalInfo("Window", $"GLFW Version: {glfwMajor}.{glfwMinor}.{glfwRevision}");
+            Debug.LogLocalInfo("Window", $"OpenGL Version: {GL.GetString(StringName.Version)}");
+            Debug.LogLocalInfo("Window", $"GLSL Version: {GL.GetString(StringName.ShadingLanguageVersion)}");
 
             GL.ActiveTexture(TextureUnit.Texture0);
 
@@ -477,7 +506,7 @@ namespace CrymexEngine
             GL.DepthFunc(DepthFunction.Less);
 
             // MSAA
-            if (Camera.msaaSamples != 0) GL.Enable(EnableCap.Multisample);
+            GL.Enable(EnableCap.Multisample);
         }
 
         private static void SetWindowIcon(Texture texture)
@@ -507,12 +536,13 @@ namespace CrymexEngine
 
                 API = ContextAPI.OpenGL,
                 Profile = ContextProfile.Core,
-                APIVersion = new Version(4, 5),
+                APIVersion = _glVersion,
                 Flags = ContextFlags.Default,
 
-                NumberOfSamples = Camera.msaaSamples,
+                NumberOfSamples = 8,
                 DepthBits = 24,
                 AutoLoadBindings = true,
+                WindowBorder = _windowBorder,
 
                 StartFocused = true,
                 IsEventDriven = false

@@ -1,9 +1,6 @@
-﻿using OpenTK.Mathematics;
-using OpenTK.Platform.Windows;
-
-namespace CrymexEngine
+﻿namespace CrymexEngine
 {
-    public class EntityComponent : Component
+    public abstract class EntityComponent : Component
     {
         public Entity entity
         {
@@ -27,11 +24,5 @@ namespace CrymexEngine
         }
 
         private Entity _entity;
-
-        public override void PreRender() { }
-
-        protected override void Load() { }
-
-        protected override void Update() { }
     }
 }

@@ -1,6 +1,6 @@
 ﻿using CrymexEngine.Scenes;
 using CrymexEngine.Scripts;
-using CrymexEngine.Examples;
+using CrymexEngine.Scripts.Examples;
 
 namespace CrymexEngine.Scripting
 {
@@ -8,13 +8,15 @@ namespace CrymexEngine.Scripting
     {
         public static void LoadBehaviours()
         {
+            if (Window.Loaded) return;
+
             // Add Your Behaviour Scripts Here //
             //              |                  //
             //              |                  //
             //             \ /                 //
             //              ˇ                  //
 
-            Add<MusicPlayerExample>();
+            Add<MyBehaviourScript>();
 
             // - - - - - - - - - - - - - - - - //
         }

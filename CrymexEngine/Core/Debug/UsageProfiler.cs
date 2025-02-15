@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using CrymexEngine.Utils;
 using OpenTK.Graphics.OpenGL;
 
 namespace CrymexEngine.Debugging
@@ -80,6 +81,8 @@ namespace CrymexEngine.Debugging
 
         public void Init()
         {
+            if (Window.Loaded) return;
+
             if (!Settings.GetSetting("UsageProfiler", out SettingOption option, SettingType.Bool)) return;
 
             if (!option.GetValue<bool>()) return;
@@ -134,10 +137,10 @@ namespace CrymexEngine.Debugging
 
         private static string GetUsageProfileLog()
         {
-            string profile = "\nUsage Profiler:\n";
+            string profile = "\nUsage Profile:\n";
             profile += $"Time: {Time.CurrentTimeString}\n";
-            profile += $"Ram usage: {CEUtilities.ByteCountToString(MemoryUsage)}\n";
-            profile += $"Avarage processor time: {CEUtilities.FloatToShortString(ProcessorTime * 1000, 2)}ms\n";
+            profile += $"Ram usage: {DataUtilities.ByteCountToString(MemoryUsage)}\n";
+            profile += $"Avarage processor time: {DataUtilities.FloatToShortString(ProcessorTime * 1000, 2)}ms\n";
             profile += $"Thread count: {ThreadCount}\n";
             profile += $"FPS: {Window.FramesPerSecond}";
             return profile;
@@ -145,16 +148,9 @@ namespace CrymexEngine.Debugging
 
         private static void LogStartupInfo()
         {
-            Debug.WriteToLogFile("\nUsage profiler startup info:", LogSeverity.Custom);
-
-            int maxMsaaSamples;
-            GL.GetInteger(GetPName.MaxSamples, out maxMsaaSamples);
-
-            Debug.WriteToLogFile($"Max supported MSAA samples: {maxMsaaSamples}", LogSeverity.Custom);
-
-            Debug.WriteToLogFile($"Texture memory usage: {CEUtilities.ByteCountToString(TextureMemoryUsage)}", LogSeverity.Custom);
-            Debug.WriteToLogFile($"Audio memory usage: {CEUtilities.ByteCountToString(AudioMmeoryUsage)}", LogSeverity.Custom);
-            Debug.WriteToLogFile($"Total memory usage: {CEUtilities.ByteCountToString(_currentProcess.PrivateMemorySize64)}", LogSeverity.Custom);
+            Debug.LogLocalInfo("Usage Profiler", $"Texture memory usage: {DataUtilities.ByteCountToString(TextureMemoryUsage)}");
+            Debug.LogLocalInfo("Usage Profiler", $"Audio memory usage: {DataUtilities.ByteCountToString(AudioMmeoryUsage)}");
+            Debug.LogLocalInfo("Usage Profiler", $"Total memory usage: {DataUtilities.ByteCountToString(_currentProcess.PrivateMemorySize64)}");
         }
     }
 

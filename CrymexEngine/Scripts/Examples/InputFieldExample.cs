@@ -1,7 +1,7 @@
 ﻿using CrymexEngine.UI;
 using OpenTK.Mathematics;
 
-namespace CrymexEngine.Examples
+namespace CrymexEngine.Scripts.Examples
 {
     public class InputFieldExample : ScriptableBehaviour
     {

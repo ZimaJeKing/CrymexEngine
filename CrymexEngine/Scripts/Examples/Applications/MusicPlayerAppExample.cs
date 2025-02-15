@@ -1,9 +1,9 @@
 ﻿using CrymexEngine.UI;
 using OpenTK.Mathematics;
 
-namespace CrymexEngine.Examples
+namespace CrymexEngine.Scripts.Examples
 {
-    public class MusicPlayerExample : ScriptableBehaviour
+    public class MusicPlayerAppExample : ScriptableBehaviour
     {
         UIElement buttonElement;
         Entity progressBar;

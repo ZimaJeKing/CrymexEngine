@@ -50,5 +50,9 @@ namespace CrymexEngine
                 GL.DrawElements(BeginMode.Triangles, mesh.indices.Length, DrawElementsType.UnsignedInt, mesh.ebo);
             }
         }
+
+        public override void PreRender() { }
+
+        protected override void Load() { }
     }
 }

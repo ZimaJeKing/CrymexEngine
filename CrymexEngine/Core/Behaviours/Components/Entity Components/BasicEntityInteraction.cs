@@ -44,5 +44,17 @@ namespace CrymexEngine
 
             Renderer.color = hoverColor;
         }
+
+        public override void PreRender()
+        {
+        }
+
+        protected override void Load()
+        {
+        }
+
+        protected override void Update()
+        {
+        }
     }
 }

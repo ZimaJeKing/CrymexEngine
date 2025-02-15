@@ -201,7 +201,7 @@ namespace CrymexEngine
 
         protected void RecalcTransformMatrix()
         {
-            TransformationMatrix = Matrix4.CreateScale(_scale.X / Window.HalfSize.X, _scale.Y / Window.HalfSize.Y, 1) * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(Rotation));
+            TransformationMatrix = Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(Rotation)) * Matrix4.CreateScale(_scale.X / Window.HalfSize.X, _scale.Y / Window.HalfSize.Y, 1);
         }
 
         protected virtual void Update() { }

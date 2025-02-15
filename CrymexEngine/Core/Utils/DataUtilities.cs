@@ -1,34 +1,40 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace CrymexEngine
+namespace CrymexEngine.Utils
 {
-    public static class CEUtilities
+    public static class DataUtilities
     {
         private static readonly string _regexPattern = @"[^\w\s]";
 
         /// <summary>
-        /// Returns a string representation of a float trimmed to x decimal points. Uses '.' for the separator
+        /// Returns a string representation of a float trimmed to x decimal points. Uses dot character ('.') for the separator
         /// </summary>
-        /// <param name="decimalPoints">How many decimal points should be kept</param>
+        /// <param name="decimalPoints">A number between 1 and 10 indicating how many decimal points should be kept. </param>
         public static string FloatToShortString(float value, int decimalPoints)
         {
-            decimalPoints = Math.Clamp(decimalPoints, 0, 10);
+            decimalPoints = Math.Clamp(decimalPoints, 1, 10);
             string rawString = value.ToString();
 
             char separator;
             if (rawString.Contains('.')) separator = '.';
-            else separator = ',';
+            else if (rawString.Contains(',')) separator = ',';
+            else return rawString;
 
             string[] split = rawString.Split(separator);
-            if (split.Length < 2 || split[1].Length <= decimalPoints) return rawString;
+
+            if (split.Length < 2) return rawString;
+            if (split[1].Length <= decimalPoints) return split[0] + '.' + split[1];
 
             split[1] = split[1][0..decimalPoints];
             return split[0] + '.' + split[1];
         }
 
         /// <summary>
-        /// Converts a number of bytes to a KB, MB, GB or TB string. Ex.: '512 KB', '2 TB', '5 MB', '14 B'
+        /// Converts a number of bytes to a B, KB, MB, GB or TB string representation. 
+        /// Uses multiples of 1024.
+        /// Ex.: '512 KB', '2 TB', '5 MB', '14 B'
         /// </summary>
+        /// <returns>A string value. Ex.: '512 KB', '2 TB', '5 MB', '14 B'</returns>
         public static string ByteCountToString(long byteCount)
         {
             int i = 0;
@@ -54,6 +60,14 @@ namespace CrymexEngine
                         case 3:
                             {
                                 return $"{byteCount} TB";
+                            }
+                        case 4:
+                            {
+                                return $"{byteCount} PB";
+                            }
+                        case 5:
+                            {
+                                return $"{byteCount} EB";
                             }
                     }
                 }

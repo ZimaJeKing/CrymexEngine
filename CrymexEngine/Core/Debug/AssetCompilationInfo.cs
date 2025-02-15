@@ -1,4 +1,5 @@
 ﻿using CrymexEngine.Debugging;
+using CrymexEngine.Utils;
 
 namespace CrymexEngine.Debugging
 {
@@ -21,11 +22,11 @@ namespace CrymexEngine.Debugging
 
         public override string ToString()
         {
-            string final = $"Textures: {CEUtilities.ByteCountToString(UsageProfiler.TextureMemoryUsage)} raw, {CEUtilities.ByteCountToString(textureCompressedSize)} compressed\n";
-            final += $"Audio: {CEUtilities.ByteCountToString(UsageProfiler.AudioMmeoryUsage)} raw, {CEUtilities.ByteCountToString(audioCompressedSize)} compressed\n";
-            final += $"Shaders: {CEUtilities.ByteCountToString(shaderSize)}\n";
-            final += $"Fonts: {CEUtilities.ByteCountToString(fontSize)}\n";
-            final += $"Compilation Time: {CEUtilities.FloatToShortString(compilationTime, 3)} seconds";
+            string final = $"Textures: {DataUtilities.ByteCountToString(UsageProfiler.TextureMemoryUsage)} raw, {DataUtilities.ByteCountToString(textureCompressedSize)} compressed\n";
+            final += $"Audio: {DataUtilities.ByteCountToString(UsageProfiler.AudioMmeoryUsage)} raw, {DataUtilities.ByteCountToString(audioCompressedSize)} compressed\n";
+            final += $"Shaders: {DataUtilities.ByteCountToString(shaderSize)}\n";
+            final += $"Fonts: {DataUtilities.ByteCountToString(fontSize)}\n";
+            final += $"Compilation Time: {DataUtilities.FloatToShortString(compilationTime, 3)} seconds";
             return final;
         }
     }

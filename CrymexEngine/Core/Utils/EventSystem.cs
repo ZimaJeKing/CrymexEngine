@@ -1,4 +1,6 @@
-﻿namespace CrymexEngine
+﻿using CrymexEngine.Utils;
+
+namespace CrymexEngine
 {
     public class EventSystem
     {
@@ -13,15 +15,17 @@
             }
         }
 
-        private static List<Event> events = new List<Event>();
+        private static List<GameTimeEvent> events = new List<GameTimeEvent>();
 
         private static EventSystem _instance = new EventSystem();
 
-        public void Update()
+        internal void Update()
         {
-            foreach (Event e in events)
+            foreach (GameTimeEvent e in events)
             {
-                if (Time.GameTime - e.startTime > e.time)
+                float dif = Time.GameTime - e.startTime;
+
+                while (dif > e.time)
                 {
                     e.action?.Invoke();
 
@@ -30,24 +34,27 @@
                         events.Remove(e);
                         continue;
                     }
+                    else e.startTime = Time.GameTime;
 
-                    e.startTime = Time.GameTime;
+                    dif -= e.time;
                 }
             }
         }
 
         public static void AddEvent(string name, Action action, float time)
         {
-            events.Add(new Event(name, action, time));
+            GameTimeEvent e = new GameTimeEvent(name, action, time, out bool successful);
+            if (successful) events.Add(e);
         }
         public static void AddEventRepeat(string name, Action action, float time)
         {
-            events.Add(new Event(name, action, time, true));
+            GameTimeEvent e = new GameTimeEvent(name, action, time, out bool successful, true);
+            if (successful) events.Add(e);
         }
 
         public static void RemoveEvent(string name)
         {
-            foreach (Event e in events)
+            foreach (GameTimeEvent e in events)
             {
                 if (e.name == name)
                 {
@@ -55,9 +62,37 @@
                 }
             }
         }
+
+        public static bool IsEventActive(string name)
+        {
+            foreach (GameTimeEvent ev in events)
+            {
+                if (ev.name == name) return true;
+            }
+            return false;
+        }
+
+        public static bool IsEventRepeat(string name)
+        {
+            foreach (GameTimeEvent ev in events)
+            {
+                if (ev.name == name) return ev.repeat;
+            }
+            return false;
+        }
+
+        /// <returns>float.NaN if not found</returns>
+        public static float GetEventPeriod(string name)
+        {
+            foreach (GameTimeEvent ev in events)
+            {
+                if (ev.name == name) return ev.time;
+            }
+            return float.NaN;
+        }
     }
 
-    class Event
+    class GameTimeEvent
     {
         public float startTime;
         public readonly string name;
@@ -65,13 +100,20 @@
         public readonly bool repeat;
         public readonly Action action;
 
-        public Event(string name, Action action, float time, bool repeat = false)
+        public GameTimeEvent(string name, Action action, float time, out bool successful, bool repeat = false)
         {
             this.name = name;
             this.action = action;
-            startTime = Time.GameTime;
             this.time = time;
             this.repeat = repeat;
+            startTime = Time.GameTime;
+
+            if (time <= 0 || !float.IsNormal(time))
+            {
+                successful = false;
+                Debug.LogWarning($"Time setting for the event '{name}' is not in the correct format ({DataUtilities.FloatToShortString(time, 3)})");
+            }
+            else successful = true;
         }
     }
 }

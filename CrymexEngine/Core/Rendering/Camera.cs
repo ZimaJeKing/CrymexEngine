@@ -55,15 +55,17 @@ namespace CrymexEngine
         /// <summary>
         /// Used for quick calculation of visibility of objects
         /// </summary>
-        public static float renderDistanceSquared { get; private set; } = 2048 * 2048;
+        public static float renderDistanceSquared { get; private set; } = float.MaxValue;
 
-        private static float _renderDistance = 2048;
+        private static float _renderDistance = float.MaxValue;
         private static Color4 _clearColor;
 
         private static Camera _instance = new Camera();
 
         public void Init()
         {
+            if (Window.Loaded) return;
+
             // Clear color
             _clearColor = Color4.White;
             if (Settings.GetSetting("ClearColor", out SettingOption clearColorSetting))
@@ -75,9 +77,17 @@ namespace CrymexEngine
             // MSAA settings
             if (Settings.GetSetting("MSAASamples", out SettingOption msaaSetting))
             {
-                if (msaaSamples == 8 || msaaSamples == 4 || msaaSamples == 2)
+                int maxMsaaSamples;
+                GL.GetInteger(GetPName.MaxSamples, out maxMsaaSamples);
+
+                Debug.LogLocalInfo("Camera", "Max supported MSAA samples: " + maxMsaaSamples);
+
+                if (msaaSamples <= maxMsaaSamples)
                 {
-                    msaaSamples = (int)msaaSetting.value;
+                    if (msaaSamples == 16 || msaaSamples == 8 || msaaSamples == 4 || msaaSamples == 2)
+                    {
+                        msaaSamples = (int)msaaSetting.value;
+                    }
                 }
             }
         }

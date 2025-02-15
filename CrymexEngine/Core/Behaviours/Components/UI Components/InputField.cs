@@ -63,7 +63,11 @@ namespace CrymexEngine.UI
             {
                 if (string.IsNullOrEmpty(value))
                 {
-                    if (!_selected) ShowPreviewText();
+                    if (!_selected)
+                    {
+                        ShowPreviewText();
+                        TextEditor.RecalcCursor(string.Empty);
+                    }
                     _value = string.Empty;
                     _displayText.Text = string.Empty;
                     return;
@@ -72,16 +76,11 @@ namespace CrymexEngine.UI
                 // Make text one line
                 value = value.Replace("\n", string.Empty);
 
-                // If value is an empty string display preview
-                if (string.IsNullOrEmpty(value) && !_selected)
-                {
-                    _displayText.FontColor = _previewTextColor;
-                    _displayText.Text = _previewText;
-                }
-
                 _value = value;
                 _displayText.FontColor = _textColor;
                 _displayText.Text = value;
+
+                TextEditor.RecalcCursor(value);
             }
         }
         public int CharacterLimit
@@ -108,15 +107,15 @@ namespace CrymexEngine.UI
 
         protected override void Load()
         {
-            _displayText = new TextObject(UIElement.Position, VectorUtility.RoundToInt(UIElement.Scale), "", Assets.DefaultFontFamily, (int)(UIElement.Scale.Y * 0.8f), Alignment.MiddleLeft);
+            _displayText = new TextObject(uiElement.Position, VectorUtility.RoundToInt(uiElement.Scale), "", Assets.DefaultFontFamily, (int)(uiElement.Scale.Y * 0.8f), Alignment.MiddleLeft);
             _displayText.BestFit = true;
             _displayText.TextPadding = new Vector2(10, 0);
-            _displayText.MaxBestFitSize = (int)(UIElement.Scale.Y * 0.8f);
+            _displayText.MaxBestFitSize = (int)(uiElement.Scale.Y * 0.8f);
 
-            _buttonComponent = UIElement.GetComponent<Button>();
+            _buttonComponent = uiElement.GetComponent<Button>();
             if (_buttonComponent == null)
             {
-                _buttonComponent = UIElement.AddComponent<Button>();
+                _buttonComponent = uiElement.AddComponent<Button>();
             }
             _buttonComponent.onClick = Select;
 

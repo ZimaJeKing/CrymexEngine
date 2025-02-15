@@ -1,4 +1,5 @@
 ﻿using OpenTK.Mathematics;
+using System.Reflection;
 
 namespace CrymexEngine.Scenes
 {
@@ -26,9 +27,11 @@ namespace CrymexEngine.Scenes
     static class SceneCompiler
     {
         static Scene scene;
+        static Assembly assembly;
 
         public static Scene CompileScene(string[] lines)
         {
+            assembly = Assembly.Load("CrymexEngine.dll");
             scene = new Scene();
             for (int l = 0; l < lines.Length; l++) 
             {
@@ -55,7 +58,7 @@ namespace CrymexEngine.Scenes
                         entityEndIndex++;
                     }
 
-                    string[] entityParameters = lines[(l + 1)..(entityEndIndex)];
+                    string[] entityParameters = lines[(l + 1)..entityEndIndex];
                      
                     l = entityEndIndex + 1;
 
@@ -74,11 +77,12 @@ namespace CrymexEngine.Scenes
             Vector2 localPosition = Vector2.Zero;
             Vector2 scale = Vector2.Zero;
             string parentName = "";
+            List<string> components = new();
 
             for (int p = 0; p < parameters.Length; p++)
             {
                 string[] parts = parameters[p].Split(':', StringSplitOptions.TrimEntries);
-                if (parts.Length != 2) continue;
+                if (parts.Length < 2) continue;
 
                 float.TryParse(parts[1], out float parsed);
                 if (!float.IsNormal(parsed)) parsed = 0;
@@ -86,46 +90,63 @@ namespace CrymexEngine.Scenes
                 switch (parts[0])
                 {
                     case "X":
-                        {
-                            position.X = parsed;
-                            break;
-                        }
+                        position.X = parsed;
+                        continue;
+
                     case "Y":
-                        {
-                            position.Y = parsed;
-                            break;
-                        }
+                        position.Y = parsed;
+                        continue;
+
                     case "LocalX":
-                        {
-                            localPosition.X = parsed;
-                            break;
-                        }
+                        localPosition.X = parsed;
+                        continue;
+
                     case "LocalY":
-                        {
-                            localPosition.Y = parsed;
-                            break;
-                        }
+                        localPosition.Y = parsed;
+                        continue;
+
                     case "Width":
-                        {
-                            scale.X = parsed;
-                            break;
-                        }
+                        scale.X = parsed;
+                        continue;
+
                     case "Height":
-                        {
-                            scale.Y = parsed;
-                            break;
-                        }
+                        scale.Y = parsed;
+                        continue;
+
                     case "Texture":
-                        {
-                            string textureName = parts[1].Replace("\"", "").Replace("'", "");
-                            texture = Assets.GetTexture(textureName);
-                            break;
-                        }
+                        string textureName = parts[1].Replace("\"", "").Replace("'", "");
+                        texture = Assets.GetTexture(textureName);
+                        continue;
+
                     case "Parent":
-                        {
-                            parentName = parts[1].Replace("\"", "").Replace("'", "");
-                            break;
-                        }
+                        parentName = parts[1].Replace("\"", "").Replace("'", "");
+                        continue;
+
+                    case "Component":
+                        components.Add(parts[1]);
+                        continue;
+                }
+
+                // Modifying component properties
+                if (components.Contains(parts[0]) && parts.Length == 3)
+                {
+                    Type? type = assembly.GetType(parts[0]);
+                    if (type == null)
+                    {
+                        Debug.LogWarning($"Component {parts[0]} not found in CrymexEngine assembly");
+                        continue;
+                    }
+
+                    string[] setValue = parts[1].Split('=', StringSplitOptions.TrimEntries);
+
+                    PropertyInfo? prop = type.GetProperty(setValue[0]);
+                    if (prop == null)
+                    {
+                        Debug.LogWarning($"Property {setValue[0]} not found in component {parts[0]}");
+                        continue;
+                    }
+
+                    PropertySetter(prop, setValue[1]);
                 }
             }
 
@@ -134,6 +155,11 @@ namespace CrymexEngine.Scenes
             entity.LocalPosition = localPosition;
 
             return entity;
+        }
+
+        private static void PropertySetter(PropertyInfo property, string value)
+        {
+
         }
     }
 }
