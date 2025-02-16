@@ -7,9 +7,9 @@ namespace CrymexEngine
     {
         static void Main(string[] args)
         {
-            ScriptLoader.Add<MyBehaviourScript>();
             Engine.Initialize();
 
+            ScriptLoader.Add<MyBehaviourScript>();
 
             Engine.Run();
         }
