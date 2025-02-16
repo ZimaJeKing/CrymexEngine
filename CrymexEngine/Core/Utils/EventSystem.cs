@@ -21,8 +21,9 @@ namespace CrymexEngine
 
         internal void Update()
         {
-            foreach (GameTimeEvent e in events)
+            for (int i = 0; i < events.Count; i++)
             {
+                GameTimeEvent e = events[i];
                 float dif = Time.GameTime - e.startTime;
 
                 while (dif > e.time)
@@ -32,7 +33,7 @@ namespace CrymexEngine
                     if (!e.repeat)
                     {
                         events.Remove(e);
-                        continue;
+                        break;
                     }
                     else e.startTime = Time.GameTime;
 
@@ -41,15 +42,27 @@ namespace CrymexEngine
             }
         }
 
-        public static void AddEvent(string name, Action action, float time)
+        public static void AddEvent(string name, Action action, float time, bool locked = false)
         {
-            GameTimeEvent e = new GameTimeEvent(name, action, time, out bool successful);
+            GameTimeEvent e = new GameTimeEvent(name, action, time, out bool successful, false, locked);
             if (successful) events.Add(e);
         }
-        public static void AddEventRepeat(string name, Action action, float time)
+        public static void AddEventRepeat(string name, Action action, float time, bool locked = false)
         {
-            GameTimeEvent e = new GameTimeEvent(name, action, time, out bool successful, true);
+            GameTimeEvent e = new GameTimeEvent(name, action, time, out bool successful, true, locked);
             if (successful) events.Add(e);
+        }
+
+        public static void AddListener(string name, Action listener)
+        {
+            foreach (GameTimeEvent ev in events)
+            {
+                if (ev.name == name && !ev.isLocked)
+                {
+                    ev.action += listener;
+                    return;
+                }
+            }
         }
 
         public static void RemoveEvent(string name)
@@ -98,14 +111,16 @@ namespace CrymexEngine
         public readonly string name;
         public readonly float time;
         public readonly bool repeat;
-        public readonly Action action;
+        public readonly bool isLocked;
+        public Action action;
 
-        public GameTimeEvent(string name, Action action, float time, out bool successful, bool repeat = false)
+        public GameTimeEvent(string name, Action action, float time, out bool successful, bool repeat = false, bool isLocked = false)
         {
             this.name = name;
             this.action = action;
             this.time = time;
             this.repeat = repeat;
+            this.isLocked = isLocked;
             startTime = Time.GameTime;
 
             if (time <= 0 || !float.IsNormal(time))

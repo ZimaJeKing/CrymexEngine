@@ -4,6 +4,16 @@
     {
         public bool enabled = true;
 
+        public Behaviour()
+        {
+            if (!Window.Loaded)
+            {
+                Engine.ErrorQuit("Trying to instantiate a behaviour before Running the engine is strictly prohibited");
+            }
+        }
+
+        protected Settings GlobalSettings => Settings.GlobalSettings;
+
         protected abstract void Load();
         protected abstract void Update();
 

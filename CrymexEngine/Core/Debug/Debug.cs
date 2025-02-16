@@ -1,4 +1,6 @@
 ﻿using CrymexEngine.Data;
+using OpenTK.Graphics.OpenGL;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace CrymexEngine
@@ -33,22 +35,22 @@ namespace CrymexEngine
 
         internal void LoadSettings()
         {
-            if (Settings.GetSetting("LogToConsole", out SettingOption logToConsoleSetting, SettingType.Bool) && logToConsoleSetting.GetValue<bool>())
+            if (Settings.GlobalSettings.GetSetting("LogToConsole", out SettingOption logToConsoleSetting, SettingType.Bool) && logToConsoleSetting.GetValue<bool>())
             {
                 logToConsole = true;
                 Console.Clear(); 
                 Console.ResetColor(); 
             }
 
-            if (Settings.GetSetting("AdditionalDebugInfo", out SettingOption additionalDebugInfoSetting, SettingType.Bool) && additionalDebugInfoSetting.GetValue<bool>())
+            if (Settings.GlobalSettings.GetSetting("AdditionalDebugInfo", out SettingOption additionalDebugInfoSetting, SettingType.Bool) && additionalDebugInfoSetting.GetValue<bool>())
             {
                 _logAdditionalInfo = true;
             }
 
-            if (Settings.GetSetting("LogToFile", out SettingOption logToFileSetting, SettingType.Bool) && logToFileSetting.GetValue<bool>())
+            if (Settings.GlobalSettings.GetSetting("LogToFile", out SettingOption logToFileSetting, SettingType.Bool) && logToFileSetting.GetValue<bool>())
             {
                 _logToFile = true;
-                _logFileStream = File.Create($"{IO.logFolderPath}{Time.CurrentDateTimeShortString}.log");
+                _logFileStream = File.Create($"{Directories.logFolderPath}{Time.CurrentDateTimeShortString}.log");
             }
         }
 
@@ -119,6 +121,62 @@ namespace CrymexEngine
             if (!_logAdditionalInfo) return;
 
             Log($"[{sender}]: {message}", ConsoleColor.Blue);
+        }
+
+        internal static void LogGLDebugInfo(DebugSource source, DebugType type, int id, DebugSeverity severity, int length, IntPtr message, IntPtr userParam)
+        {
+            // Read the message
+            string? msgString = string.Empty;
+            if (message != IntPtr.Zero)
+            {
+                msgString = Marshal.PtrToStringAnsi(message, length);
+                if (string.IsNullOrEmpty(msgString)) return;
+            }
+
+            ConsoleColor color = GLDebugSeverityToConsoleColor(severity);
+            string typeString = GLDebugTypeToString(type);
+            string sourceString = GLDebugSourceToString(source);
+
+            Log($"[OpenGL {sourceString}] {typeString}: {msgString}", color);
+        }
+
+        private static ConsoleColor GLDebugSeverityToConsoleColor(DebugSeverity severity)
+        {
+            switch (severity)
+            {
+                case DebugSeverity.DontCare: return ConsoleColor.Gray;
+                case DebugSeverity.DebugSeverityNotification: return ConsoleColor.Cyan;
+                case DebugSeverity.DebugSeverityLow: return ConsoleColor.White;
+                case DebugSeverity.DebugSeverityMedium: return ConsoleColor.DarkYellow;
+                case DebugSeverity.DebugSeverityHigh: return ConsoleColor.Red;
+                default: return ConsoleColor.White;
+            }
+        }
+        private static string GLDebugTypeToString(DebugType type)
+        {
+            string typeString = type.ToString();
+
+            // Cut out the DebugType from the name
+            if (typeString.Contains("DebugType")) typeString = typeString.Substring(9);
+
+            return typeString;
+        }
+        private static string GLDebugSourceToString(DebugSource source)
+        {
+            string sourceString = source.ToString();
+
+            // Cut out the DebugType from the name
+            if (sourceString.Contains("DebugSource")) sourceString = sourceString.Substring(11);
+
+            return sourceString;
+        }
+
+        internal static void InitializeEngineDirectories()
+        {
+            if (!Directory.Exists(Directories.assetsPath)) Directory.CreateDirectory(Directories.assetsPath);
+            if (!Directory.Exists(Directories.runtimeAssetsPath)) Directory.CreateDirectory(Directories.runtimeAssetsPath);
+            if (!Directory.Exists(Directories.logFolderPath)) Directory.CreateDirectory(Directories.logFolderPath);
+            if (!Directory.Exists(Directories.saveFolderPath)) Directory.CreateDirectory(Directories.saveFolderPath);
         }
     }
 

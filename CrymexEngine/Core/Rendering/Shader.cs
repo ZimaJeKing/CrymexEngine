@@ -25,12 +25,22 @@ namespace CrymexEngine.Rendering
 
         private static Shader _regular;
         private static Shader _ui;
+        private static bool _defaultShadersLoaded = false;
 
         public static void LoadDefaultShaders()
         {
+            if (_defaultShadersLoaded) return;
             _regular = Assets.GetShader("Regular");
 
             _ui = Assets.GetShader("UI");
+
+            if (_regular == null || _ui == null)
+            {
+                Debug.LogError("The default shaders couldn't be loaded");
+                return;
+            }
+
+            _defaultShadersLoaded = true;
         }
 
         public Shader(string vertexCode, string fragmentCode, ShaderParam[]? parameters = null)

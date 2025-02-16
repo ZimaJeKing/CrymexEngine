@@ -31,10 +31,11 @@ namespace CrymexEngine
         private static int _fpsCounter = 0;
         private static bool _loaded;
         private static Version _glVersion = new Version(4, 5);
-        private static Vector2 _halfSize = new Vector2(128, 128);
+        private static Vector2 _halfSize = new Vector2(128);
         private static WindowCursor _windowCursor;
         private static Texture _windowIcon;
         private static WindowBorder _windowBorder = WindowBorder.Fixed;
+        private static ContextFlags _glContextFlags = ContextFlags.Default;
 
         private static readonly Window _instance = new Window();
 
@@ -187,7 +188,7 @@ namespace CrymexEngine
         {
             if (_loaded) return;
 
-            _windowIcon = Texture.None;
+            _windowIcon = Texture.White;
 
             ApplyPreLoadSettings();
 
@@ -220,7 +221,7 @@ namespace CrymexEngine
             _glfwWindow.CenterWindow();
 
             // Create engine repeat events
-            EventSystem.AddEventRepeat("CE_SecondLoop", new Action(SecondLoop), 1f);
+            EventSystem.AddEventRepeat("CE_SecondLoop", SecondLoop, 1f, true);
 
             // Initializing CrymexEngine components
             Camera.Instance.Init();
@@ -229,7 +230,7 @@ namespace CrymexEngine
             ApplyPostLoadSettings();
 
             // Initialize audio
-            if (Settings.GetSetting("UseAudio", out SettingOption audioSettingOption, SettingType.Bool) && audioSettingOption.GetValue<bool>())
+            if (Settings.GlobalSettings.GetSetting("UseAudio", out SettingOption audioSettingOption, SettingType.Bool) && audioSettingOption.GetValue<bool>())
             {
                 Audio.Instance.InitializeContext();
             }
@@ -237,14 +238,14 @@ namespace CrymexEngine
             UsageProfiler.Instance.Init();
 
             // WindowLoad the user specified scene, otherwise create a new scene
-            if (Settings.GetSetting("StartingScene", out SettingOption startingSceneSetting, SettingType.RefString)) SceneLoader.LoadScene(Assets.GetScenePath(startingSceneSetting.GetValue<string>()));
+            if (Settings.GlobalSettings.GetSetting("StartingScene", out SettingOption startingSceneSetting, SettingType.RefString)) SceneLoader.LoadScene(Assets.GetScenePath(startingSceneSetting.GetValue<string>()));
 
             Physics.Init();
 
+            _loaded = true;
+
             // Loads scriptable behaviours and calls Load
             ScriptLoader.LoadBehaviours();
-
-            _loaded = true;
         }
 
         private static void WindowUpdate(FrameEventArgs e)
@@ -383,46 +384,52 @@ namespace CrymexEngine
 
         private static void ApplyPreLoadSettings()
         {
-            // OpenGL version
-            if (Settings.GetSetting("HideWindowBorder", out SettingOption windowBorderSetting, SettingType.Bool) && windowBorderSetting.GetValue<bool>())
+            // GL context flags
+            if (Settings.GlobalSettings.GetSetting("GLDebugOutput", out SettingOption glContextSetting, SettingType.Bool) && glContextSetting.GetValue<bool>())
+            {
+                _glContextFlags = ContextFlags.Debug;
+            }
+
+            // Hiding window border
+            if (Settings.GlobalSettings.GetSetting("HideWindowBorder", out SettingOption windowBorderSetting, SettingType.Bool) && windowBorderSetting.GetValue<bool>())
             {
                 _windowBorder = WindowBorder.Hidden;
             }
 
             // OpenGL version
-            if (Settings.GetSetting("GLVersion", out SettingOption glVersionSetting, SettingType.Vector2))
+            if (Settings.GlobalSettings.GetSetting("GLVersion", out SettingOption glVersionSetting, SettingType.Vector2))
             {
                 Vector2i version = VectorUtility.RoundToInt(glVersionSetting.GetValue<Vector2>());
                 _glVersion = new Version(version.X, version.Y);
             }
 
             // Render distance
-            if (Settings.GetSetting("RenderDistance", out SettingOption renderDistSetting, SettingType.Float))
+            if (Settings.GlobalSettings.GetSetting("RenderDistance", out SettingOption renderDistSetting, SettingType.Float))
             {
                 Camera.RenderDistance = renderDistSetting.GetValue<float>();
             }
 
             // Window title
-            if (Settings.GetSetting("WindowTitle", out SettingOption windowTitleSetting, SettingType.String))
+            if (Settings.GlobalSettings.GetSetting("WindowTitle", out SettingOption windowTitleSetting, SettingType.String))
             {
                 _title = windowTitleSetting.GetValue<string>();
             }
 
             // Window size
-            if (Settings.GetSetting("WindowSize", out SettingOption windowSizeSetting, SettingType.Vector2))
+            if (Settings.GlobalSettings.GetSetting("WindowSize", out SettingOption windowSizeSetting, SettingType.Vector2))
             {
                 _size = (Vector2i)windowSizeSetting.GetValue<Vector2>();
                 _halfSize = _size.ToVector2() * 0.5f;
             }
 
             // VSync
-            if (Settings.GetSetting("VSync", out SettingOption vsyncSetting, SettingType.Bool))
+            if (Settings.GlobalSettings.GetSetting("VSync", out SettingOption vsyncSetting, SettingType.Bool))
             {
                 _vSync = vsyncSetting.GetValue<bool>();
             }
 
             // Cull back face
-            if (Settings.GetSetting("CullFace", out SettingOption windowStateSetting, SettingType.Bool))
+            if (Settings.GlobalSettings.GetSetting("CullFace", out SettingOption windowStateSetting, SettingType.Bool))
             {
                 if (windowStateSetting.GetValue<bool>())
                 {
@@ -437,49 +444,59 @@ namespace CrymexEngine
         }
         private static void ApplyPostLoadSettings()
         {
+            // GL debug context
+            if (_glContextFlags == ContextFlags.Debug)
+            {
+                GL.Enable(EnableCap.DebugOutput);
+                GL.Enable(EnableCap.DebugOutputSynchronous);
+                GL.DebugMessageCallback(new DebugProc(Debug.LogGLDebugInfo), IntPtr.Zero);
+
+                Debug.LogLocalInfo("Window", "Showing additional GL output");
+            }
+
             // Window resizability
-            if (Settings.GetSetting("WindowResizable", out SettingOption windowResizableSetting, SettingType.Bool))
+            if (Settings.GlobalSettings.GetSetting("WindowResizable", out SettingOption windowResizableSetting, SettingType.Bool))
             {
                 Resizable = windowResizableSetting.GetValue<bool>();
             }
 
             // Window start fullscreen
-            if (Settings.GetSetting("StartFullscreen", out SettingOption startFullscreenSetting, SettingType.Bool) && startFullscreenSetting.GetValue<bool>())
+            if (Settings.GlobalSettings.GetSetting("StartFullscreen", out SettingOption startFullscreenSetting, SettingType.Bool) && startFullscreenSetting.GetValue<bool>())
             {
                 _glfwWindow.MakeFullscreen(_glfwWindow.CurrentMonitor.Handle);
             }
 
             // Window icon
-            if (Settings.GetSetting("WindowIcon", out SettingOption windowIconSetting, SettingType.RefString))
+            if (Settings.GlobalSettings.GetSetting("WindowIcon", out SettingOption windowIconSetting, SettingType.RefString))
             {
                 Icon = Assets.GetTexture(windowIconSetting.GetValue<string>());
             }
             else Icon = Assets.GetTexture("WindowIcon");
 
             // Max FPS
-            if (Settings.GetSetting("MaxFPS", out SettingOption maxFPSSetting, SettingType.Int))
+            if (Settings.GlobalSettings.GetSetting("MaxFPS", out SettingOption maxFPSSetting, SettingType.Int))
             {
                 MaxFPS = maxFPSSetting.GetValue<int>();
                 _glfwWindow.UpdateFrequency = _maxFPS;
             }
 
             // Max FPS Idle
-            if (Settings.GetSetting("MaxFPSIdle", out SettingOption maxFPSIdleSetting, SettingType.Int))
+            if (Settings.GlobalSettings.GetSetting("MaxFPSIdle", out SettingOption maxFPSIdleSetting, SettingType.Int))
             {
                 MaxFPSIdle = maxFPSIdleSetting.GetValue<int>();
             }
 
             // Cursor
-            if (Settings.GetSetting("WindowCursor", out SettingOption cursorTexSetting, SettingType.RefString))
+            if (Settings.GlobalSettings.GetSetting("WindowCursor", out SettingOption cursorTexSetting, SettingType.RefString))
             {
                 Vector2i hotspot = Vector2i.Zero;
                 Vector2i size = new Vector2i(16, 16);
 
-                if (Settings.GetSetting("WindowCursorHotspot", out SettingOption hotspotSetting, SettingType.Vector2))
+                if (Settings.GlobalSettings.GetSetting("WindowCursorHotspot", out SettingOption hotspotSetting, SettingType.Vector2))
                 {
                     hotspot = (Vector2i)hotspotSetting.GetValue<Vector2>();
                 }
-                if (Settings.GetSetting("WindowCursorSize", out SettingOption sizeSetting, SettingType.Vector2))
+                if (Settings.GlobalSettings.GetSetting("WindowCursorSize", out SettingOption sizeSetting, SettingType.Vector2))
                 {
                     size = (Vector2i)sizeSetting.GetValue<Vector2>();
                 }
@@ -537,7 +554,7 @@ namespace CrymexEngine
                 API = ContextAPI.OpenGL,
                 Profile = ContextProfile.Core,
                 APIVersion = _glVersion,
-                Flags = ContextFlags.Default,
+                Flags = _glContextFlags,
 
                 NumberOfSamples = 8,
                 DepthBits = 24,

@@ -1,6 +1,6 @@
 ﻿namespace CrymexEngine.Data
 {
-    public static class IO
+    public static class Directories
     {
         public static readonly string assetsPath = Directory.GetCurrentDirectory() + "\\Assets\\";
         public static readonly string runtimeAssetsPath = Directory.GetCurrentDirectory() + "\\Precompiled\\";

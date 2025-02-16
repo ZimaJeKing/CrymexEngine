@@ -7,6 +7,7 @@ namespace CrymexEngine
     public static class Physics
     {
         public static bool Active => _initialized;
+        public static float PhysicsLoopDeltaTime => _physicsDeltaTime;
 
         public static Vector2 Gravity => _gravity;
 
@@ -16,20 +17,22 @@ namespace CrymexEngine
         private static float _updatePeriod = -1;
         private static bool _usePhysics = false;
         private static bool _initialized = false;
+        private static float _lastFrameTime;
+        private static float _physicsDeltaTime;
 
         internal static void Init()
         {
             if (Window.Loaded || _initialized) return;
 
             // Determine whether to use physics and return if no
-            if (Settings.GetSetting("UsePhysics", out SettingOption physicsOption, SettingType.Bool))
+            if (Settings.GlobalSettings.GetSetting("UsePhysics", out SettingOption physicsOption, SettingType.Bool))
             {
                 _usePhysics = physicsOption.GetValue<bool>();
             }
             if (!_usePhysics) return;
 
             // Get the physics update frequency and add the event
-            if (Settings.GetSetting("PhysicsUpdateFrequency", out SettingOption updateFreqOption, SettingType.Float))
+            if (Settings.GlobalSettings.GetSetting("PhysicsUpdateFrequency", out SettingOption updateFreqOption, SettingType.Float))
             {
                 // Clamp the frequency between a low number and 144 for it is not usefull above that
                 _updatePeriod = 1f / Math.Clamp(updateFreqOption.GetValue<float>(), 0.001f, 144);
@@ -42,10 +45,10 @@ namespace CrymexEngine
                 return;
             }
 
-            EventSystem.AddEventRepeat("CE_PhysicsLoop", Update, _updatePeriod);
+            EventSystem.AddEventRepeat("CE_PhysicsLoop", Update, _updatePeriod, true);
 
             // Reading the gravity setting
-            if (Settings.GetSetting("Gravity", out SettingOption gravityOption, SettingType.Vector2))
+            if (Settings.GlobalSettings.GetSetting("Gravity", out SettingOption gravityOption, SettingType.Vector2))
             {
                 _gravity = gravityOption.GetValue<Vector2>();
             }
@@ -61,7 +64,10 @@ namespace CrymexEngine
         {
             if (!_initialized) return;
 
-            _aetherWorld.Step(_updatePeriod);
+            _physicsDeltaTime = Time.GameTime - _lastFrameTime;
+            _lastFrameTime = Time.GameTime;
+
+            _aetherWorld.Step(_physicsDeltaTime);
         }
 
         internal static Body RegisterBody(Collider collider, BodyType bodyType, Body? reference = null)

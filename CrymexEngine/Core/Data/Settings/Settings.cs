@@ -6,50 +6,54 @@ namespace CrymexEngine
 {
     public class Settings
     {
-        /// <summary>
-        /// An internal instance
-        /// </summary>
-        public static Settings Instance => _instance;
+        public static readonly Settings GlobalSettings = new Settings();
 
-        public static string SettingsText => _settingsText;
+        public string SettingsText => _settingsText;
         public bool Precompiled => _precompiled;
 
-        private static readonly List<SettingOption> settings = new List<SettingOption>();
-        private static string _settingsText;
-        private static bool _precompiled;
-        private static bool _settingsLoaded = false;
+        private readonly List<SettingOption> settings = new();
+        private string _settingsText = string.Empty;
+        private bool _precompiled = false;
 
-        private static Settings _instance = new Settings();
+        public Settings() 
+        { 
 
-        internal void LoadSettings()
+        }
+
+        /// <summary>
+        /// Loads settings data from a file and adds them to the collection
+        /// </summary>
+        /// <returns></returns>
+        public bool LoadFile(string dynamicPath)
         {
-            if (_settingsLoaded) return;
-
-            InitializeDirectories();
-
-            string rawSettingsText;
-            string settingsPath = IO.runtimeAssetsPath + "RuntimeSettings.rtmAsset";
-            if (!File.Exists(settingsPath))
+            if (!Path.IsPathFullyQualified(dynamicPath))
             {
-                settingsPath = IO.assetsPath + "GlobalSettings.txt";
+                Debug.LogError($"Settings path is in wrong format '{dynamicPath}'");
+                return false;
+            }
 
+            string settingsFileName = Path.GetFileNameWithoutExtension(dynamicPath);
+            string rawSettingsText;
+            string precompiledPath = Directories.runtimeAssetsPath + settingsFileName + ".settingsFile";
+            if (!File.Exists(precompiledPath))
+            {
                 // Load dynamic settings
-                if (!File.Exists(settingsPath))
+                if (!File.Exists(dynamicPath))
                 {
-                    Debug.LogWarning($"No settings file found. Created file at \"{settingsPath}\"");
-                    File.Create(settingsPath).Dispose();
-                    return;
+                    Debug.LogWarning($"No settings file found. Created file at '{dynamicPath}'");
+                    File.Create(dynamicPath).Dispose();
+                    return false;
                 }
                 else
                 {
-                    rawSettingsText = File.ReadAllText(settingsPath);
+                    rawSettingsText = File.ReadAllText(dynamicPath);
                 }
             }
             else
             {
                 _precompiled = true;
                 // Load precompiled settings
-                rawSettingsText = Encoding.Unicode.GetString(AssetCompiler.DecompileData(File.ReadAllBytes(settingsPath), out _));
+                rawSettingsText = Encoding.Unicode.GetString(AssetCompiler.DecompileData(File.ReadAllBytes(precompiledPath), out _));
             }
 
             // Load settings from text data
@@ -57,17 +61,19 @@ namespace CrymexEngine
             for (int i = 0; i < settingsLines.Length; i++)
             {
                 string[]? split = FormatSettingLine(settingsLines[i]);
-                if (split == null) continue;
+                if (split == null || split.Length < 2) continue;
 
                 SettingOption? newSetting = CompileSetting(split[0], split[1]);
                 if (newSetting == null) continue;
+
                 settings.Add(newSetting);
+                _settingsText += settingsLines[i];
             }
 
-            _settingsLoaded = true;
+            return true;
         }
 
-        public static SettingOption? GetSetting(string name)
+        public SettingOption? GetSetting(string name)
         {
             foreach (SettingOption option in settings)
             {
@@ -84,13 +90,13 @@ namespace CrymexEngine
         /// Gets a setting
         /// </summary>
         /// <returns>If the setting was found</returns>
-        public static bool GetSetting(string name, out SettingOption setting, SettingType? type = null)
+        public bool GetSetting(string name, out SettingOption setting, SettingType? type = null)
         {
             foreach (SettingOption option in settings)
             {
                 if (option.name == name)
                 {
-                    if (type == option.type || type == null)
+                    if (type == option.type)
                     {
                         setting = option;
                         return true;
@@ -101,9 +107,9 @@ namespace CrymexEngine
             return false;
         }
 
-        private static string[]? FormatSettingLine(string line)
+        private string[]? FormatSettingLine(string line)
         {
-            if (string.IsNullOrEmpty(line)) return null;
+            if (string.IsNullOrEmpty(line) || line.Length < 2) return null;
             line = line.Trim();
             if (line[..2] == "//") return null;
             string[] split = line.Split(':', StringSplitOptions.TrimEntries);
@@ -184,14 +190,6 @@ namespace CrymexEngine
                 return new SettingOption(name, SettingType.Bool, false);
             }
             return new SettingOption(name, SettingType.RefString, value);
-        }
-
-        private static void InitializeDirectories()
-        {
-            if (!Directory.Exists(IO.assetsPath)) Directory.CreateDirectory(IO.assetsPath);
-            if (!Directory.Exists(IO.runtimeAssetsPath)) Directory.CreateDirectory(IO.runtimeAssetsPath);
-            if (!Directory.Exists(IO.logFolderPath)) Directory.CreateDirectory(IO.logFolderPath);
-            if (!Directory.Exists(IO.saveFolderPath)) Directory.CreateDirectory(IO.saveFolderPath);
         }
     }
 }

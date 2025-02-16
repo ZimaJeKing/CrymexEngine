@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <Platforms>AnyCPU;x64</Platforms>
-    <StartupObject>CrymexEngine.Engine</StartupObject>
+    <StartupObject>CrymexEngine.Program</StartupObject>
     <ApplicationIcon>Logo.ico</ApplicationIcon>
   </PropertyGroup>
 

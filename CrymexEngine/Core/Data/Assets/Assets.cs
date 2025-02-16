@@ -57,28 +57,17 @@ namespace CrymexEngine
 
         private static readonly Assets _instance = new Assets();
 
-        public static void LoadAssets()
+        internal static void LoadAssets()
         {
             if (Window.Loaded) return;
 
-            // Get the texture compression level setting
-            if (Settings.GetSetting("TextureCompressionLevel", out SettingOption texCompLevelSetting, SettingType.Int))
-            {
-                _textureCompressionLevel = texCompLevelSetting.GetValue<int>();
-            }
-
-            // Get the meta file setting
-            if (Settings.GetSetting("UseMetaFiles", out SettingOption useMetaSetting, SettingType.Bool) && useMetaSetting.GetValue<bool>())
-            {
-                _useMeta = true;
-            }
+            LoadSettings();
 
             // Defining Texture.White and Texture.None
-            Texture.White = new Texture(1, 1, new byte[] { 255, 255, 255, 255 });
-            Texture.None = new Texture(1, 1, new byte[] { 0, 0, 0, 0 });
+            DefineTextures();
 
             //  Whether the application is precompiled
-            if (Settings.Instance.Precompiled)
+            if (Settings.GlobalSettings.Precompiled)
             {
                 Debug.LogLocalInfo("Asset Loader", "Running on precompiled assets");
                 _precompiled = true;
@@ -100,13 +89,13 @@ namespace CrymexEngine
 
                 // Starts a recursive loop of searching directories in the "Assets" folder
                 // Responsible for loading all dynamic assets
-                AssetSearchDirectory(IO.assetsPath);
+                AssetSearchDirectory(Directories.assetsPath);
 
                 float loadingTime = Time.GameTime - startTime;
                 Debug.LogLocalInfo("Asset Loader", $"Dynamic assets loaded in {DataUtilities.FloatToShortString(loadingTime, 2)} seconds");
 
                 // Compile assets if specified in settings
-                if (Settings.GetSetting("PrecompileAssets", out SettingOption precompileAssetsOption, SettingType.Bool) && precompileAssetsOption.GetValue<bool>())
+                if (Settings.GlobalSettings.GetSetting("PrecompileAssets", out SettingOption precompileAssetsOption, SettingType.Bool) && precompileAssetsOption.GetValue<bool>())
                 {
                     Debug.WriteToConsole($"Precompiling all assets...", ConsoleColor.Blue);
 
@@ -114,7 +103,7 @@ namespace CrymexEngine
                     AssetCompilationInfo info = CompileDataAssets();
 
                     // Create a compilation log
-                    using (FileStream fileStream = File.Create($"{IO.logFolderPath}{Time.CurrentDateTimeShortString} CompilationLog.log"))
+                    using (FileStream fileStream = File.Create($"{Directories.logFolderPath}{Time.CurrentDateTimeShortString} CompilationLog.log"))
                     {
                         string final = "Compilation log:\n";
                         final += info.ToString();
@@ -138,6 +127,27 @@ namespace CrymexEngine
             Shader.LoadDefaultShaders();
 
             GC.Collect();
+        }
+
+        private static void DefineTextures()
+        {
+            Texture.White = new Texture(1, 1, new byte[] { 255, 255, 255, 255 });
+            Texture.None = new Texture(1, 1, new byte[] { 0, 0, 0, 0 });
+        }
+
+        private static void LoadSettings()
+        {
+            // Get the texture compression level setting
+            if (Settings.GlobalSettings.GetSetting("TextureCompressionLevel", out SettingOption texCompLevelSetting, SettingType.Int))
+            {
+                _textureCompressionLevel = texCompLevelSetting.GetValue<int>();
+            }
+
+            // Get the meta file setting
+            if (Settings.GlobalSettings.GetSetting("UseMetaFiles", out SettingOption useMetaSetting, SettingType.Bool) && useMetaSetting.GetValue<bool>())
+            {
+                _useMeta = true;
+            }
         }
 
         /// <summary>
@@ -327,7 +337,7 @@ namespace CrymexEngine
             long textureSize, audioSize, shaderSize, fontSize;
 
             // Compiling texture data
-            string texturePath = IO.runtimeAssetsPath + "RuntimeTextures.rtmAsset";
+            string texturePath = Directories.runtimeAssetsPath + "RuntimeTextures.rtmAsset";
 
             using (FileStream textureFileStream = File.Create(texturePath))
             {
@@ -339,7 +349,7 @@ namespace CrymexEngine
             }
 
             // Compiling audio data
-            string audioPath = IO.runtimeAssetsPath + "RuntimeAudioClips.rtmAsset";
+            string audioPath = Directories.runtimeAssetsPath + "RuntimeAudioClips.rtmAsset";
             using (FileStream audioFileStream = File.Create(audioPath))
             {
                 foreach (AudioAsset asset in _audioAssets)
@@ -350,7 +360,7 @@ namespace CrymexEngine
             }
 
             // Compiling shaders
-            string shaderPath = IO.runtimeAssetsPath + "RuntimeShaders.rtmAsset";
+            string shaderPath = Directories.runtimeAssetsPath + "RuntimeShaders.rtmAsset";
             using (FileStream shaderFileStream = File.Create(shaderPath))
             {
                 foreach (ShaderAsset asset in _shaderAssets)
@@ -361,7 +371,7 @@ namespace CrymexEngine
             }
 
             // Compiling fonts
-            string fontPath = IO.runtimeAssetsPath + "RuntimeFonts.rtmAsset";
+            string fontPath = Directories.runtimeAssetsPath + "RuntimeFonts.rtmAsset";
             using (FileStream fontFileStream = File.Create(fontPath))
             {
                 foreach (FontAsset asset in _fontAssets)
@@ -372,10 +382,10 @@ namespace CrymexEngine
             }
 
             // Compiling setttings
-            string settingsPath = IO.runtimeAssetsPath + "RuntimeSettings.rtmAsset";
+            string settingsPath = Directories.runtimeAssetsPath + "RuntimeSettings.rtmAsset";
             using (FileStream settingsFileStream = File.Create(settingsPath))
             {
-                settingsFileStream.Write(AssetCompiler.CompileData("GLOBALSETTINGS", Encoding.Unicode.GetBytes(Settings.SettingsText)));
+                settingsFileStream.Write(AssetCompiler.CompileData("GLOBALSETTINGS", Encoding.Unicode.GetBytes(Settings.GlobalSettings.SettingsText)));
             }
 
             float compilationTime = Time.GameTime - startTime;
@@ -384,16 +394,16 @@ namespace CrymexEngine
         }
         private static void LoadPrecompiledAssets()
         {
-            string texturePath = IO.runtimeAssetsPath + "RuntimeTextures.rtmAsset";
+            string texturePath = Directories.runtimeAssetsPath + "RuntimeTextures.rtmAsset";
             if (File.Exists(texturePath)) _textureAssets = AssetCompiler.DecompileTextureAssets(File.ReadAllBytes(texturePath));
 
-            string audioPath = IO.runtimeAssetsPath + "RuntimeAudioClips.rtmAsset";
+            string audioPath = Directories.runtimeAssetsPath + "RuntimeAudioClips.rtmAsset";
             if (File.Exists(audioPath)) _audioAssets = AssetCompiler.DecompileAudioAssets(File.ReadAllBytes(audioPath));
 
-            string fontPath = IO.runtimeAssetsPath + "RuntimeFonts.rtmAsset";
+            string fontPath = Directories.runtimeAssetsPath + "RuntimeFonts.rtmAsset";
             if (File.Exists(fontPath)) _fontAssets = AssetCompiler.DecompileFontAssets(File.ReadAllBytes(fontPath));
 
-            string shaderPath = IO.runtimeAssetsPath + "RuntimeShaders.rtmAsset";
+            string shaderPath = Directories.runtimeAssetsPath + "RuntimeShaders.rtmAsset";
             if (File.Exists(shaderPath)) _shaderAssets = AssetCompiler.DecompileShaderAssets(File.ReadAllBytes(shaderPath));
         }
     }

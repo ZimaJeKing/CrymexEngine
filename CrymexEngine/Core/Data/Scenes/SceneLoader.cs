@@ -27,11 +27,9 @@ namespace CrymexEngine.Scenes
     static class SceneCompiler
     {
         static Scene scene;
-        static Assembly assembly;
 
         public static Scene CompileScene(string[] lines)
         {
-            assembly = Assembly.Load("CrymexEngine.dll");
             scene = new Scene();
             for (int l = 0; l < lines.Length; l++) 
             {
@@ -126,28 +124,6 @@ namespace CrymexEngine.Scenes
                         components.Add(parts[1]);
                         continue;
                 }
-
-                // Modifying component properties
-                if (components.Contains(parts[0]) && parts.Length == 3)
-                {
-                    Type? type = assembly.GetType(parts[0]);
-                    if (type == null)
-                    {
-                        Debug.LogWarning($"Component {parts[0]} not found in CrymexEngine assembly");
-                        continue;
-                    }
-
-                    string[] setValue = parts[1].Split('=', StringSplitOptions.TrimEntries);
-
-                    PropertyInfo? prop = type.GetProperty(setValue[0]);
-                    if (prop == null)
-                    {
-                        Debug.LogWarning($"Property {setValue[0]} not found in component {parts[0]}");
-                        continue;
-                    }
-
-                    PropertySetter(prop, setValue[1]);
-                }
             }
 
             Entity entity = new Entity(texture, position, scale, scene, Entity.GetEntity(parentName, scene), name);
@@ -155,11 +131,6 @@ namespace CrymexEngine.Scenes
             entity.LocalPosition = localPosition;
 
             return entity;
-        }
-
-        private static void PropertySetter(PropertyInfo property, string value)
-        {
-
         }
     }
 }

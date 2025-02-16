@@ -6,28 +6,59 @@ namespace CrymexEngine.Scripting
 {
     public static class ScriptLoader
     {
-        public static void LoadBehaviours()
+        private static List<Type> _startingBehaviours = new();
+
+        internal static void LoadBehaviours()
         {
-            if (Window.Loaded) return;
-
-            // Add Your Behaviour Scripts Here //
-            //              |                  //
-            //              |                  //
-            //             \ /                 //
-            //              ˇ                  //
-
-            Add<MyBehaviourScript>();
-
-            // - - - - - - - - - - - - - - - - //
+            foreach (Type type in _startingBehaviours)
+            {
+                RuntimeAdd(type);
+            }
         }
 
         public static void Add<T>() where T : ScriptableBehaviour
         {
-            ScriptableBehaviour? behaviour = (ScriptableBehaviour?)Activator.CreateInstance(typeof(T));
-            if (behaviour == null) return;
+            if (!Window.Loaded)
+            {
+                if (Engine.Initialized)
+                {
+                    _startingBehaviours.Add(typeof(T));
+                }
+                else
+                {
+                    Debug.LogError("[Behaviour Loader] Adding behaviours before initializing the engine is strictly prohibited");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[Behaviour Loader] For adding behaviours during runtime use the RuntimeAdd method");
+                RuntimeAdd<T>();
+            }
+        }
+
+        public static T? RuntimeAdd<T>() where T : ScriptableBehaviour
+        {
+            if (!Window.Loaded || !Engine.Initialized)
+            {
+                _startingBehaviours.Add(typeof(T));
+            }
+
+            T? behaviour = (T?)Activator.CreateInstance(typeof(T));
+            if (behaviour == null) return null;
 
             Scene.Current.scriptableBehaviours.Add(behaviour);
             Behaviour.LoadBehaviour(behaviour);
+            return behaviour;
+        }
+
+        private static ScriptableBehaviour RuntimeAdd(Type type)
+        {
+            ScriptableBehaviour? behaviour = (ScriptableBehaviour?)Activator.CreateInstance(type);
+            if (behaviour == null) return null;
+
+            Scene.Current.scriptableBehaviours.Add(behaviour);
+            Behaviour.LoadBehaviour(behaviour);
+            return behaviour;
         }
     }
 }

@@ -36,7 +36,7 @@ StartFullscreen [COND]
 WindowResizable [COND]
 WindowTitle [STRING]
 WindowIcon [REF] - Name reference to a window icon texture
-WindowSize [VECTOR2]
+WindowSize [VEC2]
 ClearColor [HEX] - Window background color
 WindowCursor [REF] - Window cursor texture
 WindowCursorSize [VEC2] - Cursor size in pixels
@@ -44,7 +44,8 @@ WindowCursorHotspot [VEC2] - Cursor hotspot in pixels
 WindowStartFullscreen [COND] - Whether to start as a fullscreen window
 
 Rendering:
-GLVersion [Vec2] - Version of OpenGL to use. Ex. ( 4, 3 )
+GLDebugOutput - Might provide additional debug information at the cost of performance
+GLVersion [VEC2] - Version of OpenGL to use. Ex. ( 4, 5 )
 VSync [COND]
 MaxFPS [INT]
 MaxFPSIdle [INT] - Max fps, when the window isn't focused

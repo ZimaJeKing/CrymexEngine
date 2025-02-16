@@ -68,14 +68,14 @@ namespace CrymexEngine
 
             // Clear color
             _clearColor = Color4.White;
-            if (Settings.GetSetting("ClearColor", out SettingOption clearColorSetting))
+            if (Settings.GlobalSettings.GetSetting("ClearColor", out SettingOption clearColorSetting))
             {
                 _clearColor = System.Drawing.Color.FromArgb(clearColorSetting.GetValue<int>());
             }
             GL.ClearColor(_clearColor);
 
             // MSAA settings
-            if (Settings.GetSetting("MSAASamples", out SettingOption msaaSetting))
+            if (Settings.GlobalSettings.GetSetting("MSAASamples", out SettingOption msaaSetting))
             {
                 int maxMsaaSamples;
                 GL.GetInteger(GetPName.MaxSamples, out maxMsaaSamples);

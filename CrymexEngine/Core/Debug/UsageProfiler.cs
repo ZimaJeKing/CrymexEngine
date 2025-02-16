@@ -83,7 +83,7 @@ namespace CrymexEngine.Debugging
         {
             if (Window.Loaded) return;
 
-            if (!Settings.GetSetting("UsageProfiler", out SettingOption option, SettingType.Bool)) return;
+            if (!Settings.GlobalSettings.GetSetting("UsageProfiler", out SettingOption option, SettingType.Bool)) return;
 
             if (!option.GetValue<bool>()) return;
 

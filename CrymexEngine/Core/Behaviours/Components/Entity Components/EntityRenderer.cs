@@ -1,4 +1,5 @@
 ﻿using CrymexEngine.Rendering;
+using CrymexEngine.UI;
 using CrymexEngine.Utils;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
@@ -30,6 +31,13 @@ namespace CrymexEngine
 
         protected override void Update()
         {
+            // Shaders not found
+            if (shader == null)
+            {
+                Debug.LogError($"Shaders not found for object '{entity.name}'");
+                return;
+            }
+
             if (Vector2.DistanceSquared(entity.Position, Camera.position) < Camera.renderDistanceSquared)
             {
                 GL.UseProgram(shader._glShader);
