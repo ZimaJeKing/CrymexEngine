@@ -369,3 +369,5 @@ FodyWeavers.xsd
 /CrymexEngine/Scripts/Examples/SimpleGameExample.cs
 /CrymexEngine/Scripts/Examples/TextExample.cs
 /CrymexEngine/Scripts/CrymexEngineCompiler.cs
+/.editorconfig
+/CrymexEngine/Logo.ico
