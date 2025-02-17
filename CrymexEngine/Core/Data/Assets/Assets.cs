@@ -285,6 +285,18 @@ namespace CrymexEngine
                         }
                         break;
                     }
+                case ".vert":
+                    {
+                        string fragmentPath = SysPath.GetDirectoryName(path) + '\\' + filename + ".frag";
+                        if (File.Exists(fragmentPath))
+                        {
+                            string vertexCode = File.ReadAllText(path);
+                            string fragmentCode = File.ReadAllText(fragmentPath);
+                            ShaderAsset shaderAsset = new ShaderAsset(path, Shader.LoadFromAsset(vertexCode, fragmentCode), vertexCode, fragmentCode, MetaFileManager.DecodeMetaFromFile(path + ".meta"));
+                            _shaderAssets.Add(shaderAsset);
+                        }
+                        break;
+                    }
                 case ".ttf":
                     {
                         LoadFontFromData(path, File.ReadAllBytes(path));
@@ -382,7 +394,7 @@ namespace CrymexEngine
             }
 
             // Compiling setttings
-            string settingsPath = Directories.runtimeAssetsPath + "RuntimeSettings.rtmAsset";
+            string settingsPath = Directories.runtimeAssetsPath + "GlobalSettings.settingsFile";
             using (FileStream settingsFileStream = File.Create(settingsPath))
             {
                 settingsFileStream.Write(AssetCompiler.CompileData("GLOBALSETTINGS", Encoding.Unicode.GetBytes(Settings.GlobalSettings.SettingsText)));

@@ -13,6 +13,8 @@ namespace CrymexEngine
         public SettingType type;
         public object value;
 
+        public static readonly SettingOption None = new SettingOption("NONE", SettingType.None, 0);
+
         public SettingOption(string name, SettingType type, object value)
         {
             this.name = name;
@@ -83,7 +85,7 @@ namespace CrymexEngine
             if (strValue == null) return "";
 
             if (type == SettingType.Float) strValue += 'f';
-            else if (type == SettingType.Hex) strValue = '#' + strValue;
+            else if (type == SettingType.Hex) strValue = '#' + ((int)value).ToString("X");
             else if (type == SettingType.String) strValue = '"' + strValue + '"';
             else if (type == SettingType.Bool)
             {

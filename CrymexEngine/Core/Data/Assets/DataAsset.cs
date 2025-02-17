@@ -10,7 +10,7 @@ namespace CrymexEngine.Data
 
         public MetaFile? Meta => _meta;
 
-        protected MetaFile? _meta;
+        protected MetaFile? _meta = null;
 
         public DataAsset(string path)
         {

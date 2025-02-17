@@ -224,7 +224,7 @@ namespace CrymexEngine
             EventSystem.AddEventRepeat("CE_SecondLoop", SecondLoop, 1f, true);
 
             // Initializing CrymexEngine components
-            Camera.Instance.Init();
+            Camera.MainCamera.Init();
             Assets.LoadAssets();
 
             ApplyPostLoadSettings();

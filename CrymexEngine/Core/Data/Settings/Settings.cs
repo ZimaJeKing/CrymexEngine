@@ -1,5 +1,8 @@
 ﻿using CrymexEngine.Data;
+using OpenTK.Graphics.ES20;
 using OpenTK.Mathematics;
+using System.Collections;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace CrymexEngine
@@ -8,10 +11,10 @@ namespace CrymexEngine
     {
         public static readonly Settings GlobalSettings = new Settings();
 
+        public readonly List<SettingOption> options = new();
         public string SettingsText => _settingsText;
         public bool Precompiled => _precompiled;
 
-        private readonly List<SettingOption> settings = new();
         private string _settingsText = string.Empty;
         private bool _precompiled = false;
 
@@ -66,8 +69,8 @@ namespace CrymexEngine
                 SettingOption? newSetting = CompileSetting(split[0], split[1]);
                 if (newSetting == null) continue;
 
-                settings.Add(newSetting);
-                _settingsText += settingsLines[i];
+                options.Add(newSetting);
+                _settingsText += settingsLines[i] + '\n';
             }
 
             return true;
@@ -75,7 +78,7 @@ namespace CrymexEngine
 
         public SettingOption? GetSetting(string name)
         {
-            foreach (SettingOption option in settings)
+            foreach (SettingOption option in options)
             {
                 if (option.name == name)
                 {
@@ -92,7 +95,7 @@ namespace CrymexEngine
         /// <returns>If the setting was found</returns>
         public bool GetSetting(string name, out SettingOption setting, SettingType? type = null)
         {
-            foreach (SettingOption option in settings)
+            foreach (SettingOption option in options)
             {
                 if (option.name == name)
                 {
@@ -103,7 +106,7 @@ namespace CrymexEngine
                     }
                 }
             }
-            setting = new SettingOption("NULL", SettingType.None, false);
+            setting = SettingOption.None;
             return false;
         }
 

@@ -5,7 +5,7 @@ namespace CrymexEngine
 {
     public class Camera
     {
-        public static Camera Instance
+        public static Camera MainCamera
         {
             get
             {
@@ -68,7 +68,7 @@ namespace CrymexEngine
 
             // Clear color
             _clearColor = Color4.White;
-            if (Settings.GlobalSettings.GetSetting("ClearColor", out SettingOption clearColorSetting))
+            if (Settings.GlobalSettings.GetSetting("ClearColor", out SettingOption clearColorSetting, SettingType.Hex))
             {
                 _clearColor = System.Drawing.Color.FromArgb(clearColorSetting.GetValue<int>());
             }

@@ -22,9 +22,19 @@
             return DecodeMetaFromText(generatedText);
         }
 
-        public static MetaFile DecodeMetaFromFile(string path)
+        public static MetaFile DecodeMetaFromFile(string path, DataAsset? reference = null)
         {
-            if (!File.Exists(path)) return new MetaFile(new List<MetaProperty>());
+            if (!File.Exists(path))
+            {
+                if (reference != null)
+                {
+                    return GenerateMeta(reference);
+                }
+                else
+                {
+                    return new MetaFile(new List<MetaProperty>());
+                }
+            }
 
             List<MetaProperty> properties = new();
             string[] lines = File.ReadAllLines(path);
