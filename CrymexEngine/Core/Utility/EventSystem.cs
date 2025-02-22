@@ -123,6 +123,8 @@ namespace CrymexEngine
             this.isLocked = isLocked;
             startTime = Time.GameTime;
 
+            if (name.Length > 100) name = name.Substring(0, 100);
+
             if (time <= 0 || !float.IsNormal(time))
             {
                 successful = false;

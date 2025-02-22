@@ -1,40 +1,45 @@
 ﻿using OpenTK.Audio.OpenAL;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 namespace CrymexEngine
 {
-    public class Audio
+    public static class Audio
     {
-        /// <summary>
-        /// An internal instance
-        /// </summary>
-        public static Audio Instance
-        {
-            get 
-            { 
-                return _instance; 
-            }
-        }
+        public static bool Initialized => _initialized;
 
-        public static bool Initialized
-        {
-            get
-            {
-                return _initialized;
-            }
-        }
+        public static bool OpenALPresent => _openALPresent;
 
         private static readonly List<AudioSource> _sources = new List<AudioSource>();
         private static bool _initialized = false;
         private static ALDevice _alDevice;
         private static ALContext _alContext;
+        private static bool _openALPresent;
 
-        private static Audio _instance = new Audio();
-
-        internal void InitializeContext()
+        internal static void InitializeContext()
         {
             if (_initialized) return;
 
-            _alDevice = ALC.OpenDevice(null);
+            string? defaultDevice = null;
+            if (Settings.GlobalSettings.GetSetting("DefaultAudioDevice", out SettingOption audioDeviceOption, SettingType.GeneralString))
+            {
+                string settingValue = audioDeviceOption.GetValue<string>();
+                if (settingValue.ToLower() != "null")
+                {
+                    defaultDevice = settingValue;
+                }
+            }
+
+            try
+            {
+                _alDevice = ALC.OpenDevice(defaultDevice);
+                _openALPresent = true;
+            }
+            catch (DllNotFoundException)
+            {
+                Debug.LogError("OpenAL dll not found. Audio module inactive");
+                return;
+            }
             if (_alDevice == IntPtr.Zero)
             {
                 Debug.LogError("Couldn't initialize audio device");
@@ -49,9 +54,9 @@ namespace CrymexEngine
             Debug.LogLocalInfo("Audio Handler", $"Audio context initialized with device '{ALC.GetString(_alDevice, AlcGetString.AllDevicesSpecifier)}'");
         }
 
-        public void OverrideContext(string? deviceName = null)
+        public static void OverrideContext(string? deviceName = null)
         {
-            if (!_initialized) return;
+            if (!_initialized || !_openALPresent) return;
 
             Cleanup();
 
@@ -68,14 +73,16 @@ namespace CrymexEngine
             Debug.LogLocalInfo("Audio Handler", $"Audio context override for device '{ALC.GetString(_alDevice, AlcGetString.AllDevicesSpecifier)}'");
         }
 
-        public string[] GetAvailableDevices()
+        public static string[] GetAvailableDevices()
         {
+            if (!_initialized || !_openALPresent) return new string[0];
+
             return ALC.GetStringList(GetEnumerationStringList.DeviceSpecifier).ToArray();
         }
 
-        public void RemoveInactiveSources()
+        public static void RemoveInactiveSources()
         {
-            if (!_initialized) return;
+            if (!_initialized || !_openALPresent) return;
 
             foreach (AudioSource source in _sources)
             {
@@ -88,8 +95,7 @@ namespace CrymexEngine
 
         public static AudioSource Play(AudioClip clip, float volume, bool looping = false, AudioMixer? mixer = null, bool deleteAfterEnd = true)
         {
-            if (!_initialized || clip == null) return null;
-
+            if (!_initialized || !_openALPresent || clip == null) return null;
             AudioSource source = new AudioSource(clip, volume, looping, true, mixer);
 
            _sources.Add(source);
@@ -107,9 +113,9 @@ namespace CrymexEngine
             return ALFormat.Mono8;
         }
 
-        public void Cleanup()
+        public static void Cleanup()
         {
-            if (!_initialized) return;
+            if (!_initialized || !_openALPresent) return;
             ALC.DestroyContext(_alContext);
             ALC.CloseDevice(_alDevice);
         }

@@ -15,9 +15,43 @@ namespace CrymexEngine.Data
         public DataAsset(string path)
         {
             this.path = path;
+            if (Path.IsPathFullyQualified(path))
+            {
+                string relativePath = Path.GetRelativePath(Directories.AssetsPath, path);
+                if (relativePath.StartsWith("Textures\\") || relativePath.StartsWith("Textures/")) 
+                {
+                    name = relativePath.Substring(9);
+                }
+                else if (relativePath.StartsWith("Shaders\\") || relativePath.StartsWith("Shaders/"))
+                {
+                    name = relativePath.Substring(8);
+                }
+                else if (relativePath.StartsWith("Audio\\") || relativePath.StartsWith("Audio/"))
+                {
+                    name = relativePath.Substring(6);
+                }
+                else
+                {
+                    name = relativePath;
+                }
+            }
+            else if (Assets.RunningPrecompiled)
+            {
+                name = path;
+            }
+            else
+            {
+                Debug.LogError($"Path is in incorrect format: {path}");
+                return;
+            }
 
-            if (Path.IsPathFullyQualified(path)) name = Path.GetFileNameWithoutExtension(path);
-            else name = path;
+            if (!Assets.RunningPrecompiled)
+            {
+                name = name.Replace('\\', '/');
+                name = RemoveExtension(name);
+            }
+
+            LoadDynamicMeta();
         }
 
         public void LoadDynamicMeta()
@@ -29,10 +63,18 @@ namespace CrymexEngine.Data
             {
                 _meta = MetaFileManager.DecodeMetaFromFile(metaFilePath);
             }
-            else
+        }
+
+        private static string RemoveExtension(string path)
+        {
+            string[] split = path.Split('.');
+            if (split.Length < 2)
             {
-                _meta = MetaFileManager.GenerateMeta(this);
+                Debug.LogError($"Path is in incorrect format: {path}");
+                return string.Empty;
             }
+
+            return split[0];
         }
     }
 
@@ -43,8 +85,7 @@ namespace CrymexEngine.Data
         public TextureAsset(string path, Texture texture, MetaFile? meta = null) : base(path)
         {
             this.texture = texture;
-            if (meta == null) LoadDynamicMeta();
-            else _meta = meta;
+            if (meta != null) _meta = meta;
         }
     }
 

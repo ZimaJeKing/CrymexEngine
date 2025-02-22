@@ -7,20 +7,29 @@ namespace CrymexEngine
 {
     public static class Engine
     {
+        public static string MainDirPath => _mainDirPath;
         public static readonly Version version = new Version(0, 0, 1);
         public static bool Initialized => _initialized;
 
         private static bool _initialized = false;
+        private static string _mainDirPath;
 
-        public static void Initialize()
+        public static void Initialize(string? startupPath = null)
         {
             if (_initialized) return;
+
+            if (startupPath == null)
+            {
+                startupPath = Directory.GetCurrentDirectory() + '\\';
+            }
+            _mainDirPath = startupPath;
+            Directories.Init();
 
             GLFW.Init();
 
             Debug.InitializeEngineDirectories();
 
-            Settings.GlobalSettings.LoadFile(Directories.assetsPath + "GlobalSettings.txt");
+            Settings.GlobalSettings.LoadFile(Directories.AssetsPath + "GlobalSettings.txt");
 
             Debug.Instance.LoadSettings();
 
@@ -63,7 +72,7 @@ namespace CrymexEngine
 
         private static void PerformCleanup()
         {
-            Audio.Instance.Cleanup();
+            Audio.Cleanup();
             Assets.Cleanup();
             Debug.Instance.Cleanup();
 

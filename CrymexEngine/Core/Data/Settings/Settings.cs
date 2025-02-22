@@ -1,4 +1,5 @@
 ﻿using CrymexEngine.Data;
+using CrymexEngine.Debugging;
 using OpenTK.Graphics.ES20;
 using OpenTK.Mathematics;
 using System.Collections;
@@ -17,6 +18,8 @@ namespace CrymexEngine
 
         private string _settingsText = string.Empty;
         private bool _precompiled = false;
+
+        private static readonly string _defaultGlobalSettingsText = "LogToConsole:True\nVSync:True\nLogFPS:True";
 
         public Settings() 
         { 
@@ -37,15 +40,31 @@ namespace CrymexEngine
 
             string settingsFileName = Path.GetFileNameWithoutExtension(dynamicPath);
             string rawSettingsText;
-            string precompiledPath = Directories.runtimeAssetsPath + settingsFileName + ".settingsFile";
+            string precompiledPath = Directories.RuntimeAssetsPath + settingsFileName + ".settingsFile";
             if (!File.Exists(precompiledPath))
             {
                 // Load dynamic settings
                 if (!File.Exists(dynamicPath))
                 {
                     Debug.LogWarning($"No settings file found. Created file at '{dynamicPath}'");
-                    File.Create(dynamicPath).Dispose();
-                    return false;
+                    try
+                    {
+                        // Create an empty settings file
+                        File.Create(dynamicPath).Dispose();
+
+                        // If creating GlobalSettings, write some default settings into the file
+                        if (Path.GetFileNameWithoutExtension(dynamicPath) == "GlobalSettings")
+                        {
+                            File.WriteAllText(dynamicPath, _defaultGlobalSettingsText);
+                            rawSettingsText = _defaultGlobalSettingsText;
+                        }
+                        else return false;
+                    }
+                    catch (Exception ex) 
+                    { 
+                        Debug.LogError($"[{Path.GetFileName(dynamicPath)}] {ex.Message}");
+                        return false;
+                    }
                 }
                 else
                 {
@@ -59,6 +78,9 @@ namespace CrymexEngine
                 rawSettingsText = Encoding.Unicode.GetString(AssetCompiler.DecompileData(File.ReadAllBytes(precompiledPath), out _));
             }
 
+            // Add memory consumption value (2 * text length for unicode)
+            UsageProfiler.AddMemoryConsumptionValue(rawSettingsText.Length * 2, MemoryUsageType.Other);
+
             // Load settings from text data
             string[] settingsLines = rawSettingsText.Split('\n', StringSplitOptions.TrimEntries);
             for (int i = 0; i < settingsLines.Length; i++)
@@ -66,7 +88,7 @@ namespace CrymexEngine
                 string[]? split = FormatSettingLine(settingsLines[i]);
                 if (split == null || split.Length < 2) continue;
 
-                SettingOption? newSetting = CompileSetting(split[0], split[1]);
+                SettingOption? newSetting = DecompileSetting(split[0], split[1]);
                 if (newSetting == null) continue;
 
                 options.Add(newSetting);
@@ -92,13 +114,23 @@ namespace CrymexEngine
         /// <summary>
         /// Gets a setting
         /// </summary>
-        /// <returns>If the setting was found</returns>
+        /// <returns>True, if the setting was found</returns>
         public bool GetSetting(string name, out SettingOption setting, SettingType? type = null)
         {
             foreach (SettingOption option in options)
             {
-                if (option.name == name)
+                if (option.name == name && option.type != SettingType.None)
                 {
+                    if (type == SettingType.GeneralNumber && (option.type == SettingType.Float || option.type == SettingType.Int || option.type == SettingType.Hex))
+                    {
+                        setting = option;
+                        return true;
+                    }
+                    if (type == SettingType.GeneralString && (option.type == SettingType.String || option.type == SettingType.RefString))
+                    {
+                        setting = option;
+                        return true;
+                    }
                     if (type == option.type)
                     {
                         setting = option;
@@ -119,12 +151,10 @@ namespace CrymexEngine
             if (split.Length < 2) return null;
             split[1] = split[1].Trim();
 
-            _settingsText += line + '\n';
-
             return split;
         }
 
-        private static SettingOption? CompileSetting(string name, string value)
+        private static SettingOption? DecompileSetting(string name, string value)
         {
             if (value == null || value.Length < 1) return null;
 

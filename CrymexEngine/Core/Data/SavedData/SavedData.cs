@@ -12,7 +12,7 @@ namespace CrymexEngine
             // Remove special characters
             if (DataUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
 
-            using (FileStream fileStream = File.OpenWrite(Directories.saveFolderPath + name + "Int32.bin"))
+            using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Int32.bin"))
             {
                 using (BinaryWriter writer = new BinaryWriter(fileStream))
                 {
@@ -23,7 +23,7 @@ namespace CrymexEngine
 
         public static int? ReadInt32(string name) 
         {
-            string path = Directories.saveFolderPath + name + "Int32.bin";
+            string path = Directories.SaveFolderPath + name + "Int32.bin";
             if (!File.Exists(path)) return null;
 
             using (FileStream fileStream =  File.OpenRead(path))
@@ -40,7 +40,7 @@ namespace CrymexEngine
             // Remove special characters
             if (DataUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
 
-            using (FileStream fileStream = File.OpenWrite(Directories.saveFolderPath + name + "Float32.bin"))
+            using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Float32.bin"))
             {
                 using (BinaryWriter writer = new BinaryWriter(fileStream))
                 {
@@ -51,7 +51,7 @@ namespace CrymexEngine
 
         public static float? ReadFloat(string name)
         {
-            string path = Directories.saveFolderPath + name + "Float32.bin";
+            string path = Directories.SaveFolderPath + name + "Float32.bin";
             if (!File.Exists(path)) return null;
 
             using (FileStream fileStream = File.OpenRead(path))
@@ -68,7 +68,7 @@ namespace CrymexEngine
             // Remove special characters
             if (DataUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
 
-            using (FileStream fileStream = File.OpenWrite(Directories.saveFolderPath + name + "Str.bin"))
+            using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Str.bin"))
             {
                 using (BinaryWriter writer = new BinaryWriter(fileStream))
                 {
@@ -82,7 +82,7 @@ namespace CrymexEngine
 
         public static string? ReadString(string name)
         {
-            string path = Directories.saveFolderPath + name + "Str.bin";
+            string path = Directories.SaveFolderPath + name + "Str.bin";
             if (!File.Exists(path)) return null;
 
             using (FileStream fileStream = File.OpenRead(path))
@@ -103,7 +103,7 @@ namespace CrymexEngine
             // Remove special characters
             if (DataUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
 
-            using (FileStream fileStream = File.OpenWrite(Directories.saveFolderPath + name + "Bytes.bin"))
+            using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Bytes.bin"))
             {
                 using (BinaryWriter writer = new BinaryWriter(fileStream))
                 {
@@ -116,7 +116,7 @@ namespace CrymexEngine
 
         public static byte[]? ReadBytes(string name)
         {
-            string path = Directories.saveFolderPath + name + "Bytes.bin";
+            string path = Directories.SaveFolderPath + name + "Bytes.bin";
             if (!File.Exists(path)) return null;
 
             using (FileStream fileStream = File.OpenRead(path))
@@ -137,7 +137,7 @@ namespace CrymexEngine
             // Remove special characters
             if (DataUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
 
-            using (FileStream fileStream = File.OpenWrite(Directories.saveFolderPath + name + "Vec2.bin"))
+            using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Vec2.bin"))
             {
                 using (BinaryWriter writer = new BinaryWriter(fileStream))
                 {
@@ -149,7 +149,7 @@ namespace CrymexEngine
 
         public static Vector2? ReadVector2(string name)
         {
-            string path = Directories.saveFolderPath + name + "Vec2.bin";
+            string path = Directories.SaveFolderPath + name + "Vec2.bin";
             if (!File.Exists(path)) return null;
 
             using (FileStream fileStream = File.OpenRead(path))
@@ -168,7 +168,7 @@ namespace CrymexEngine
             // Remove special characters
             if (DataUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
 
-            using (FileStream fileStream = File.OpenWrite(Directories.saveFolderPath + name + "Vec3.bin"))
+            using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Vec3.bin"))
             {
                 using (BinaryWriter writer = new BinaryWriter(fileStream))
                 {
@@ -181,7 +181,7 @@ namespace CrymexEngine
 
         public static Vector3? ReadVector3(string name)
         {
-            string path = Directories.saveFolderPath + name + "Vec3.bin";
+            string path = Directories.SaveFolderPath + name + "Vec3.bin";
             if (!File.Exists(path)) return null;
 
             using (FileStream fileStream = File.OpenRead(path))
@@ -201,7 +201,7 @@ namespace CrymexEngine
             // Remove special characters
             if (DataUtilities.ContainsSpecialCharacters(name, out string newName)) name = newName;
 
-            using (FileStream fileStream = File.OpenWrite(Directories.saveFolderPath + name + "Vec4.bin"))
+            using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Vec4.bin"))
             {
                 using (BinaryWriter writer = new BinaryWriter(fileStream))
                 {
@@ -215,7 +215,7 @@ namespace CrymexEngine
 
         public static Vector4? ReadVector4(string name)
         {
-            string path = Directories.saveFolderPath + name + "Vec4.bin";
+            string path = Directories.SaveFolderPath + name + "Vec4.bin";
             if (!File.Exists(path)) return null;
 
             using (FileStream fileStream = File.OpenRead(path))

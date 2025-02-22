@@ -6,14 +6,6 @@ namespace CrymexEngine.Debugging
 {
     public class UsageProfiler
     {
-        public static UsageProfiler Instance
-        {
-            get
-            {
-                return _instance;
-            }
-        }
-
         public static bool Active
         {
             get
@@ -71,27 +63,25 @@ namespace CrymexEngine.Debugging
         private static long _memoryUsage;
         private static long _textureMemoryUsage;
         private static long _audioMemoryUsage;
+        private static long _otherMemoryUsage;
         private static int _threadCount;
         private static float _processorTime;
         private static float _processorTimerStart;
         private static int _processorTimeFrameCount;
         private static float _processorTimeSum;
 
-        private static UsageProfiler _instance = new UsageProfiler();
-
-        public void Init()
+        internal static void Init()
         {
             if (Window.Loaded) return;
 
-            if (!Settings.GlobalSettings.GetSetting("UsageProfiler", out SettingOption option, SettingType.Bool)) return;
+            if (!Settings.GlobalSettings.GetSetting("UsageProfiler", out SettingOption option, SettingType.Bool) || !option.GetValue<bool>()) return;
 
-            if (!option.GetValue<bool>()) return;
-
+            Debug.LogLocalInfo("Usage Profiler", "Usage profiler active");
             LogStartupInfo();
             _active = true;
         }
 
-        public void UpdateStats()
+        internal static void UpdateStats()
         {
             if (!Active) return;
 
@@ -105,20 +95,20 @@ namespace CrymexEngine.Debugging
             Debug.WriteToLogFile(GetUsageProfileLog(), LogSeverity.Custom);
         }
 
-        public void BeginProcessorTimeQuery()
+        internal static void BeginProcessorTimeQuery()
         {
             if (!Active) return;
 
             _processorTimerStart = Time.GameTime;
             _processorTimeFrameCount++;
         }
-        public void EndProcessorTimeQuery()
+        internal static void EndProcessorTimeQuery()
         {
             if (!Active) return;
             _processorTimeSum += Time.GameTime - _processorTimerStart;
         }
 
-        public void AddMemoryConsumptionValue(int byteCount, MemoryUsageType type)
+        public static void AddMemoryConsumptionValue(int byteCount, MemoryUsageType type)
         {
             switch (type)
             {
@@ -130,6 +120,11 @@ namespace CrymexEngine.Debugging
                 case MemoryUsageType.Audio:
                     {
                         _audioMemoryUsage += byteCount;
+                        break;
+                    }
+                case MemoryUsageType.Other:
+                    {
+                        _otherMemoryUsage += byteCount;
                         break;
                     }
             }
@@ -148,11 +143,13 @@ namespace CrymexEngine.Debugging
 
         private static void LogStartupInfo()
         {
-            Debug.LogLocalInfo("Usage Profiler", $"Texture memory usage: {DataUtilities.ByteCountToString(TextureMemoryUsage)}");
-            Debug.LogLocalInfo("Usage Profiler", $"Audio memory usage: {DataUtilities.ByteCountToString(AudioMmeoryUsage)}");
-            Debug.LogLocalInfo("Usage Profiler", $"Total memory usage: {DataUtilities.ByteCountToString(_currentProcess.PrivateMemorySize64)}");
+            Debug.WriteToConsole($"Memory usage: (Usage Profiler)", ConsoleColor.DarkGreen);
+            Debug.WriteToConsole($" > Textures: {DataUtilities.ByteCountToString(_textureMemoryUsage)}", ConsoleColor.DarkGreen);
+            Debug.WriteToConsole($" > Audio: {DataUtilities.ByteCountToString(_audioMemoryUsage)}", ConsoleColor.DarkGreen);
+            Debug.WriteToConsole($" > Other: {DataUtilities.ByteCountToString(_otherMemoryUsage)}", ConsoleColor.DarkGreen);
+            Debug.WriteToConsole($"   > Total: {DataUtilities.ByteCountToString(_currentProcess.PrivateMemorySize64)}", ConsoleColor.DarkGreen);
         }
     }
 
-    public enum MemoryUsageType { Texture, Audio }
+    public enum MemoryUsageType { Other, Texture, Audio }
 }

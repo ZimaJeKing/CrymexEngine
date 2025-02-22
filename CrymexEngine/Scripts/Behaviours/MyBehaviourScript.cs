@@ -9,10 +9,10 @@ namespace CrymexEngine.Scripts
 {
     public class MyBehaviourScript : ScriptableBehaviour
     {
-        UIElement display;
+        UIElement display = new UIElement(Assets.GetTextureBroad("Car"), Vector2.Zero, new Vector2(500));
         protected override void Load()
         {
-            display = new UIElement(Assets.GetTexture("Car"), Vector2.Zero, new Vector2(500));
+            
         }
 
         protected override void Update()

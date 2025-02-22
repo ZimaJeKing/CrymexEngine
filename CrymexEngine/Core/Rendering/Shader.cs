@@ -11,12 +11,20 @@ namespace CrymexEngine.Rendering
             {
                 return _regular;
             }
+            set
+            {
+                if (value != null) _regular = value;
+            }
         }
         public static Shader UI
         {
             get
             {
                 return _ui;
+            }
+            set
+            {
+                if (value != null) _ui = value;
             }
         }
 
@@ -30,13 +38,25 @@ namespace CrymexEngine.Rendering
         public static void LoadDefaultShaders()
         {
             if (_defaultShadersLoaded) return;
-            _regular = Assets.GetShader("Regular");
 
-            _ui = Assets.GetShader("UI");
+            string regularShaderName = "Regular";
+            string uiShaderName = "UI";
+
+            if (Settings.GlobalSettings.GetSetting("DefaultEntityShader", out SettingOption regularShaderOption, SettingType.RefString))
+            {
+                regularShaderName = regularShaderOption.GetValue<string>();
+            }
+            if (Settings.GlobalSettings.GetSetting("DefaultUIShader", out SettingOption uiShaderOption, SettingType.RefString))
+            {
+                uiShaderName = uiShaderOption.GetValue<string>();
+            }
+
+            _regular = Assets.GetShaderBroad(regularShaderName);
+            _ui = Assets.GetShaderBroad(uiShaderName);
 
             if (_regular == null || _ui == null)
             {
-                Debug.LogError("The default shaders couldn't be loaded");
+                Debug.LogWarning("The default shaders couldn't be loaded properly");
                 return;
             }
 

@@ -11,19 +11,21 @@ using SixLabors.ImageSharp.Formats.Png;
 
 namespace CrymexEngine
 {
-    public sealed class Texture : IDisposable
+    public sealed class Texture : ColorSource, IDisposable
     {
         public byte[] data;
         public readonly int width;
         public readonly int height;
         public readonly int glTexture;
 
-        public static Texture None;
-        public static Texture Missing;
-        public static Texture White;
+        public static Texture None { get; internal set; }
+        public static Texture Missing { get; internal set; }
+        public static Texture White { get; internal set; }
 
         public Texture(int width, int height)
         {
+            if (!Assets.Loaded) throw new Exception("Assets must be loaded in order to create textures.");
+
             // 23170 - The highest number to not overflow the data array
             width = Math.Clamp(width, 1, 23170);
             height = Math.Clamp(height, 1, 23170);
@@ -33,7 +35,7 @@ namespace CrymexEngine
 
             data = new byte[width * height * 4];
 
-            UsageProfiler.Instance.AddMemoryConsumptionValue(data.Length, MemoryUsageType.Texture);
+            UsageProfiler.AddMemoryConsumptionValue(data.Length, MemoryUsageType.Texture);
 
             glTexture = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2D, glTexture);
@@ -50,7 +52,7 @@ namespace CrymexEngine
             this.height = height;
             this.data = data;
 
-            UsageProfiler.Instance.AddMemoryConsumptionValue(data.Length, MemoryUsageType.Texture);
+            UsageProfiler.AddMemoryConsumptionValue(data.Length, MemoryUsageType.Texture);
 
             glTexture = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2D, glTexture);
@@ -272,6 +274,7 @@ namespace CrymexEngine
         {
             GL.BindTexture(TextureTarget.Texture2D, glTexture);
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, data);
+            GL.BindTexture(TextureTarget.Texture2D, 0);
         }
 
         public Texture Clone()
@@ -280,7 +283,7 @@ namespace CrymexEngine
         }
         public Texture Resize(int newWidth, int newHeight)
         {
-            if (newWidth < 1 || newHeight < 1) return Missing;
+            if (newWidth < 1 || newHeight < 1 || newWidth > 10000 || newHeight > 10000) return Missing;
 
             Texture texture = new Texture(newWidth, newHeight);
 
@@ -306,15 +309,15 @@ namespace CrymexEngine
         {
             if (metadata == null || !Assets.UseMeta) return texture;
 
-            int maxX = metadata.GetIntProperty("MaxSizeX");
-            int maxY = metadata.GetIntProperty("MaxSizeY");
+            int? maxX = metadata.GetIntProperty("MaxSizeX");
+            int? maxY = metadata.GetIntProperty("MaxSizeY");
 
-            if (maxX > 0 && maxY > 0)
+            if (maxX != null && maxY != null && maxX > 0 && maxY > 0)
             {
-                if (maxX < texture.width || maxY < texture.height)
+                if (maxX < texture.width && maxY < texture.height)
                 {
                     Texture original = texture; 
-                    texture = original.Resize(maxX, maxY);
+                    texture = original.Resize(maxX.Value, maxY.Value);
                     original.Dispose();
                 }
             }

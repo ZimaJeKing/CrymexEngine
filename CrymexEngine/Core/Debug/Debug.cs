@@ -50,7 +50,7 @@ namespace CrymexEngine
             if (Settings.GlobalSettings.GetSetting("LogToFile", out SettingOption logToFileSetting, SettingType.Bool) && logToFileSetting.GetValue<bool>())
             {
                 _logToFile = true;
-                _logFileStream = File.Create($"{Directories.logFolderPath}{Time.CurrentDateTimeShortString}.log");
+                _logFileStream = File.Create($"{Directories.LogFolderPath}{Time.CurrentDateTimeShortString}.log");
             }
         }
 
@@ -173,10 +173,10 @@ namespace CrymexEngine
 
         internal static void InitializeEngineDirectories()
         {
-            if (!Directory.Exists(Directories.assetsPath)) Directory.CreateDirectory(Directories.assetsPath);
-            if (!Directory.Exists(Directories.runtimeAssetsPath)) Directory.CreateDirectory(Directories.runtimeAssetsPath);
-            if (!Directory.Exists(Directories.logFolderPath)) Directory.CreateDirectory(Directories.logFolderPath);
-            if (!Directory.Exists(Directories.saveFolderPath)) Directory.CreateDirectory(Directories.saveFolderPath);
+            if (!Directory.Exists(Directories.AssetsPath)) Directory.CreateDirectory(Directories.AssetsPath);
+            if (!Directory.Exists(Directories.RuntimeAssetsPath)) Directory.CreateDirectory(Directories.RuntimeAssetsPath);
+            if (!Directory.Exists(Directories.LogFolderPath)) Directory.CreateDirectory(Directories.LogFolderPath);
+            if (!Directory.Exists(Directories.SaveFolderPath)) Directory.CreateDirectory(Directories.SaveFolderPath);
         }
     }
 

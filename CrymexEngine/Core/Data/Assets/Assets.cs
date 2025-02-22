@@ -8,21 +8,11 @@ using SysPath = System.IO.Path;
 
 namespace CrymexEngine
 {
-    public class Assets
+    public static class Assets
     {
-        /// <summary>
-        /// An internal instance
-        /// </summary>
-        public static Assets Instance
-        {
-            get
-            {
-                return _instance;
-            }
-        }
-
-        public static bool Precompiled => _precompiled;
+        public static bool RunningPrecompiled => _runningPrecompiled;
         public static bool UseMeta => _useMeta;
+        public static bool Loaded => _loaded;
 
         /// <summary>
         /// A number between 0 and 9. 0 for no compression. 1 for best speed, and 9 for best compression
@@ -50,16 +40,15 @@ namespace CrymexEngine
 
         private static readonly FontCollection _fontCollecion = new();
         private static bool _useMeta = false;
-        private static bool _precompiled;
+        private static bool _loaded = false;
+        private static bool _runningPrecompiled;
         private static int _textureCompressionLevel = 9;
 
         private static FontFamily _defaultFontFamily;
 
-        private static readonly Assets _instance = new Assets();
-
         internal static void LoadAssets()
         {
-            if (Window.Loaded) return;
+            _loaded = true;
 
             LoadSettings();
 
@@ -69,64 +58,96 @@ namespace CrymexEngine
             //  Whether the application is precompiled
             if (Settings.GlobalSettings.Precompiled)
             {
-                Debug.LogLocalInfo("Asset Loader", "Running on precompiled assets");
-                _precompiled = true;
-
-                float startTime = Time.GameTime;
-
-                // Loads only precompiled assets
-                LoadPrecompiledAssets();
-
-                float loadingTime = Time.GameTime - startTime;
-                Debug.LogLocalInfo("Asset Loader", $"Precompiled assets loaded in {DataUtilities.FloatToShortString(loadingTime, 2)} seconds");
+                FullyLoadPrecompiled();
             }
             else
             {
-                Debug.LogLocalInfo("Asset Loader", "Running on dynamic assets");
-                _precompiled = false;
-
-                float startTime = Time.GameTime;
-
-                // Starts a recursive loop of searching directories in the "Assets" folder
-                // Responsible for loading all dynamic assets
-                AssetSearchDirectory(Directories.assetsPath);
-
-                float loadingTime = Time.GameTime - startTime;
-                Debug.LogLocalInfo("Asset Loader", $"Dynamic assets loaded in {DataUtilities.FloatToShortString(loadingTime, 2)} seconds");
+                FullyLoadDynamic();
 
                 // Compile assets if specified in settings
                 if (Settings.GlobalSettings.GetSetting("PrecompileAssets", out SettingOption precompileAssetsOption, SettingType.Bool) && precompileAssetsOption.GetValue<bool>())
                 {
-                    Debug.WriteToConsole($"Precompiling all assets...", ConsoleColor.Blue);
-
-                    // Compile data
-                    AssetCompilationInfo info = CompileDataAssets();
-
-                    // Create a compilation log
-                    using (FileStream fileStream = File.Create($"{Directories.logFolderPath}{Time.CurrentDateTimeShortString} CompilationLog.log"))
-                    {
-                        string final = "Compilation log:\n";
-                        final += info.ToString();
-
-                        fileStream.Write(Encoding.Unicode.GetBytes(final));
-                    }
-
-                    // Write to a log file and console
-                    Debug.WriteToLogFile("\nAsset compilation:\n" + info, LogSeverity.Custom);
-                    Debug.WriteToConsole("Compilation:\n" + info, ConsoleColor.Blue);
-
-                    // End the session
-                    Engine.Quit();
+                    CompileAssets();
                 }
             }
 
-            // Set the missing texture
-            Texture.Missing = GetTexture("Missing");
-            Texture.Missing ??= Texture.None;
+            LoadMissingTexture();
 
             Shader.LoadDefaultShaders();
 
             GC.Collect();
+        }
+
+        private static void LoadMissingTexture()
+        {
+            // Set the missing texture
+            string missingTextureName = "Missing";
+
+            if (Settings.GlobalSettings.GetSetting("MissingTexture", out SettingOption missingTextureOption, SettingType.RefString))
+            {
+                missingTextureName = missingTextureOption.GetValue<string>();
+            }
+
+            Texture.Missing = GetTextureBroad(missingTextureName);
+            if (Texture.Missing == null)
+            {
+                // Define a basic missing texture with raw data
+                Texture.Missing = new Texture(2, 2, new byte[] { 255, 0, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 0, 255, 255 });
+            }
+        }
+
+        private static void FullyLoadDynamic()
+        {
+            Debug.LogLocalInfo("Asset Loader", "Running on dynamic assets");
+            _runningPrecompiled = false;
+
+            float startTime = Time.GameTime;
+
+            // Starts a recursive loop of searching directories in the "Assets" folder
+            // Responsible for loading all dynamic assets
+            AssetSearchDirectory(Directories.AssetsPath);
+
+            float loadingTime = Time.GameTime - startTime;
+            Debug.LogLocalInfo("Asset Loader", $"Dynamic assets loaded in {DataUtilities.FloatToShortString(loadingTime, 2)} seconds");
+        }
+
+        private static void CompileAssets()
+        {
+            Debug.WriteToConsole($"Precompiling all assets...", ConsoleColor.Blue);
+
+            // Compile data
+            AssetCompilationInfo info = CompileDataAssets();
+
+            // Create a compilation log
+            using (FileStream fileStream = File.Create($"{Directories.LogFolderPath}{Time.CurrentDateTimeShortString} CompilationLog.log"))
+            {
+                string final = "Compilation log:\n";
+                final += info.ToString();
+
+                fileStream.Write(Encoding.Unicode.GetBytes(final));
+            }
+
+            // Write to a log file and console
+            Debug.Log("Asset compilation successful", ConsoleColor.Blue);
+            Debug.WriteToLogFile("\nAsset compilation:\n" + info, LogSeverity.Custom);
+            Debug.WriteToConsole("Compilation:\n" + info, ConsoleColor.Blue);
+
+            // End the session
+            Engine.Quit();
+        }
+
+        private static void FullyLoadPrecompiled()
+        {
+            Debug.LogLocalInfo("Asset Loader", "Running on precompiled assets");
+            _runningPrecompiled = true;
+
+            float startTime = Time.GameTime;
+
+            // Loads only precompiled assets
+            LoadPrecompiledAssets();
+
+            float loadingTime = Time.GameTime - startTime;
+            Debug.LogLocalInfo("Asset Loader", $"Precompiled assets loaded in {DataUtilities.FloatToShortString(loadingTime, 2)} seconds");
         }
 
         private static void DefineTextures()
@@ -150,8 +171,56 @@ namespace CrymexEngine
             }
         }
 
+        public static TextureAsset? GetTextureAsset(string name)
+        {
+            foreach (TextureAsset asset in _textureAssets)
+            {
+                if (asset.name == name)
+                {
+                    return asset;
+                }
+            }
+            return null;
+        }
+        public static ShaderAsset? GetShaderAsset(string name)
+        {
+            foreach (ShaderAsset asset in _shaderAssets)
+            {
+                if (asset.name == name)
+                {
+                    return asset;
+                }
+            }
+            return null;
+        }
+        public static AudioAsset? GetAudioAsset(string name)
+        {
+            foreach (AudioAsset asset in _audioAssets)
+            {
+                if (asset.name == name)
+                {
+                    return asset;
+                }
+            }
+            return null;
+        }
+
         /// <summary>
-        /// Gets a loaded compressed texture and decompresses it. Try using 'Assets.GetTextureCompressed' if you don't plan on modifying it
+        /// Gets a texture containing the argument string
+        /// </summary>
+        public static Texture GetTextureBroad(string name)
+        {
+            foreach (TextureAsset asset in _textureAssets)
+            {
+                if (asset.name.Contains(name))
+                {
+                    return asset.texture;
+                }
+            }
+            return Texture.Missing;
+        }
+        /// <summary>
+        /// Gets a texture with the same name as the argument
         /// </summary>
         public static Texture GetTexture(string name)
         {
@@ -175,6 +244,9 @@ namespace CrymexEngine
             }
             return "";
         }
+        /// <summary>
+        /// Gets an audio clip with the same name as the argument
+        /// </summary>
         public static AudioClip GetAudioClip(string name)
         {
             foreach (AudioAsset asset in _audioAssets)
@@ -186,6 +258,23 @@ namespace CrymexEngine
             }
             return null;
         }
+        /// <summary>
+        /// Gets a shader containing the argument string
+        /// </summary>
+        public static Shader GetShaderBroad(string name)
+        {
+            foreach (ShaderAsset asset in _shaderAssets)
+            {
+                if (asset.name.Contains(name))
+                {
+                    return asset.shader;
+                }
+            }
+            return null;
+        }
+        /// <summary>
+        /// Gets a shader with the same name as the argument
+        /// </summary>
         public static Shader GetShader(string name)
         {
             foreach (ShaderAsset asset in _shaderAssets)
@@ -283,6 +372,10 @@ namespace CrymexEngine
                             ShaderAsset shaderAsset = new ShaderAsset(path, Shader.LoadFromAsset(vertexCode, fragmentCode), vertexCode, fragmentCode, MetaFileManager.DecodeMetaFromFile(path + ".meta"));
                             _shaderAssets.Add(shaderAsset);
                         }
+                        else
+                        {
+                            Debug.LogWarning($"Fragment shader not found for '{filename + fileExtension}'");
+                        }
                         break;
                     }
                 case ".vert":
@@ -294,6 +387,10 @@ namespace CrymexEngine
                             string fragmentCode = File.ReadAllText(fragmentPath);
                             ShaderAsset shaderAsset = new ShaderAsset(path, Shader.LoadFromAsset(vertexCode, fragmentCode), vertexCode, fragmentCode, MetaFileManager.DecodeMetaFromFile(path + ".meta"));
                             _shaderAssets.Add(shaderAsset);
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"Fragment shader not found for '{filename + fileExtension}'");
                         }
                         break;
                     }
@@ -349,52 +446,68 @@ namespace CrymexEngine
             long textureSize, audioSize, shaderSize, fontSize;
 
             // Compiling texture data
-            string texturePath = Directories.runtimeAssetsPath + "RuntimeTextures.rtmAsset";
+            string texturePath = Directories.RuntimeAssetsPath + "RuntimeTextures.rtmAsset";
 
             using (FileStream textureFileStream = File.Create(texturePath))
             {
                 foreach (TextureAsset asset in _textureAssets)
                 {
-                    textureFileStream.Write(AssetCompiler.CompileTextureAsset(asset));
+                    bool? includeInRelease = asset.Meta.GetBoolProperty("IncludeInRelease");
+                    if (asset.Meta == null || includeInRelease != null && includeInRelease.Value)
+                    {
+                        textureFileStream.Write(AssetCompiler.CompileTextureAsset(asset));
+                    }
                 }
                 textureSize = textureFileStream.Length;
             }
 
             // Compiling audio data
-            string audioPath = Directories.runtimeAssetsPath + "RuntimeAudioClips.rtmAsset";
+            string audioPath = Directories.RuntimeAssetsPath + "RuntimeAudioClips.rtmAsset";
             using (FileStream audioFileStream = File.Create(audioPath))
             {
                 foreach (AudioAsset asset in _audioAssets)
                 {
-                    audioFileStream.Write(AssetCompiler.CompileAudioAsset(asset));
+                    bool? includeInRelease = asset.Meta.GetBoolProperty("IncludeInRelease");
+                    if (asset.Meta == null || includeInRelease != null && includeInRelease.Value)
+                    {
+                        audioFileStream.Write(AssetCompiler.CompileAudioAsset(asset));
+                    }
                 }
                 audioSize = audioFileStream.Length;
             }
 
             // Compiling shaders
-            string shaderPath = Directories.runtimeAssetsPath + "RuntimeShaders.rtmAsset";
+            string shaderPath = Directories.RuntimeAssetsPath + "RuntimeShaders.rtmAsset";
             using (FileStream shaderFileStream = File.Create(shaderPath))
             {
                 foreach (ShaderAsset asset in _shaderAssets)
                 {
-                    shaderFileStream.Write(AssetCompiler.CompileShaderAsset(asset));
+                    bool? includeInRelease = asset.Meta.GetBoolProperty("IncludeInRelease");
+                    if (asset.Meta == null || includeInRelease != null && includeInRelease.Value)
+                    {
+                        shaderFileStream.Write(AssetCompiler.CompileShaderAsset(asset));
+                    }
                 }
                 shaderSize = shaderFileStream.Length;
             }
 
             // Compiling fonts
-            string fontPath = Directories.runtimeAssetsPath + "RuntimeFonts.rtmAsset";
+            string fontPath = Directories.RuntimeAssetsPath + "RuntimeFonts.rtmAsset";
             using (FileStream fontFileStream = File.Create(fontPath))
             {
                 foreach (FontAsset asset in _fontAssets)
                 {
-                    fontFileStream.Write(AssetCompiler.CompileData(asset.name, File.ReadAllBytes(asset.path)));
+                    bool? includeInRelease = asset.Meta?.GetBoolProperty("IncludeInRelease");
+                    if (asset.Meta == null || includeInRelease != null && includeInRelease.Value)
+                    {
+                        fontFileStream.Write(AssetCompiler.CompileData(asset.name, File.ReadAllBytes(asset.path)));
+                    }
                 }
                 fontSize = fontFileStream.Length;
             }
 
             // Compiling setttings
-            string settingsPath = Directories.runtimeAssetsPath + "GlobalSettings.settingsFile";
+            string settingsPath = Directories.RuntimeAssetsPath + "GlobalSettings.settingsFile";
             using (FileStream settingsFileStream = File.Create(settingsPath))
             {
                 settingsFileStream.Write(AssetCompiler.CompileData("GLOBALSETTINGS", Encoding.Unicode.GetBytes(Settings.GlobalSettings.SettingsText)));
@@ -406,16 +519,16 @@ namespace CrymexEngine
         }
         private static void LoadPrecompiledAssets()
         {
-            string texturePath = Directories.runtimeAssetsPath + "RuntimeTextures.rtmAsset";
+            string texturePath = Directories.RuntimeAssetsPath + "RuntimeTextures.rtmAsset";
             if (File.Exists(texturePath)) _textureAssets = AssetCompiler.DecompileTextureAssets(File.ReadAllBytes(texturePath));
 
-            string audioPath = Directories.runtimeAssetsPath + "RuntimeAudioClips.rtmAsset";
+            string audioPath = Directories.RuntimeAssetsPath + "RuntimeAudioClips.rtmAsset";
             if (File.Exists(audioPath)) _audioAssets = AssetCompiler.DecompileAudioAssets(File.ReadAllBytes(audioPath));
 
-            string fontPath = Directories.runtimeAssetsPath + "RuntimeFonts.rtmAsset";
+            string fontPath = Directories.RuntimeAssetsPath + "RuntimeFonts.rtmAsset";
             if (File.Exists(fontPath)) _fontAssets = AssetCompiler.DecompileFontAssets(File.ReadAllBytes(fontPath));
 
-            string shaderPath = Directories.runtimeAssetsPath + "RuntimeShaders.rtmAsset";
+            string shaderPath = Directories.RuntimeAssetsPath + "RuntimeShaders.rtmAsset";
             if (File.Exists(shaderPath)) _shaderAssets = AssetCompiler.DecompileShaderAssets(File.ReadAllBytes(shaderPath));
         }
     }

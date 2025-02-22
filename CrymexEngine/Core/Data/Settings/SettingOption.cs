@@ -27,10 +27,23 @@ namespace CrymexEngine
             Type tType = typeof(T);
             if (!TypeMatch(type, tType)) return default;
 
-            if (typeof(T) == typeof(Color4))
+            if (tType == typeof(Color4) && type == SettingType.Hex)
             {
                 byte[] bytes = BitConverter.GetBytes((int)value);
                 return (T)(object)new Color4(bytes[0], bytes[1], bytes[2], 255);
+            }
+            if (tType == typeof(Vector4) && type == SettingType.Hex)
+            {
+                byte[] bytes = BitConverter.GetBytes((int)value);
+                return (T)(object)new Vector4(bytes[0], bytes[1], bytes[2], 255);
+            }
+            if (tType == typeof(float))
+            {
+                if (type == SettingType.Int) return (T)(object)(float)(int)value;
+            }
+            if (tType == typeof(int))
+            {
+                if (type == SettingType.Float) return (T)(object)(int)(float)value;
             }
 
             return (T)value;
@@ -104,5 +117,5 @@ namespace CrymexEngine
         }
     }
 
-    public enum SettingType { None, Int, Float, String, RefString, Hex, Vector2, Vector3, Vector4, Bool }
+    public enum SettingType { None, Int, Float, String, RefString, Hex, Vector2, Vector3, Vector4, Bool, GeneralNumber, GeneralString }
 }

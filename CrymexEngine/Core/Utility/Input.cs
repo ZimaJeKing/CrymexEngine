@@ -6,7 +6,12 @@ namespace CrymexEngine
 {
     public static class Input
     {
+        public static bool Optimized => _optimized;
+
         public static string textInput = "";
+
+        private static int _updateFrequency;
+        private static bool _optimized = false;
 
         public static Vector2 MousePosition
         {
@@ -23,6 +28,32 @@ namespace CrymexEngine
             get
             {
                 return Window.Instance.GLFWWindow.MouseState.ScrollDelta;
+            }
+        }
+
+        internal static void Init()
+        {
+            if (Settings.GlobalSettings.GetSetting("OptimizeMouseEvents", out SettingOption optimizeOption, SettingType.Bool) && optimizeOption.GetValue<bool>())
+            {
+                _optimized = true;
+            }
+            if (!_optimized) return;
+
+            // Optimization
+            if (Settings.GlobalSettings.GetSetting("MouseEventFrequency", out SettingOption updateFreqOption, SettingType.GeneralNumber))
+            {
+                _updateFrequency = Math.Clamp(updateFreqOption.GetValue<int>(), 0, 144);
+            }
+
+            Debug.LogLocalInfo("Input Handler", "Running optimized mouse input");
+            EventSystem.AddEventRepeat("CE_OptimizedInputLoop", Update, 1f / _updateFrequency, true);
+        }
+
+        internal static void Update()
+        {
+            if (Window.Focused)
+            {
+                UICanvas.Instance.Update();
             }
         }
 

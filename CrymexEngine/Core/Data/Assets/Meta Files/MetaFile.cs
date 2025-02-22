@@ -21,7 +21,7 @@ namespace CrymexEngine
         /// <summary>
         /// Rerturns 0 if not found
         /// </summary>
-        public int GetIntProperty(string name)
+        public int? GetIntProperty(string name)
         {
             foreach (MetaProperty prop in _propertioes)
             {
@@ -31,13 +31,13 @@ namespace CrymexEngine
                     return value;
                 }
             }
-            return 0;
+            return null;
         }
 
         /// <summary>
         /// Rerturns NaN if not found
         /// </summary>
-        public float GetFloatProperty(string name)
+        public float? GetFloatProperty(string name)
         {
             foreach (MetaProperty prop in _propertioes)
             {
@@ -47,13 +47,13 @@ namespace CrymexEngine
                     return value;
                 }
             }
-            return float.NaN;
+            return null;
         }
 
         /// <summary>
         /// Rerturns false if not found
         /// </summary>
-        public bool GetBoolProperty(string name)
+        public bool? GetBoolProperty(string name)
         {
             foreach (MetaProperty prop in _propertioes)
             {
@@ -63,13 +63,13 @@ namespace CrymexEngine
                     else return false;
                 }
             }
-            return false;
+            return null;
         }
 
         /// <summary>
         /// Rerturns an empty string if not found
         /// </summary>
-        public string GetStringProperty(string name)
+        public string? GetStringProperty(string name)
         {
             foreach (MetaProperty prop in _propertioes)
             {
@@ -78,7 +78,7 @@ namespace CrymexEngine
                     return prop.value;
                 }
             }
-            return string.Empty;
+            return null;
         }
 
         public byte[] Serialize()

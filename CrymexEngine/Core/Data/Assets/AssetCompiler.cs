@@ -282,7 +282,6 @@ namespace CrymexEngine.Data
             else
             {
                 data = asset.Meta.Serialize();
-                if (!asset.Meta.GetBoolProperty("IncludeInRelease")) return false;
             }
             return true;
         }

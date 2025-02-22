@@ -1,7 +1,7 @@
  // Comments like this
 
 ----- Settings example -----
-WindowSize: ( 100, 100 )
+WindowSize: ( 500, 500 )
 LogToConsole: True
 WindowTitle: "My Game"
 WindowIcon: IconImage
@@ -25,14 +25,16 @@ AdditionalDebugInfo [COND] - Whether to show complex debug info
 LogToConsole [COND] - Shows or hides console output
 LogToFile [COND] - Whether to log error and debug messages to a log file
 UsageProfiler [COND] - Whether to use the usage profiler
+LogFPS [COND] - Logs FPS to the console every second
 
 General:
 UseAudio [COND] - Whether to Initialize OpenAL on Load
+DefaultAudioDevice [REF] - Default audio device to use (NULL for automatic)
 UseMetaFiles [COND] - Whether to compile and use meta files
 
 Window:
 HideWindowBorder [COND]
-StartFullscreen [COND]
+StartFullscreen [COND] - Whether to start as a fullscreen window
 WindowResizable [COND]
 WindowTitle [STRING]
 WindowIcon [REF] - Name reference to a window icon texture
@@ -41,7 +43,6 @@ ClearColor [HEX] - Window background color
 WindowCursor [REF] - Window cursor texture
 WindowCursorSize [VEC2] - Cursor size in pixels
 WindowCursorHotspot [VEC2] - Cursor hotspot in pixels
-WindowStartFullscreen [COND] - Whether to start as a fullscreen window
 
 Rendering:
 GLDebugOutput - Might provide additional debug information at the cost of performance
@@ -53,6 +54,20 @@ RenderDistance [FLOAT] - Render distance in pixels
 MSAASamples [INT] - Multi-sample anti-aliasing - possible values: 0, 2, 4, 8, 16
 CullBackFace [COND] - If only the front face should be visible
 
+Name overrides:
+DefaultEntityShader [REF] - Default shader to use for entities
+DefaultUIShader [REF] - Default shader to use for entities and text
+MissingTexture [REF] - Default missing texture
+
+Physics:
+UsePhysics [COND] - Whether to use the physics module
+Gravity [VEC2] - Direction and strength of gravity
+PhysicsUpdateFrequency [FLOAT] - Frequency for the physics loop
+
 Assets:
 PrecompileAssets [COND] - Whether to precompile all assets on the next run
 TextureCompressionLevel [INT] - A number between 0 and 9, where 0 is best speed and 9 is best compression
+
+Performance:
+OptimizeMouseEvents [COND] - Optimizes mouse events by using a specified frequency for the mouse event loop
+MouseEvent Frequency [FLOAT] - Frequency for the mouse event loop

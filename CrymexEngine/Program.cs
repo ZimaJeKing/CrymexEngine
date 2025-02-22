@@ -1,5 +1,6 @@
 ﻿using CrymexEngine.Scripting;
 using CrymexEngine.Scripts;
+using CrymexEngine.Scripts.Examples;
 
 namespace CrymexEngine
 {

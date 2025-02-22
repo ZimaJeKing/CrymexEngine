@@ -23,7 +23,7 @@ namespace CrymexEngine.UI
 
         private static UICanvas _instance = new UICanvas();
 
-        public void Update()
+        internal void Update()
         {
             HandleMouseInput();
         }
@@ -35,7 +35,7 @@ namespace CrymexEngine.UI
 
         private static void HandleMouseInput()
         {
-            // Find overlaping entities and flter entities EntityRenderer.Depth
+            // Find overlaping entities and filter entities by EntityRenderer.Depth
             GameObject? hover = null;
             float highestDepth = float.MinValue;
             foreach (Entity entity in Scene.Current.entities)

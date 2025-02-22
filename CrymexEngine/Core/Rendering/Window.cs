@@ -30,13 +30,13 @@ namespace CrymexEngine
         private static int _framesPerSecond = 0;
         private static int _fpsCounter = 0;
         private static bool _loaded;
-        private static Version _glVersion = new Version(4, 5);
+        private static Version _glVersion = new Version(3, 3);
         private static Vector2 _halfSize = new Vector2(128);
         private static WindowCursor _windowCursor;
         private static Texture _windowIcon;
         private static WindowBorder _windowBorder = WindowBorder.Fixed;
         private static ContextFlags _glContextFlags = ContextFlags.Default;
-
+        private static bool _logFPS;
         private static readonly Window _instance = new Window();
 
         /// <summary>
@@ -45,6 +45,7 @@ namespace CrymexEngine
         public static Window Instance => _instance;
         public GameWindow GLFWWindow => _glfwWindow;
 
+        public static bool Focused => _glfwWindow.IsFocused;
         public static bool Loaded => _loaded;
         public static int FramesPerSecond => _framesPerSecond;
         public static Vector2 HalfSize => _halfSize;
@@ -232,15 +233,16 @@ namespace CrymexEngine
             // Initialize audio
             if (Settings.GlobalSettings.GetSetting("UseAudio", out SettingOption audioSettingOption, SettingType.Bool) && audioSettingOption.GetValue<bool>())
             {
-                Audio.Instance.InitializeContext();
+                Audio.InitializeContext();
             }
-
-            UsageProfiler.Instance.Init();
 
             // WindowLoad the user specified scene, otherwise create a new scene
             if (Settings.GlobalSettings.GetSetting("StartingScene", out SettingOption startingSceneSetting, SettingType.RefString)) SceneLoader.LoadScene(Assets.GetScenePath(startingSceneSetting.GetValue<string>()));
 
             Physics.Init();
+            Input.Init();
+
+            UsageProfiler.Init();
 
             _loaded = true;
 
@@ -250,7 +252,7 @@ namespace CrymexEngine
 
         private static void WindowUpdate(FrameEventArgs e)
         {
-            UsageProfiler.Instance.BeginProcessorTimeQuery();
+            UsageProfiler.BeginProcessorTimeQuery();
 
             _fpsCounter++;
 
@@ -259,7 +261,7 @@ namespace CrymexEngine
 
             Time.Instance.Set((float)e.Time);
 
-            UICanvas.Instance.Update();
+            if (!Input.Optimized) Input.Update();
             EventSystem.Instance.Update();
 
             TextEditor.Instance.Update();
@@ -276,7 +278,7 @@ namespace CrymexEngine
 
             _glfwWindow.SwapBuffers();
 
-            UsageProfiler.Instance.EndProcessorTimeQuery();
+            UsageProfiler.EndProcessorTimeQuery();
         }
 
         private static void WindowResize(ResizeEventArgs e)
@@ -308,13 +310,13 @@ namespace CrymexEngine
         /// </summary>
         private static void SecondLoop()
         {
-            if (UsageProfiler.Active) Debug.WriteToConsole("FPS: " + _fpsCounter, ConsoleColor.DarkGreen);
+            if (_logFPS) Debug.WriteToConsole("FPS: " + _fpsCounter, ConsoleColor.DarkGreen);
             _framesPerSecond = _fpsCounter;
             _fpsCounter = 0;
 
-            UsageProfiler.Instance.UpdateStats();
+            UsageProfiler.UpdateStats();
 
-            Audio.Instance.RemoveInactiveSources();
+            Audio.RemoveInactiveSources();
         }
 
         private static void HandleErrors()
@@ -384,6 +386,12 @@ namespace CrymexEngine
 
         private static void ApplyPreLoadSettings()
         {
+            // If the window should log fps every frame
+            if (Settings.GlobalSettings.GetSetting("LogFPS", out SettingOption logFPSOption, SettingType.Bool) && logFPSOption.GetValue<bool>())
+            {
+                _logFPS = true;
+            }
+
             // GL context flags
             if (Settings.GlobalSettings.GetSetting("GLDebugOutput", out SettingOption glContextSetting, SettingType.Bool) && glContextSetting.GetValue<bool>())
             {
@@ -471,7 +479,7 @@ namespace CrymexEngine
             {
                 Icon = Assets.GetTexture(windowIconSetting.GetValue<string>());
             }
-            else Icon = Assets.GetTexture("WindowIcon");
+            else Icon = Texture.White;
 
             // Max FPS
             if (Settings.GlobalSettings.GetSetting("MaxFPS", out SettingOption maxFPSSetting, SettingType.Int))
@@ -528,6 +536,8 @@ namespace CrymexEngine
 
         private static void SetWindowIcon(Texture texture)
         {
+            if (texture == null) return;
+
             Texture windowIcon = texture.Resize(32, 32);
 
             _windowIcon = windowIcon.Clone();

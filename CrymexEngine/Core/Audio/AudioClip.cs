@@ -20,7 +20,7 @@ namespace CrymexEngine
             this.dataSize = dataSize;
             length = dataSize / (float)(format.SampleRate * format.Channels * (format.BitsPerSample / 8f));
 
-            UsageProfiler.Instance.AddMemoryConsumptionValue(dataSize, MemoryUsageType.Audio);
+            UsageProfiler.AddMemoryConsumptionValue(dataSize, MemoryUsageType.Audio);
         }
 
         public static AudioClip? Load(string path)
