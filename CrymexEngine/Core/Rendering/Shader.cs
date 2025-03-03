@@ -1,4 +1,5 @@
-﻿using OpenTK.Graphics.OpenGL;
+﻿using FreeTypeSharp;
+using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 
 namespace CrymexEngine.Rendering
@@ -28,11 +29,24 @@ namespace CrymexEngine.Rendering
             }
         }
 
-        public readonly int _glShader;
+        public static Shader Line
+        {
+            get
+            {
+                return _line;
+            }
+            set
+            {
+                if (value != null) _line = value;
+            }
+        }
+
+        public readonly int _glShader = 0;
         public readonly ShaderParam[] parameters;
 
         private static Shader _regular;
         private static Shader _ui;
+        private static Shader _line;
         private static bool _defaultShadersLoaded = false;
 
         public static void LoadDefaultShaders()
@@ -41,6 +55,7 @@ namespace CrymexEngine.Rendering
 
             string regularShaderName = "Regular";
             string uiShaderName = "UI";
+            string lineShaderName = "Line";
 
             if (Settings.GlobalSettings.GetSetting("DefaultEntityShader", out SettingOption regularShaderOption, SettingType.RefString))
             {
@@ -50,11 +65,16 @@ namespace CrymexEngine.Rendering
             {
                 uiShaderName = uiShaderOption.GetValue<string>();
             }
+            if (Settings.GlobalSettings.GetSetting("DefaultLineShader", out SettingOption lineShaderOption, SettingType.RefString))
+            {
+                lineShaderName = lineShaderOption.GetValue<string>();
+            }
 
             _regular = Assets.GetShaderBroad(regularShaderName);
             _ui = Assets.GetShaderBroad(uiShaderName);
+            _line = Assets.GetShaderBroad(lineShaderName);
 
-            if (_regular == null || _ui == null)
+            if (_regular == null || _ui == null || _line == null)
             {
                 Debug.LogWarning("The default shaders couldn't be loaded properly");
                 return;
@@ -63,13 +83,21 @@ namespace CrymexEngine.Rendering
             _defaultShadersLoaded = true;
         }
 
-        public Shader(string vertexCode, string fragmentCode, ShaderParam[]? parameters = null)
+        public Shader(string vertexCode, string fragmentCode, ShaderParam[]? parameters = null, bool hasDefaultParams = false)
         {
-            parameters ??= Array.Empty<ShaderParam>();
+            if (hasDefaultParams)
+            {
+                if (parameters == null) parameters = Array.Empty<ShaderParam>();
 
-            this.parameters = new ShaderParam[parameters.Length + 3];
-            ShaderParam.defaultParams.CopyTo(this.parameters, 0);
-            parameters.CopyTo(this.parameters, 3);
+                this.parameters = new ShaderParam[parameters.Length + 3];
+                ShaderParam.defaultParams.CopyTo(this.parameters, 0);
+                parameters.CopyTo(this.parameters, 3);
+            }
+            else if (parameters == null)
+            {
+                this.parameters = Array.Empty<ShaderParam>();
+            }
+            else this.parameters = parameters;
 
             // Compile shaders and link program
             int vertexShader = CompileShader(vertexCode, ShaderType.VertexShader);
@@ -100,9 +128,9 @@ namespace CrymexEngine.Rendering
 
         public static Shader LoadFromAsset(string rawVertexCode, string rawFragmentCode)
         {
-            ShaderParam[]? parameters = LoadParameters(rawVertexCode, rawFragmentCode, out string vertexCode, out string fragmentCode);
+            ShaderParam[]? parameters = LoadParameters(rawVertexCode, rawFragmentCode, out string vertexCode, out string fragmentCode, out bool hasDefaultParams);
 
-            return new Shader(vertexCode, fragmentCode, parameters);
+            return new Shader(vertexCode, fragmentCode, parameters, hasDefaultParams);
         }
 
         public void Use()
@@ -162,19 +190,22 @@ namespace CrymexEngine.Rendering
             if (success == 0)
             {
                 string infoLog = GL.GetShaderInfoLog(shaderId);
-                Debug.LogError(infoLog);
+                Debug.LogError("Shader compilation:\n" + infoLog);
             }
 
             return shaderId;
         }
 
-        private static ShaderParam[]? LoadParameters(string assetVertexCode, string assetFragmentCode, out string newVertexText, out string newFragmentText)
+        private static ShaderParam[]? LoadParameters(string assetVertexCode, string assetFragmentCode, out string newVertexText, out string newFragmentText, out bool hasDefaultParams)
         {
             List<ShaderParam> paramsList = new List<ShaderParam>();
 
             newVertexText = "";
             newFragmentText = "";
 
+            hasDefaultParams = false;
+
+            // Vertex
             string[] vertexLines = assetVertexCode.Split('\n', StringSplitOptions.TrimEntries);
             for (int i = 0; i < vertexLines.Length; i++)
             {
@@ -194,10 +225,19 @@ namespace CrymexEngine.Rendering
                         paramsList.Add(parameter);
                         continue;
                     }
+
+                    Debug.LogError($"Shader parameter could not be loaded: {line}");
+                    continue;
+                }
+                if (line.Length > 16 && line[0] == '#' && line.Substring(1) == "usedefaultparams")
+                {
+                    hasDefaultParams = true;
+                    continue;
                 }
                 newVertexText += line + '\n';
             }
 
+            // Fragment
             string[] fragmentLines = assetFragmentCode.Split('\n', StringSplitOptions.TrimEntries);
             for (int i = 0; i < fragmentLines.Length; i++)
             {
@@ -217,6 +257,11 @@ namespace CrymexEngine.Rendering
                         paramsList.Add(parameter);
                         continue;
                     }
+                }
+                if (line.Length > 16 && line[0] == '#' && line.Substring(1) == "usedefaultparams")
+                {
+                    hasDefaultParams = true;
+                    continue;
                 }
                 newFragmentText += line + '\n';
             }
@@ -259,9 +304,9 @@ namespace CrymexEngine.Rendering
         }
     }
 
-    public abstract class ShaderParam
+    public abstract class ShaderParam(string name)
     {
-        public readonly string name;
+        public readonly string name = name;
         public int GLLocation => _glLocation;
 
         public static readonly ShaderParam[] defaultParams = {
@@ -272,33 +317,30 @@ namespace CrymexEngine.Rendering
 
         private int _glLocation;
 
-        public ShaderParam(string name)
-        {
-            this.name = name;
-        }
-
         public void Init(Shader reference)
         {
             _glLocation = GL.GetUniformLocation(reference._glShader, name);
+
+            if (_glLocation < 0)
+            {
+                Debug.LogError($"Shader parameter '{name}' could not be found");
+            }
         }
         public abstract void Set(object _value);
         protected abstract void Refresh();
     }
-    public class DoubleShaderParam : ShaderParam
+    public class DoubleShaderParam(string name) : ShaderParam(name)
     {
         public double value;
 
-        public DoubleShaderParam(string name) : base(name)
-        {
-
-        }
-
         public override void Set(object _value)
         {
+            if (GLLocation == -1) return;
+
             if (_value.GetType() == typeof(float)) _value = (double)(float)_value;
             if (_value.GetType() != typeof(double))
             {
-                Debug.LogError($"Wrong paramater format for \n{name}\n");
+                Debug.LogError($"Wrong paramater format for '{name}'");
                 return;
             }
 
@@ -308,23 +350,22 @@ namespace CrymexEngine.Rendering
 
         protected override void Refresh()
         {
+            if (GLLocation == -1) return;
+
             GL.Uniform1(GLLocation, value);
         }
     }
-    public class Vec2ShaderParam : ShaderParam
+    public class Vec2ShaderParam(string name) : ShaderParam(name)
     {
         public Vector2 value;
 
-        public Vec2ShaderParam(string name) : base(name)
-        {
-
-        }
-
         public override void Set(object _value)
         {
+            if (GLLocation == -1) return;
+
             if (_value.GetType() != typeof(Vector2))
             {
-                Debug.LogError($"Wrong paramater format for \n{name}\n");
+                Debug.LogError($"Wrong paramater format for '{name}'");
                 return;
             }
 
@@ -334,23 +375,22 @@ namespace CrymexEngine.Rendering
 
         protected override void Refresh()
         {
+            if (GLLocation == -1) return;
+
             GL.Uniform2(GLLocation, ref value);
         }
     }
-    public class Vec3ShaderParam : ShaderParam
+    public class Vec3ShaderParam(string name) : ShaderParam(name)
     {
         public Vector3 value;
 
-        public Vec3ShaderParam(string name) : base(name)
-        {
-
-        }
-
         public override void Set(object _value)
         {
+            if (GLLocation == -1) return;
+
             if (_value.GetType() != typeof(Vector3))
             {
-                Debug.LogError($"Wrong paramater format for \n{name}\n");
+                Debug.LogError($"Wrong paramater format for '{name}'");
                 return;
             }
 
@@ -360,20 +400,19 @@ namespace CrymexEngine.Rendering
 
         protected override void Refresh()
         {
+            if (GLLocation == -1) return;
+
             GL.Uniform3(GLLocation, ref value);
         }
     }
-    public class Vec4ShaderParam : ShaderParam
+    public class Vec4ShaderParam(string name) : ShaderParam(name)
     {
         public Vector4 value;
 
-        public Vec4ShaderParam(string name) : base(name)
-        {
-
-        }
-
         public override void Set(object _value)
         {
+            if (GLLocation == -1) return;
+
             if (_value.GetType() == typeof(Color4))
             {
                 Color4 col = (Color4)_value;
@@ -384,7 +423,7 @@ namespace CrymexEngine.Rendering
 
             if (_value.GetType() != typeof(Vector4))
             {
-                Debug.LogError($"Wrong paramater format for \n{name}\n");
+                Debug.LogError($"Wrong paramater format for '{name}'");
                 return;
             }
 
@@ -394,23 +433,22 @@ namespace CrymexEngine.Rendering
 
         protected override void Refresh()
         {
+            if (GLLocation == -1) return;
+
             GL.Uniform4(GLLocation, ref value);
         }
     }
-    public class Mat2ShaderParam : ShaderParam
+    public class Mat2ShaderParam(string name) : ShaderParam(name)
     {
         public Matrix2 value;
 
-        public Mat2ShaderParam(string name) : base(name)
-        {
-
-        }
-
         public override void Set(object _value)
         {
+            if (GLLocation == -1) return;
+
             if (_value.GetType() != typeof(Matrix2))
             {
-                Debug.LogError($"Wrong paramater format for \n{name}\n");
+                Debug.LogError($"Wrong paramater format for '{name}'");
                 return;
             }
 
@@ -420,23 +458,22 @@ namespace CrymexEngine.Rendering
 
         protected override void Refresh()
         {
+            if (GLLocation == -1) return;
+
             GL.UniformMatrix2(GLLocation, false, ref value);
         }
     }
-    public class Mat4ShaderParam : ShaderParam
+    public class Mat4ShaderParam(string name) : ShaderParam(name)
     {
         public Matrix4 value;
 
-        public Mat4ShaderParam(string name) : base(name)
-        {
-
-        }
-
         public override void Set(object _value)
         {
+            if (GLLocation == -1) return;
+
             if (_value.GetType() != typeof(Matrix4))
             {
-                Debug.LogError($"Wrong paramater format for \n{name}\n");
+                Debug.LogError($"Wrong paramater format for '{name}'");
                 return;
             }
 
@@ -446,6 +483,8 @@ namespace CrymexEngine.Rendering
 
         protected override void Refresh()
         {
+            if (GLLocation == -1) return;
+
             GL.UniformMatrix4(GLLocation, false, ref value);
         }
     }

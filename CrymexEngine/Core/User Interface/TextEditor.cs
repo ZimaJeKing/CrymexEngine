@@ -173,7 +173,7 @@ namespace CrymexEngine.UI
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, Mesh.quad.ebo);
 
             // Set first three shader parameters for Position, transformation, and color
-            Shader.Regular.SetParam(0, VectorUtility.Vec2ToVec3(_cursorPosition / Window.HalfSize, 0));
+            Shader.Regular.SetParam(0, VectorUtil.Vec2ToVec3(_cursorPosition / Window.HalfSize, 0));
             Shader.Regular.SetParam(1, _cursorTransform);
             Shader.Regular.SetParam(2, Color4.Black);
 
@@ -182,16 +182,16 @@ namespace CrymexEngine.UI
 
         public static void RecalcCursor(string newText)
         {
-            _cursorTransform = Matrix4.CreateScale(VectorUtility.Vec2ToVec3(new Vector2(Math.Max(2, _selected.DisplayText.FontSize * 0.05f), _selected.DisplayText.FontSize) / Window.HalfSize, 0));
+            _cursorTransform = Matrix4.CreateScale(VectorUtil.Vec2ToVec3(new Vector2(Math.Max(2, _selected.DisplayText.FontSize * 0.05f), _selected.DisplayText.FontSize) / Window.HalfSize, 0));
 
             if (newText.Length == 0 || _selectedIndex == -1)
             {
-                _cursorPosition = _selected.uiElement.Position - new Vector2(_selected.uiElement.HalfScale.X - _selected.DisplayText.TextPadding.X, 0);
+                _cursorPosition = _selected.Element.Position - new Vector2(_selected.Element.HalfScale.X - _selected.DisplayText.TextPadding.X, 0);
                 return;
             }
 
             string firstTextPart = newText.Substring(0, _selectedIndex + 1);
-            _cursorPosition = _selected.uiElement.Position - new Vector2(_selected.uiElement.HalfScale.X - _selected.DisplayText.Measure(firstTextPart).X - _selected.DisplayText.TextPadding.X - 1, 0);
+            _cursorPosition = _selected.Element.Position - new Vector2(_selected.Element.HalfScale.X - _selected.DisplayText.Measure(firstTextPart).X - _selected.DisplayText.TextPadding.X - 1, 0);
         }
     }
 }

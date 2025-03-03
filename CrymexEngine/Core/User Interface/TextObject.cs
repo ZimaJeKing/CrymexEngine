@@ -176,6 +176,8 @@ namespace CrymexEngine.UI
         public Texture InternalTexture => _texture;
         public Vector2 HalfScale => _halfScale;
 
+        private static readonly Vector4 _defaultTilingVector = new(1, 1, 0, 0);
+
         private string _text = "";
         private FontFamily _family;
         private FontStyle _style;
@@ -224,11 +226,15 @@ namespace CrymexEngine.UI
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, Mesh.quad.ebo);
 
             // Set first three shader parameters for Position, transformation, and color
-            Shader.UI.SetParam(0, VectorUtility.Vec2ToVec3(position / Window.HalfSize, 0));
+            Shader.UI.SetParam(0, VectorUtil.Vec2ToVec3(position / Window.HalfSize, 0));
             Shader.UI.SetParam(1, _scaleMatrix);
             Shader.UI.SetParam(2, Color4.White);
+            Shader.UI.SetParam(3, _defaultTilingVector);
 
             GL.DrawElements(BeginMode.Triangles, Mesh.quad.indices.Length, DrawElementsType.UnsignedInt, Mesh.quad.ebo);
+
+            GL.BindTexture(TextureTarget.Texture2D, 0);
+            GL.UseProgram(0);
         }
 
         private void ReDraw()
@@ -261,7 +267,7 @@ namespace CrymexEngine.UI
             }
 
             _texture.FlipY();
-            _scaleMatrix = Matrix4.CreateScale(VectorUtility.Vec2ToVec3(_scale / Window.HalfSize, 1));
+            _scaleMatrix = Matrix4.CreateScale(VectorUtil.Vec2ToVec3(_scale / Window.HalfSize, 1));
         }
 
         private Vector2 GetAlignmentOffset(Alignment alignment)

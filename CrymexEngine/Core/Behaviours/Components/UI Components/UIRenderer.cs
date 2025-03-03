@@ -65,7 +65,8 @@ namespace CrymexEngine.UI
             // Shaders not found
             if (shader == null)
             {
-                Debug.LogError($"Shaders not found for object '{uiElement.name}'");
+                enabled = false;
+                Debug.LogError($"Shaders not found for object '{Element.name}'");
                 return;
             }
 
@@ -78,12 +79,15 @@ namespace CrymexEngine.UI
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, Mesh.quad.ebo);
 
             // Set first three shader parameters for Position, transformation, and color
-            shader.SetParam(0, VectorUtility.Vec2ToVec3(uiElement.Position / Window.HalfSize, 0));
-            shader.SetParam(1, uiElement.TransformationMatrix);
+            shader.SetParam(0, VectorUtil.Vec2ToVec3(Element.Position / Window.HalfSize, 0));
+            shader.SetParam(1, Element.TransformationMatrix);
             shader.SetParam(2, color);
             shader.SetParam(3, _uvTransform);
 
             GL.DrawElements(BeginMode.Triangles, Mesh.quad.indices.Length, DrawElementsType.UnsignedInt, Mesh.quad.ebo);
+
+            GL.BindTexture(TextureTarget.Texture2D, 0);
+            GL.UseProgram(0);
         }
 
         public override void PreRender()

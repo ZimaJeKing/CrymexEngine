@@ -16,9 +16,8 @@ using GLFWErrorCode = OpenTK.Windowing.GraphicsLibraryFramework.ErrorCode;
 
 namespace CrymexEngine
 {
-    public class Window
+    public static class Window
     {
-
         private static GameWindow _glfwWindow;
         private static WindowState _windowState;
         private static string _title = "";
@@ -37,18 +36,17 @@ namespace CrymexEngine
         private static WindowBorder _windowBorder = WindowBorder.Fixed;
         private static ContextFlags _glContextFlags = ContextFlags.Default;
         private static bool _logFPS;
-        private static readonly Window _instance = new Window();
+        private static Vector2 _oneOverSize;
+        private static Vector2 _oneOverHalfSize;
 
-        /// <summary>
-        /// An internal instance
-        /// </summary>
-        public static Window Instance => _instance;
-        public GameWindow GLFWWindow => _glfwWindow;
+        public static GameWindow GLFWWindow => _glfwWindow;
 
         public static bool Focused => _glfwWindow.IsFocused;
         public static bool Loaded => _loaded;
         public static int FramesPerSecond => _framesPerSecond;
         public static Vector2 HalfSize => _halfSize;
+        public static Vector2 OneOverSize => _oneOverSize;
+        public static Vector2 OneOverHalfSize => _oneOverHalfSize;
 
         public static bool HideWindowBorder
         {
@@ -72,10 +70,7 @@ namespace CrymexEngine
         }
         public static string Title
         {
-            get
-            {
-                return _title;
-            }
+            get => _title;
             set
             {
                 _title = value;
@@ -84,10 +79,7 @@ namespace CrymexEngine
         }
         public static unsafe bool Resizable
         {
-            get
-            {
-                return _resizable;
-            }
+            get => _resizable;
             set
             {
                 GLFW.SetWindowAttrib(_glfwWindow.WindowPtr, WindowAttribute.Resizable, value);
@@ -96,34 +88,24 @@ namespace CrymexEngine
         }
         public static Vector2i Size
         {
-            get
-            {
-                return _size;
-            }
+            get => _size;
             set
             {
                 _size = value;
                 _halfSize = value.ToVector2() * 0.5f;
+                _oneOverSize = new Vector2(1f / _size.X, 1f / _size.Y);
+                _oneOverHalfSize = _oneOverSize * 2;
                 _glfwWindow.ClientSize = value;
             }
         }
         public static Texture Icon
         {
-            get
-            {
-                return _windowIcon;
-            }
-            set
-            {
-                SetWindowIcon(value);
-            }
+            get => _windowIcon;
+            set => SetWindowIcon(value);
         }
         public static WindowCursor Cursor
         {
-            get
-            {
-                return _windowCursor;
-            }
+            get => _windowCursor;
             set
             {
                 Texture texture = value.texture.Resize(value.size.X, value.size.Y);
@@ -131,16 +113,13 @@ namespace CrymexEngine
                 texture.FlipY();
 
                 _windowCursor = value;
-                MouseCursor cursor = new MouseCursor(value.hotspot.X, value.hotspot.Y, value.size.X, value.size.Y, texture.data);
+                MouseCursor cursor = new MouseCursor(value.hotspot.X, value.hotspot.Y, value.size.X, value.size.Y, texture.GetRawData());
                 _glfwWindow.Cursor = cursor;
             }
         }
         public static bool VSync
         {
-            get
-            {
-                return _vSync;
-            }
+            get => _vSync;
             set
             {
                 _vSync = value;
@@ -150,10 +129,7 @@ namespace CrymexEngine
         }
         public static WindowState WindowState
         {
-            get
-            {
-                return _windowState;
-            }
+            get => _windowState;
             set
             {
                 _glfwWindow.WindowState = value;
@@ -162,10 +138,7 @@ namespace CrymexEngine
         }
         public static int MaxFPS
         {
-            get
-            {
-                return _maxFPS;
-            }
+            get => _maxFPS;
             set
             {
                 if (value < 0) return; 
@@ -174,10 +147,7 @@ namespace CrymexEngine
         }
         public static int MaxFPSIdle
         {
-            get
-            {
-                return _maxFPSIdle;
-            }
+            get => _maxFPSIdle;
             set
             {
                 if (value < 0) return;
@@ -185,7 +155,7 @@ namespace CrymexEngine
             }
         }
 
-        public void Run()
+        internal static void Run()
         {
             if (_loaded) return;
 
@@ -210,7 +180,7 @@ namespace CrymexEngine
             _glfwWindow.Run();
         }
 
-        public void End()
+        internal static void End()
         {
             _glfwWindow?.Close();
         }
@@ -246,6 +216,8 @@ namespace CrymexEngine
 
             _loaded = true;
 
+            Debug.LogLocalInfo("Window", $"Window loaded in: {DataUtil.SecondsToTimeString(Time.GameTime)}");
+
             // Loads scriptable behaviours and calls Load
             ScriptLoader.LoadBehaviours();
         }
@@ -259,7 +231,7 @@ namespace CrymexEngine
             // Clearing the screen
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            Time.Instance.Set((float)e.Time);
+            Time.Set((float)e.Time);
 
             if (!Input.Optimized) Input.Update();
             EventSystem.Instance.Update();
@@ -286,6 +258,8 @@ namespace CrymexEngine
             GL.Viewport(0, 0, e.Width, e.Height);
             _size = e.Size;
             _halfSize = e.Size.ToVector2() * 0.5f;
+            _oneOverSize = new Vector2(1f / _size.X, 1f / _size.Y);
+            _oneOverHalfSize = _oneOverSize * 2;
         }
 
         private static void WindowQuit(CancelEventArgs e)
@@ -357,6 +331,12 @@ namespace CrymexEngine
                 if (entity.enabled) GameObject.GameObjectUpdate(entity);
             }
 
+            // Render world space lines
+            foreach (LineGroup line in Scene.Current.lines)
+            {
+                if (line.enabled && !line.ScreenSpace) Behaviour.UpdateBehaviour(line);
+            }
+
             // Update UI elements and configure transparency
             GL.Disable(EnableCap.DepthTest);
             GL.Enable(EnableCap.Blend);
@@ -368,10 +348,16 @@ namespace CrymexEngine
                 if (element.enabled) GameObject.GameObjectUpdate(element);
             }
 
-            // Render Text
+            // Render text
             foreach (TextObject textObject in Scene.Current.textObjects)
             {
                 if (textObject.enabled) TextObject.RenderText(textObject);
+            }
+
+            // Render screen space lines
+            foreach (LineGroup line in Scene.Current.lines)
+            {
+                if (line.enabled && line.ScreenSpace) Behaviour.UpdateBehaviour(line);
             }
 
             // Render text cursor
@@ -407,7 +393,7 @@ namespace CrymexEngine
             // OpenGL version
             if (Settings.GlobalSettings.GetSetting("GLVersion", out SettingOption glVersionSetting, SettingType.Vector2))
             {
-                Vector2i version = VectorUtility.RoundToInt(glVersionSetting.GetValue<Vector2>());
+                Vector2i version = VectorUtil.RoundToInt(glVersionSetting.GetValue<Vector2>());
                 _glVersion = new Version(version.X, version.Y);
             }
 
@@ -428,6 +414,8 @@ namespace CrymexEngine
             {
                 _size = (Vector2i)windowSizeSetting.GetValue<Vector2>();
                 _halfSize = _size.ToVector2() * 0.5f;
+                _oneOverSize = new Vector2(1f / _size.X, 1f / _size.Y);
+                _oneOverHalfSize = _oneOverSize * 2;
             }
 
             // VSync
@@ -544,7 +532,7 @@ namespace CrymexEngine
 
             windowIcon.FlipY();
 
-            OpenTK.Windowing.Common.Input.Image img = new OpenTK.Windowing.Common.Input.Image(32, 32, windowIcon.data);
+            OpenTK.Windowing.Common.Input.Image img = new OpenTK.Windowing.Common.Input.Image(32, 32, windowIcon.GetRawData());
             _glfwWindow.Icon = new WindowIcon(img);
         }
 

@@ -107,15 +107,15 @@ namespace CrymexEngine.UI
 
         protected override void Load()
         {
-            _displayText = new TextObject(uiElement.Position, VectorUtility.RoundToInt(uiElement.Scale), "", Assets.DefaultFontFamily, (int)(uiElement.Scale.Y * 0.8f), Alignment.MiddleLeft);
+            _displayText = new TextObject(Element.Position, VectorUtil.RoundToInt(Element.Scale), "", Assets.DefaultFontFamily, (int)(Element.Scale.Y * 0.8f), Alignment.MiddleLeft);
             _displayText.BestFit = true;
             _displayText.TextPadding = new Vector2(10, 0);
-            _displayText.MaxBestFitSize = (int)(uiElement.Scale.Y * 0.8f);
+            _displayText.MaxBestFitSize = (int)(Element.Scale.Y * 0.8f);
 
-            _buttonComponent = uiElement.GetComponent<Button>();
+            _buttonComponent = Element.GetComponent<Button>();
             if (_buttonComponent == null)
             {
-                _buttonComponent = uiElement.AddComponent<Button>();
+                _buttonComponent = Element.AddComponent<Button>();
             }
             _buttonComponent.onClick = Select;
 

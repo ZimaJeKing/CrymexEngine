@@ -3,6 +3,7 @@ using OpenTK.Mathematics;
 
 namespace CrymexEngine
 {
+    [SingularComponent]
     public class PhysicsBody : EntityComponent
     {
         public Collider Collider => _collider;

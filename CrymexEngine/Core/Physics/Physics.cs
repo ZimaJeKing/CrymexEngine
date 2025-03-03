@@ -36,7 +36,7 @@ namespace CrymexEngine
             {
                 // Clamp the frequency between a low number and 144 for it is not usefull above that
                 _updatePeriod = 1f / Math.Clamp(updateFreqOption.GetValue<float>(), 0.001f, 144);
-                Debug.LogLocalInfo("Physics Solver", $"Physics frame update every {DataUtilities.FloatToShortString(_updatePeriod * 1000, 2)} ms");
+                Debug.LogLocalInfo("Physics Solver", $"Physics frame update every {DataUtil.FloatToShortString(_updatePeriod * 1000, 2)} ms");
             }
             if (_updatePeriod == -1)
             {

@@ -128,7 +128,7 @@ namespace CrymexEngine
             if (time <= 0 || !float.IsNormal(time))
             {
                 successful = false;
-                Debug.LogWarning($"Time setting for the event '{name}' is not in the correct format ({DataUtilities.FloatToShortString(time, 3)})");
+                Debug.LogWarning($"Time setting for the event '{name}' is not in the correct format ({DataUtil.FloatToShortString(time, 3)})");
             }
             else successful = true;
         }

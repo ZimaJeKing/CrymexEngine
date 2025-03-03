@@ -126,8 +126,8 @@ namespace CrymexEngine
         private GameObject? _parent;
         protected bool _handlesClickEvents;
 
-        protected List<GameObject> children = new List<GameObject>();
-        protected List<Component> components = new List<Component>();
+        protected List<GameObject> children = new();
+        protected List<Component> components = new();
 
         private void OnMouseEnter()
         {

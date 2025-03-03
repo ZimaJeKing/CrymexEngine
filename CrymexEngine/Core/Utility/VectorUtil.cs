@@ -3,7 +3,7 @@ using OpenTK.Mathematics;
 
 namespace CrymexEngine.Utils
 {
-    public static class VectorUtility
+    public static class VectorUtil
     {
         public static Vector2 MoveTowards(Vector2 origin, Vector2 target, float distance)
         {

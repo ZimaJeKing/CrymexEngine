@@ -193,7 +193,7 @@ namespace CrymexEngine.Scripts.Examples
 
         protected override void Load()
         {
-            text = new TextObject(uiElement.Position, VectorUtility.RoundToInt(uiElement.Scale), string.Empty, Assets.DefaultFontFamily, 25);
+            text = new TextObject(Element.Position, VectorUtil.RoundToInt(Element.Scale), string.Empty, Assets.DefaultFontFamily, 25);
             startTime = Time.GameTime;
         }
 
@@ -207,7 +207,7 @@ namespace CrymexEngine.Scripts.Examples
             if (Time.GameTime - startTime > showTime)
             {
                 text.Delete();
-                uiElement.Delete();
+                Element.Delete();
             }
         }
     }

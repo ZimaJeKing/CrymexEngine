@@ -17,14 +17,14 @@
         protected abstract void Load();
         protected abstract void Update();
 
-        public static void LoadBehaviour(Behaviour behaviour)
+        internal static void LoadBehaviour(Behaviour behaviour)
         {
             if (behaviour == null) return;
 
             behaviour.Load();
         }
 
-        public static void UpdateBehaviour(Behaviour behaviour)
+        internal static void UpdateBehaviour(Behaviour behaviour)
         {
             if (behaviour == null) return;
 

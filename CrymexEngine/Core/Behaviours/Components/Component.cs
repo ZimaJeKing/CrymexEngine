@@ -2,7 +2,7 @@
 {
     public abstract class Component : Behaviour
     {
-        protected Component? _rendererComponent;
+        protected Component? rendererComponent;
 
         /// <summary>
         /// Used for setting custom shader parameters. Happens before every render operation

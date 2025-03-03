@@ -5,17 +5,6 @@ namespace CrymexEngine
 {
     public class Time
     {
-        /// <summary>
-        /// An internal instance
-        /// </summary>
-        public static Time Instance
-        {
-            get
-            {
-                return _instance;
-            }
-        }
-
         public static float GameTime
         {
             get
@@ -35,7 +24,7 @@ namespace CrymexEngine
         {
             get
             {
-                return DataUtilities.SecondsToTimeString((float)TimeOnly.FromDateTime(DateTime.Now).ToTimeSpan().TotalSeconds);
+                return DataUtil.SecondsToTimeString((float)TimeOnly.FromDateTime(DateTime.Now).ToTimeSpan().TotalSeconds);
             }
         }
 
@@ -49,9 +38,7 @@ namespace CrymexEngine
 
         private static float _deltaTime;
 
-        private static Time _instance = new Time();
-
-        public void Set(float deltaTime)
+        internal static void Set(float deltaTime)
         {
             _deltaTime = deltaTime;
         }

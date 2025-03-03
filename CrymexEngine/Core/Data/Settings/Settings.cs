@@ -142,7 +142,7 @@ namespace CrymexEngine
             return false;
         }
 
-        private string[]? FormatSettingLine(string line)
+        private static string[]? FormatSettingLine(string line)
         {
             if (string.IsNullOrEmpty(line) || line.Length < 2) return null;
             line = line.Trim();

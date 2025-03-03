@@ -30,6 +30,14 @@ namespace CrymexEngine.Data
                 {
                     name = relativePath.Substring(6);
                 }
+                else if (relativePath.StartsWith("Scenes\\") || relativePath.StartsWith("Scenes/"))
+                {
+                    name = relativePath.Substring(6);
+                }
+                else if (relativePath.StartsWith("Fonts\\") || relativePath.StartsWith("Fonts/"))
+                {
+                    name = relativePath.Substring(6);
+                }
                 else
                 {
                     name = relativePath;

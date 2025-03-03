@@ -105,6 +105,7 @@ namespace CrymexEngine.Debugging
         internal static void EndProcessorTimeQuery()
         {
             if (!Active) return;
+
             _processorTimeSum += Time.GameTime - _processorTimerStart;
         }
 
@@ -134,8 +135,8 @@ namespace CrymexEngine.Debugging
         {
             string profile = "\nUsage Profile:\n";
             profile += $"Time: {Time.CurrentTimeString}\n";
-            profile += $"Ram usage: {DataUtilities.ByteCountToString(MemoryUsage)}\n";
-            profile += $"Avarage processor time: {DataUtilities.FloatToShortString(ProcessorTime * 1000, 2)}ms\n";
+            profile += $"Ram usage: {DataUtil.ByteCountToString(MemoryUsage)}\n";
+            profile += $"Avarage processor time: {DataUtil.FloatToShortString(ProcessorTime * 1000, 2)}ms\n";
             profile += $"Thread count: {ThreadCount}\n";
             profile += $"FPS: {Window.FramesPerSecond}";
             return profile;
@@ -144,10 +145,10 @@ namespace CrymexEngine.Debugging
         private static void LogStartupInfo()
         {
             Debug.WriteToConsole($"Memory usage: (Usage Profiler)", ConsoleColor.DarkGreen);
-            Debug.WriteToConsole($" > Textures: {DataUtilities.ByteCountToString(_textureMemoryUsage)}", ConsoleColor.DarkGreen);
-            Debug.WriteToConsole($" > Audio: {DataUtilities.ByteCountToString(_audioMemoryUsage)}", ConsoleColor.DarkGreen);
-            Debug.WriteToConsole($" > Other: {DataUtilities.ByteCountToString(_otherMemoryUsage)}", ConsoleColor.DarkGreen);
-            Debug.WriteToConsole($"   > Total: {DataUtilities.ByteCountToString(_currentProcess.PrivateMemorySize64)}", ConsoleColor.DarkGreen);
+            Debug.WriteToConsole($" > Textures: {DataUtil.ByteCountToString(_textureMemoryUsage)}", ConsoleColor.DarkGreen);
+            Debug.WriteToConsole($" > Audio: {DataUtil.ByteCountToString(_audioMemoryUsage)}", ConsoleColor.DarkGreen);
+            Debug.WriteToConsole($" > Other: {DataUtil.ByteCountToString(_otherMemoryUsage)}", ConsoleColor.DarkGreen);
+            Debug.WriteToConsole($"   > Total: {DataUtil.ByteCountToString(_currentProcess.PrivateMemorySize64)}", ConsoleColor.DarkGreen);
         }
     }
 

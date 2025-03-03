@@ -9,7 +9,6 @@ namespace CrymexEngine.Scripts
 {
     public class MyBehaviourScript : ScriptableBehaviour
     {
-        UIElement display = new UIElement(Assets.GetTextureBroad("Car"), Vector2.Zero, new Vector2(500));
         protected override void Load()
         {
             
@@ -17,7 +16,7 @@ namespace CrymexEngine.Scripts
 
         protected override void Update()
         {
-            display.Rotation = Time.GameTime * 10;
+            
         }
     }
 }

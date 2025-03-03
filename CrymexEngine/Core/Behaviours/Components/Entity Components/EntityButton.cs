@@ -2,7 +2,8 @@
 
 namespace CrymexEngine
 {
-    public class BasicEntityInteraction : EntityComponent, IMouseHover, IMouseClick
+    [SingularComponent]
+    public class EntityButton : EntityComponent, IMouseHover, IMouseClick
     {
         public Color4 normalColor = Color4.White;
         public Color4 hoverColor = Color4.LightGray;

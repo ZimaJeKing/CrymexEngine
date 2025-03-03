@@ -11,10 +11,12 @@ namespace CrymexEngine.Scenes
         public readonly List<Collider> colliders = new();
         public readonly List<UIElement> uiElements = new();
         public readonly List<TextObject> textObjects = new();
+        public readonly List<LineGroup> lines = new();
         public readonly List<Settings> settings = new();
 
         public readonly List<Entity> entityDeleteQueue = new();
         public readonly List<UIElement> uiElementDeleteQueue = new();
+        public readonly List<LineGroup> lineDeleteQueue = new();
         public readonly List<TextObject> textObjectDeleteQueue = new();
 
         private static Scene _current = new Scene();
@@ -40,14 +42,15 @@ namespace CrymexEngine.Scenes
             _nextToLoad = scene;
         }
 
-        public static void UpdateQueues()
+        internal static void UpdateQueues()
         {
             // Object deletion queues
-            if (_current.entityDeleteQueue.Count > 0 || _current.uiElementDeleteQueue.Count > 0 || _current.textObjectDeleteQueue.Count > 0)
+            if (_current.entityDeleteQueue.Count > 0 || _current.uiElementDeleteQueue.Count > 0 || _current.textObjectDeleteQueue.Count > 0 || _current.lineDeleteQueue.Count > 0)
             {
                 foreach (Entity entity in _current.entityDeleteQueue) { _current.entities.Remove(entity); }
                 foreach (UIElement element in _current.uiElementDeleteQueue) { _current.uiElements.Remove(element); }
                 foreach (TextObject text in _current.textObjectDeleteQueue) { _current.textObjects.Remove(text); }
+                foreach (LineGroup line in _current.lineDeleteQueue) { _current.lines.Remove(line); }
                 _current.entityDeleteQueue.Clear();
                 _current.uiElementDeleteQueue.Clear();
                 _current.textObjectDeleteQueue.Clear();

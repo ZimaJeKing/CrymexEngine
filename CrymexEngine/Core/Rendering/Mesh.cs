@@ -43,7 +43,7 @@ namespace CrymexEngine
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
         }
 
-        public static Mesh quad = new Mesh(
+        public static readonly Mesh quad = new(
             new float[] {
              -0.5f, -0.5f, 0.0f, 0.0f,
               0.5f, -0.5f, 1.0f, 0.0f,
@@ -51,6 +51,16 @@ namespace CrymexEngine
              -0.5f,  0.5f, 0.0f, 1.0f
             },
             new int[] { 0, 1, 2, 2, 3, 0 }
+            );
+
+        public static readonly Mesh line = new(
+            new float[]
+            {
+                0.0f, -0.5f, 0.0f, 0.0f,
+                0.0f,  0.5f, 1.0f, 1.0f
+
+            },
+            new int[] { 0, 1 }
             );
     }
 }

@@ -11,67 +11,56 @@ namespace CrymexEngine
             "IncludeInRelease"
         };
 
-        private readonly List<MetaProperty> _propertioes = new();
+        private readonly List<MetaProperty> _properties = new();
 
-        public MetaFile(List<MetaProperty> propertioes)
+        public MetaFile(List<MetaProperty> properties)
         {
-            _propertioes = propertioes;
+            _properties = properties;
         }
 
-        /// <summary>
-        /// Rerturns 0 if not found
-        /// </summary>
         public int? GetIntProperty(string name)
         {
-            foreach (MetaProperty prop in _propertioes)
+            foreach (MetaProperty prop in _properties)
             {
                 if (prop.name == name)
                 {
-                    if (!int.TryParse(prop.value, out int value)) return 0;
+                    if (!int.TryParse(prop.value, out int value)) return null;
                     return value;
                 }
             }
             return null;
         }
 
-        /// <summary>
-        /// Rerturns NaN if not found
-        /// </summary>
         public float? GetFloatProperty(string name)
         {
-            foreach (MetaProperty prop in _propertioes)
+            foreach (MetaProperty prop in _properties)
             {
                 if (prop.name == name)
                 {
-                    if (!float.TryParse(prop.value, out float value)) return float.NaN;
+                    if (!float.TryParse(prop.value, out float value)) return null;
                     return value;
                 }
             }
             return null;
         }
 
-        /// <summary>
-        /// Rerturns false if not found
-        /// </summary>
         public bool? GetBoolProperty(string name)
         {
-            foreach (MetaProperty prop in _propertioes)
+            foreach (MetaProperty prop in _properties)
             {
                 if (prop.name == name)
                 {
                     if (prop.value == "On" || prop.value == "True") return true;
-                    else return false;
+                    else if (prop.value == "Off" || prop.value == "False") return false;
+                    return null;
                 }
             }
             return null;
         }
 
-        /// <summary>
-        /// Rerturns an empty string if not found
-        /// </summary>
         public string? GetStringProperty(string name)
         {
-            foreach (MetaProperty prop in _propertioes)
+            foreach (MetaProperty prop in _properties)
             {
                 if (prop.name == name)
                 {
@@ -85,7 +74,7 @@ namespace CrymexEngine
         {
             string formatedMeta = string.Empty;
 
-            foreach (MetaProperty prop in _propertioes)
+            foreach (MetaProperty prop in _properties)
             {
                 if (!serializeIgnore.Contains(prop.name))
                 {
@@ -112,15 +101,9 @@ namespace CrymexEngine
         }
     }
 
-    public class MetaProperty
+    public class MetaProperty(string name, string value)
     {
-        public string name;
-        public string value;
-
-        public MetaProperty(string name, string value)
-        {
-            this.name = name;
-            this.value = value;
-        }
+        public string name = name;
+        public string value = value;
     }
 }

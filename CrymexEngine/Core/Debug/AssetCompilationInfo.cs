@@ -22,11 +22,11 @@ namespace CrymexEngine.Debugging
 
         public override string ToString()
         {
-            string final = $"Textures: {DataUtilities.ByteCountToString(UsageProfiler.TextureMemoryUsage)} raw, {DataUtilities.ByteCountToString(textureCompressedSize)} compressed\n";
-            final += $"Audio: {DataUtilities.ByteCountToString(UsageProfiler.AudioMmeoryUsage)} raw, {DataUtilities.ByteCountToString(audioCompressedSize)} compressed\n";
-            final += $"Shaders: {DataUtilities.ByteCountToString(shaderSize)}\n";
-            final += $"Fonts: {DataUtilities.ByteCountToString(fontSize)}\n";
-            final += $"Compilation Time: {DataUtilities.FloatToShortString(compilationTime, 3)} seconds";
+            string final = $"Textures: {DataUtil.ByteCountToString(UsageProfiler.TextureMemoryUsage)} raw, {DataUtil.ByteCountToString(textureCompressedSize)} compressed\n";
+            final += $"Audio: {DataUtil.ByteCountToString(UsageProfiler.AudioMmeoryUsage)} raw, {DataUtil.ByteCountToString(audioCompressedSize)} compressed\n";
+            final += $"Shaders: {DataUtil.ByteCountToString(shaderSize)}\n";
+            final += $"Fonts: {DataUtil.ByteCountToString(fontSize)}\n";
+            final += $"Compilation Time: {DataUtil.FloatToShortString(compilationTime, 3)} seconds";
             return final;
         }
     }

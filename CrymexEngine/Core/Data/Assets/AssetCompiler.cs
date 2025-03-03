@@ -20,7 +20,7 @@ namespace CrymexEngine.Data
             using Texture texture = asset.texture;
 
             byte[] nameBytes = Encoding.Unicode.GetBytes(asset.name);
-            byte[] data = texture.CompressData(Assets.AssetTextureCompressionLevel);
+            byte[] data = texture.CompressData(Assets.TextureCompressionLevel);
 
             if (!LoadAssetMeta(asset, out byte[] meta)) meta = Array.Empty<byte>();
 
@@ -34,11 +34,11 @@ namespace CrymexEngine.Data
                 writer.Write((int)data.Length);
                 writer.Write(data);
 
-                writer.Write(DataUtilities.GetCheckSum(data));
+                writer.Write(DataUtil.GetCheckSum(data));
 
                 writer.Write(meta.Length);
                 if (meta.Length != 0) writer.Write(meta);
-                writer.Write(DataUtilities.GetCheckSum(meta));
+                writer.Write(DataUtil.GetCheckSum(meta));
             }
             return final;
         }
@@ -69,11 +69,11 @@ namespace CrymexEngine.Data
                 writer.Write((int)soundData.Length);
                 writer.Write(soundData);
 
-                writer.Write(DataUtilities.GetCheckSum(soundData));
+                writer.Write(DataUtil.GetCheckSum(soundData));
 
                 writer.Write((int)meta.Length);
                 if (meta.Length != 0) writer.Write(meta);
-                writer.Write(DataUtilities.GetCheckSum(meta));
+                writer.Write(DataUtil.GetCheckSum(meta));
             }
             return final;
         }
@@ -109,11 +109,11 @@ namespace CrymexEngine.Data
                 writer.Write((int)fragmentBytes.Length);
                 writer.Write(fragmentBytes);
 
-                writer.Write(DataUtilities.GetCheckSum(vertexBytes) + DataUtilities.GetCheckSum(fragmentBytes));
+                writer.Write(DataUtil.GetCheckSum(vertexBytes) + DataUtil.GetCheckSum(fragmentBytes));
 
                 writer.Write(meta.Length);
                 if (meta.Length != 0) writer.Write(meta);
-                writer.Write(DataUtilities.GetCheckSum(meta));
+                writer.Write(DataUtil.GetCheckSum(meta));
             }
             return final;
         }
@@ -138,7 +138,7 @@ namespace CrymexEngine.Data
                 writer.Write((int)data.Length);
                 writer.Write(data);
 
-                writer.Write(DataUtilities.GetCheckSum(data));
+                writer.Write(DataUtil.GetCheckSum(data));
             }
             return final;
         }
@@ -154,7 +154,7 @@ namespace CrymexEngine.Data
             byte[] finalData = reader.ReadBytes(dataLength);
 
             int checkSum = reader.ReadInt32();
-            if (checkSum != DataUtilities.GetCheckSum(finalData)) return Array.Empty<byte>();
+            if (checkSum != DataUtil.GetCheckSum(finalData)) return Array.Empty<byte>();
 
             return finalData;
         }
@@ -173,12 +173,12 @@ namespace CrymexEngine.Data
                     byte[] texData = reader.ReadBytes(dataLength);
 
                     int checkSum = reader.ReadInt32();
-                    if (checkSum != DataUtilities.GetCheckSum(texData)) continue;
+                    if (checkSum != DataUtil.GetCheckSum(texData)) continue;
 
                     // Load meta file
                     byte[] metaBytes = reader.ReadBytes(reader.ReadInt32());
                     MetaFile? meta;
-                    if (DataUtilities.GetCheckSum(metaBytes) != reader.ReadInt32()) meta = null;
+                    if (DataUtil.GetCheckSum(metaBytes) != reader.ReadInt32()) meta = null;
                     else meta = MetaFile.FromSerialized(metaBytes);
 
                     Texture texture = Texture.FromCompressed(texData);
@@ -204,7 +204,7 @@ namespace CrymexEngine.Data
                     byte[] fontData = reader.ReadBytes(dataLength);
 
                     int checkSum = reader.ReadInt32();
-                    if (checkSum != DataUtilities.GetCheckSum(fontData)) continue;
+                    if (checkSum != DataUtil.GetCheckSum(fontData)) continue;
 
                     Assets.LoadFontFromData(name, fontData);
                 }
@@ -227,12 +227,12 @@ namespace CrymexEngine.Data
                     byte[] soundData = reader.ReadBytes(dataSize);
 
                     int checkSum = reader.ReadInt32();
-                    if (checkSum != DataUtilities.GetCheckSum(soundData)) continue;
+                    if (checkSum != DataUtil.GetCheckSum(soundData)) continue;
 
                     // Load meta file
                     byte[] metaBytes = reader.ReadBytes(reader.ReadInt32());
                     MetaFile? meta;
-                    if (DataUtilities.GetCheckSum(metaBytes) != reader.ReadInt32()) meta = null;
+                    if (DataUtil.GetCheckSum(metaBytes) != reader.ReadInt32()) meta = null;
                     else meta = MetaFile.FromSerialized(metaBytes);
 
                     audioAssets.Add(new AudioAsset(name, AudioClip.FromCompressed(soundData), meta));
@@ -255,12 +255,12 @@ namespace CrymexEngine.Data
                     byte[] fragmentBytes = reader.ReadBytes(reader.ReadInt32());
 
                     int checkSum = reader.ReadInt32();
-                    if (checkSum != DataUtilities.GetCheckSum(vertexBytes) + DataUtilities.GetCheckSum(fragmentBytes)) continue;
+                    if (checkSum != DataUtil.GetCheckSum(vertexBytes) + DataUtil.GetCheckSum(fragmentBytes)) continue;
 
                     // Load meta file
                     byte[] metaBytes = reader.ReadBytes(reader.ReadInt32());
                     MetaFile? meta;
-                    if (DataUtilities.GetCheckSum(metaBytes) != reader.ReadInt32()) meta = null;
+                    if (DataUtil.GetCheckSum(metaBytes) != reader.ReadInt32()) meta = null;
                     else meta = MetaFile.FromSerialized(metaBytes);
 
                     string vertex = Encoding.Unicode.GetString(vertexBytes);

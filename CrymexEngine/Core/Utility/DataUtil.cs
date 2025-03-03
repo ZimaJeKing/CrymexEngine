@@ -2,7 +2,7 @@
 
 namespace CrymexEngine.Utils
 {
-    public static class DataUtilities
+    public static class DataUtil
     {
         private static readonly string _regexPattern = @"[^\w\s]";
 
@@ -26,6 +26,18 @@ namespace CrymexEngine.Utils
             if (split[1].Length <= decimalPoints) return split[0] + '.' + split[1];
 
             split[1] = split[1][0..decimalPoints];
+
+            bool isAllZeroes = true;
+            for (int i = 0; i < split[1].Length; i++)
+            {
+                if (split[1][i] != '0') isAllZeroes = false;
+            }
+
+            if (isAllZeroes)
+            {
+                return split[0];
+            }
+
             return split[0] + '.' + split[1];
         }
 
@@ -37,43 +49,45 @@ namespace CrymexEngine.Utils
         /// <returns>A string value. Ex.: '512 KB', '2 TB', '5 MB', '14 B'</returns>
         public static string ByteCountToString(long byteCount)
         {
+            float currentByteCount = byteCount;
             int i = 0;
-            while (byteCount > 1024)
+            while (currentByteCount > 1024)
             {
-                byteCount /= 1024;
-                if (byteCount < 1024)
+                currentByteCount /= 1024;
+                if (currentByteCount < 8192)
                 {
+                    string byteCountString = FloatToShortString(currentByteCount, 1);
                     switch (i)
                     {
                         case 0:
                             {
-                                return $"{byteCount} KB";
+                                return $"{byteCountString} KB";
                             }
                         case 1:
                             {
-                                return $"{byteCount} MB";
+                                return $"{byteCountString} MB";
                             }
                         case 2:
                             {
-                                return $"{byteCount} GB";
+                                return $"{byteCountString} GB";
                             }
                         case 3:
                             {
-                                return $"{byteCount} TB";
+                                return $"{byteCountString} TB";
                             }
                         case 4:
                             {
-                                return $"{byteCount} PB";
+                                return $"{byteCountString} PB";
                             }
                         case 5:
                             {
-                                return $"{byteCount} EB";
+                                return $"{byteCountString} EB";
                             }
                     }
                 }
                 i++;
             }
-            return $"{byteCount} B";
+            return $"{currentByteCount} B";
         }
 
         /// <summary>
@@ -105,7 +119,7 @@ namespace CrymexEngine.Utils
 
             if (time.Days > 0) timeString += time.Days + "d : ";
             if (time.Hours > 0) timeString += time.Hours + "h : ";
-            if (time.Minutes > 0) timeString += time.Minutes + "m : ";
+            if (time.Minutes > 0) timeString += time.Minutes + "min : ";
 
             timeString += time.Seconds + "s : ";
             timeString += time.Milliseconds + "ms";

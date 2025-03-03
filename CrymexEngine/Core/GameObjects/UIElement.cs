@@ -15,12 +15,14 @@ namespace CrymexEngine.UI
             Parent = parent;
             Scale = scale;
             LocalPosition = position;
-
             this.name = name;
-            _renderer = new UIRenderer(depth);
-            _renderer.uiElement = this;
-            _renderer.texture = texture;
-            _renderer.Depth = depth;
+
+            _renderer = new UIRenderer(depth)
+            {
+                Element = this,
+                texture = texture,
+                Depth = depth
+            };
 
             Scene.Current.uiElements.Add(this);
 
@@ -38,7 +40,7 @@ namespace CrymexEngine.UI
                     Behaviour.UpdateBehaviour(component);
                 }
             }
-            Behaviour.UpdateBehaviour(_renderer);
+            if (_renderer.enabled) Behaviour.UpdateBehaviour(_renderer);
         }
 
         protected override void PreRender()
@@ -57,7 +59,22 @@ namespace CrymexEngine.UI
         /// <returns>The new component</returns>
         public T AddComponent<T>() where T : UIComponent
         {
-            if (Attribute.IsDefined(typeof(T), typeof(FreeComponentAttribute))) return null;
+            // FreeComponentAttribute check
+            if (Attribute.IsDefined(typeof(T), typeof(FreeComponentAttribute)))
+            {
+                Debug.LogError($"Cannot add a free component to a gameobject ({typeof(T)})");
+                return null;
+            }
+
+            // SingularComponentAttribute check
+            if (Attribute.IsDefined(typeof(T), typeof(SingularComponentAttribute)))
+            {
+                if (HasComponent<T>())
+                {
+                    Debug.LogError($"Singular components are not designed for multiple instances on a gameobject ({typeof(T)})");
+                    return null;
+                }
+            }
 
             object? _instance = Activator.CreateInstance(typeof(T));
             if (_instance == null) return null;
@@ -65,7 +82,7 @@ namespace CrymexEngine.UI
             if (_instance is IMouseClick _ || _instance is IMouseHover _) _handlesClickEvents = true;
 
             T instance = (T)_instance;
-            instance.uiElement = this;
+            instance.Element = this;
             Behaviour.LoadBehaviour(instance);
 
             components.Add(instance);
@@ -102,6 +119,18 @@ namespace CrymexEngine.UI
                 }
             }
             return null;
+        }
+
+        public bool HasComponent<T>() where T : UIComponent
+        {
+            for (int i = 0; i < components.Count; i++)
+            {
+                if (components[i].GetType() == typeof(T))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>

@@ -11,7 +11,7 @@
             set
             {
                 _entity = value;
-                _rendererComponent = value.GetComponent<EntityRenderer>();
+                rendererComponent = value.GetComponent<EntityRenderer>();
             }
         }
 
@@ -19,7 +19,7 @@
         {
             get
             {
-                return (EntityRenderer?)_rendererComponent;
+                return (EntityRenderer?)rendererComponent;
             }
         }
 

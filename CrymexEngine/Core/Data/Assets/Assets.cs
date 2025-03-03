@@ -17,7 +17,7 @@ namespace CrymexEngine
         /// <summary>
         /// A number between 0 and 9. 0 for no compression. 1 for best speed, and 9 for best compression
         /// </summary>
-        public static int AssetTextureCompressionLevel
+        public static int TextureCompressionLevel
         {
             get
             {
@@ -52,7 +52,7 @@ namespace CrymexEngine
 
             LoadSettings();
 
-            // Defining Texture.White and Texture.None
+            // Defining Texture.Missing, Texture.White and Texture.None
             DefineTextures();
 
             //  Whether the application is precompiled
@@ -71,104 +71,9 @@ namespace CrymexEngine
                 }
             }
 
-            LoadMissingTexture();
-
             Shader.LoadDefaultShaders();
 
             GC.Collect();
-        }
-
-        private static void LoadMissingTexture()
-        {
-            // Set the missing texture
-            string missingTextureName = "Missing";
-
-            if (Settings.GlobalSettings.GetSetting("MissingTexture", out SettingOption missingTextureOption, SettingType.RefString))
-            {
-                missingTextureName = missingTextureOption.GetValue<string>();
-            }
-
-            Texture.Missing = GetTextureBroad(missingTextureName);
-            if (Texture.Missing == null)
-            {
-                // Define a basic missing texture with raw data
-                Texture.Missing = new Texture(2, 2, new byte[] { 255, 0, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 0, 255, 255 });
-            }
-        }
-
-        private static void FullyLoadDynamic()
-        {
-            Debug.LogLocalInfo("Asset Loader", "Running on dynamic assets");
-            _runningPrecompiled = false;
-
-            float startTime = Time.GameTime;
-
-            // Starts a recursive loop of searching directories in the "Assets" folder
-            // Responsible for loading all dynamic assets
-            AssetSearchDirectory(Directories.AssetsPath);
-
-            float loadingTime = Time.GameTime - startTime;
-            Debug.LogLocalInfo("Asset Loader", $"Dynamic assets loaded in {DataUtilities.FloatToShortString(loadingTime, 2)} seconds");
-        }
-
-        private static void CompileAssets()
-        {
-            Debug.WriteToConsole($"Precompiling all assets...", ConsoleColor.Blue);
-
-            // Compile data
-            AssetCompilationInfo info = CompileDataAssets();
-
-            // Create a compilation log
-            using (FileStream fileStream = File.Create($"{Directories.LogFolderPath}{Time.CurrentDateTimeShortString} CompilationLog.log"))
-            {
-                string final = "Compilation log:\n";
-                final += info.ToString();
-
-                fileStream.Write(Encoding.Unicode.GetBytes(final));
-            }
-
-            // Write to a log file and console
-            Debug.Log("Asset compilation successful", ConsoleColor.Blue);
-            Debug.WriteToLogFile("\nAsset compilation:\n" + info, LogSeverity.Custom);
-            Debug.WriteToConsole("Compilation:\n" + info, ConsoleColor.Blue);
-
-            // End the session
-            Engine.Quit();
-        }
-
-        private static void FullyLoadPrecompiled()
-        {
-            Debug.LogLocalInfo("Asset Loader", "Running on precompiled assets");
-            _runningPrecompiled = true;
-
-            float startTime = Time.GameTime;
-
-            // Loads only precompiled assets
-            LoadPrecompiledAssets();
-
-            float loadingTime = Time.GameTime - startTime;
-            Debug.LogLocalInfo("Asset Loader", $"Precompiled assets loaded in {DataUtilities.FloatToShortString(loadingTime, 2)} seconds");
-        }
-
-        private static void DefineTextures()
-        {
-            Texture.White = new Texture(1, 1, new byte[] { 255, 255, 255, 255 });
-            Texture.None = new Texture(1, 1, new byte[] { 0, 0, 0, 0 });
-        }
-
-        private static void LoadSettings()
-        {
-            // Get the texture compression level setting
-            if (Settings.GlobalSettings.GetSetting("TextureCompressionLevel", out SettingOption texCompLevelSetting, SettingType.Int))
-            {
-                _textureCompressionLevel = texCompLevelSetting.GetValue<int>();
-            }
-
-            // Get the meta file setting
-            if (Settings.GlobalSettings.GetSetting("UseMetaFiles", out SettingOption useMetaSetting, SettingType.Bool) && useMetaSetting.GetValue<bool>())
-            {
-                _useMeta = true;
-            }
         }
 
         public static TextureAsset? GetTextureAsset(string name)
@@ -182,6 +87,7 @@ namespace CrymexEngine
             }
             return null;
         }
+
         public static ShaderAsset? GetShaderAsset(string name)
         {
             foreach (ShaderAsset asset in _shaderAssets)
@@ -193,6 +99,7 @@ namespace CrymexEngine
             }
             return null;
         }
+
         public static AudioAsset? GetAudioAsset(string name)
         {
             foreach (AudioAsset asset in _audioAssets)
@@ -219,6 +126,7 @@ namespace CrymexEngine
             }
             return Texture.Missing;
         }
+
         /// <summary>
         /// Gets a texture with the same name as the argument
         /// </summary>
@@ -233,6 +141,7 @@ namespace CrymexEngine
             }
             return Texture.Missing;
         }
+
         public static string GetScenePath(string name)
         {
             foreach (DataAsset asset in _scenes)
@@ -244,14 +153,30 @@ namespace CrymexEngine
             }
             return "";
         }
+
         /// <summary>
-        /// Gets an audio clip with the same name as the argument
+        /// Gets an audio clip containing the name
         /// </summary>
         public static AudioClip GetAudioClip(string name)
         {
             foreach (AudioAsset asset in _audioAssets)
             {
                 if (asset.name == name)
+                {
+                    return asset.clip;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Gets an audio clip with the same name as the argument
+        /// </summary>
+        public static AudioClip GetAudioClipBroad(string name)
+        {
+            foreach (AudioAsset asset in _audioAssets)
+            {
+                if (asset.name.Contains(name))
                 {
                     return asset.clip;
                 }
@@ -530,6 +455,94 @@ namespace CrymexEngine
 
             string shaderPath = Directories.RuntimeAssetsPath + "RuntimeShaders.rtmAsset";
             if (File.Exists(shaderPath)) _shaderAssets = AssetCompiler.DecompileShaderAssets(File.ReadAllBytes(shaderPath));
+        }
+
+        private static void FullyLoadDynamic()
+        {
+            Debug.LogLocalInfo("Asset Loader", "Running on dynamic assets");
+            _runningPrecompiled = false;
+
+            float startTime = Time.GameTime;
+
+            // Starts a recursive loop of searching directories in the "Assets" folder
+            // Responsible for loading all dynamic assets
+            AssetSearchDirectory(Directories.AssetsPath);
+
+            float loadingTime = Time.GameTime - startTime;
+            Debug.LogLocalInfo("Asset Loader", $"Dynamic assets loaded in {DataUtil.SecondsToTimeString(loadingTime)}");
+        }
+
+        private static void CompileAssets()
+        {
+            Debug.WriteToConsole($"Precompiling all assets...", ConsoleColor.Blue);
+
+            // Compile data
+            AssetCompilationInfo info = CompileDataAssets();
+
+            // Create a compilation log
+            using (FileStream fileStream = File.Create($"{Directories.LogFolderPath}{Time.CurrentDateTimeShortString} CompilationLog.log"))
+            {
+                string final = "Compilation log:\n";
+                final += info.ToString();
+
+                fileStream.Write(Encoding.Unicode.GetBytes(final));
+            }
+
+            // Write to a log file and console
+            Debug.Log("Asset compilation successful", ConsoleColor.Blue);
+            Debug.WriteToLogFile("\nAsset compilation:\n" + info, LogSeverity.Custom);
+            Debug.WriteToConsole("Compilation:\n" + info, ConsoleColor.Blue);
+
+            // End the session
+            Engine.Quit();
+        }
+
+        private static void FullyLoadPrecompiled()
+        {
+            Debug.LogLocalInfo("Asset Loader", "Running on precompiled assets");
+            _runningPrecompiled = true;
+
+            float startTime = Time.GameTime;
+
+            // Loads only precompiled assets
+            LoadPrecompiledAssets();
+
+            float loadingTime = Time.GameTime - startTime;
+            Debug.LogLocalInfo("Asset Loader", $"Precompiled assets loaded in {DataUtil.SecondsToTimeString(loadingTime)}");
+        }
+
+        private static void DefineTextures()
+        {
+            Texture.White = new Texture(1, 1, new byte[] { 255, 255, 255, 255 });
+            Texture.None = new Texture(1, 1, new byte[] { 0, 0, 0, 0 });
+
+            // Define the missing texture
+            string missingTextureName = "Missing";
+
+            if (Settings.GlobalSettings.GetSetting("MissingTexture", out SettingOption missingTextureOption, SettingType.RefString))
+            {
+                missingTextureName = missingTextureOption.GetValue<string>();
+            }
+
+            Texture.Missing = GetTextureBroad(missingTextureName);
+
+            // If texture not found define a basic missing texture with raw data
+            Texture.Missing ??= new Texture(2, 2, new byte[] { 255, 0, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 0, 255, 255 });
+        }
+
+        private static void LoadSettings()
+        {
+            // Get the texture compression level setting
+            if (Settings.GlobalSettings.GetSetting("TextureCompressionLevel", out SettingOption texCompLevelSetting, SettingType.Int))
+            {
+                _textureCompressionLevel = texCompLevelSetting.GetValue<int>();
+            }
+
+            // Get the meta file setting
+            if (Settings.GlobalSettings.GetSetting("UseMetaFiles", out SettingOption useMetaSetting, SettingType.Bool) && useMetaSetting.GetValue<bool>())
+            {
+                _useMeta = true;
+            }
         }
     }
 }

@@ -8,15 +8,17 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Formats.Png;
+using CrymexEngine.Utils;
 
 namespace CrymexEngine
 {
-    public sealed class Texture : ColorSource, IDisposable
+    public sealed class Texture : IDisposable
     {
-        public byte[] data;
         public readonly int width;
         public readonly int height;
         public readonly int glTexture;
+
+        private byte[] data;
 
         public static Texture None { get; internal set; }
         public static Texture Missing { get; internal set; }
@@ -41,10 +43,13 @@ namespace CrymexEngine
             GL.BindTexture(TextureTarget.Texture2D, glTexture);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+            GL.BindTexture(TextureTarget.Texture2D, 0);
             Apply();
         }
         public Texture(int width, int height, byte[] data)
         {
+            if (!Assets.Loaded) throw new Exception("Assets must be loaded in order to create textures.");
+
             width = Math.Clamp(width, 1, int.MaxValue);
             height = Math.Clamp(height, 1, int.MaxValue);
 
@@ -265,6 +270,25 @@ namespace CrymexEngine
 
             data = newData;
             Apply();
+        }
+
+        /// <returns>A copy of the raw data in RGBA32 format. Ordered from top left</returns>
+        public byte[] GetRawData()
+        {
+            byte[] rawData = new byte[data.Length];
+            data.CopyTo(rawData, 0);
+            return rawData;
+        }
+
+        /// <summary>
+        /// Sets the raw data for this texture. RGBA32 format ordered from top left
+        /// </summary>
+        public void SetRawData(byte[] rawData)
+        {
+            if (rawData.Length != data.Length)
+            {
+                Debug.LogError($"Raw texture data size is the wrong length. Expected {DataUtil.ByteCountToString(data.Length)}, got {DataUtil.ByteCountToString(rawData.Length)}");
+            }
         }
 
         /// <summary>

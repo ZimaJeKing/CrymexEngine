@@ -6,6 +6,7 @@ using OpenTK.Mathematics;
 
 namespace CrymexEngine
 {
+    [SingularComponent]
     public sealed class EntityRenderer : EntityComponent
     {
         public float Depth
@@ -34,6 +35,7 @@ namespace CrymexEngine
             // Shaders not found
             if (shader == null)
             {
+                enabled = false;
                 Debug.LogError($"Shaders not found for object '{entity.name}'");
                 return;
             }
@@ -49,13 +51,16 @@ namespace CrymexEngine
                 GL.BindBuffer(BufferTarget.ElementArrayBuffer, mesh.ebo);
 
                 // Set first three shader parameters for Position, transformation, and color
-                shader.SetParam(0, VectorUtility.Vec2ToVec3((entity.Position - Camera.position) / Window.HalfSize, -Depth * 0.001f));
+                shader.SetParam(0, VectorUtil.Vec2ToVec3((entity.Position - Camera.position) / Window.HalfSize, -Depth * 0.001f));
                 shader.SetParam(1, entity.TransformationMatrix);
                 shader.SetParam(2, color);
 
                 GameObject.GameObjectPreRender(entity);
 
                 GL.DrawElements(BeginMode.Triangles, mesh.indices.Length, DrawElementsType.UnsignedInt, mesh.ebo);
+
+                GL.BindTexture(TextureTarget.Texture2D, 0);
+                GL.UseProgram(0);
             }
         }
 

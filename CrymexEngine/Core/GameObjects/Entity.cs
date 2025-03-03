@@ -5,21 +5,9 @@ namespace CrymexEngine
 {
     public sealed class Entity : GameObject
     {
-        public Vector2 Forward
-        {
-            get
-            {
-                return new Vector2(MathF.Cos(MathHelper.DegreesToRadians(Rotation)), MathF.Sin(MathHelper.DegreesToRadians(Rotation)));
-            }
-        }
+        public Vector2 Forward => new Vector2(MathF.Cos(MathHelper.DegreesToRadians(Rotation)), MathF.Sin(MathHelper.DegreesToRadians(Rotation)));
 
-        public EntityRenderer? Renderer
-        {
-            get
-            {
-                return _renderer;
-            }
-        }
+        public EntityRenderer? Renderer => _renderer;
 
         private EntityRenderer? _renderer;
 
@@ -53,7 +41,7 @@ namespace CrymexEngine
             return null;
         }
 
-        public Entity(Texture texture, Vector2 position, Vector2 scale, Entity? parent = null, string name = "")
+        public Entity(Texture texture, Vector2 position, Vector2 scale, Entity? parent = null, string name = "", float depth = 0)
         {
             Parent = parent;
             LocalPosition = position;
@@ -63,7 +51,8 @@ namespace CrymexEngine
             Scene.Current.entities.Add(this);
 
             _renderer = AddComponent<EntityRenderer>();
-            Renderer.texture = texture;
+            _renderer.texture = texture;
+            _renderer.Depth = depth;
             this.name = name;
         }
 
@@ -104,7 +93,22 @@ namespace CrymexEngine
         /// <returns>The new component</returns>
         public T AddComponent<T>() where T : EntityComponent
         {
-            if (Attribute.IsDefined(typeof(T), typeof(FreeComponentAttribute))) return null;
+            // FreeComponentAttribute check
+            if (Attribute.IsDefined(typeof(T), typeof(FreeComponentAttribute)))
+            {
+                Debug.LogError($"Cannot add a free component to a gameobject ({typeof(T)})");
+                return null;
+            }
+
+            // SingularComponentAttribute check
+            if (Attribute.IsDefined(typeof(T), typeof(SingularComponentAttribute)))
+            {
+                if (HasComponent<T>())
+                {
+                    Debug.LogError($"Singular components are not designed for multiple instances on a gameobject ({typeof(T)})");
+                    return null;
+                }
+            }
 
             object? _instance = Activator.CreateInstance(typeof(T));
             if (_instance == null) return null;
@@ -172,7 +176,7 @@ namespace CrymexEngine
 
         protected override void Update()
         {
-            foreach (EntityComponent component in components)
+            foreach (Component component in components)
             {
                 if (component.enabled)
                 {
@@ -183,7 +187,7 @@ namespace CrymexEngine
 
         protected override void PreRender()
         {
-            foreach (EntityComponent component in components)
+            foreach (Component component in components)
             {
                 if (component.enabled)
                 {

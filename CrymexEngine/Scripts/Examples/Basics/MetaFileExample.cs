@@ -32,7 +32,7 @@ namespace CrymexEngine.Scripts.Examples
 
                 if (customValue == null)
                 {
-                    Debug.Log($"Custom property not found. You have to manualy set its value at '{textureAsset.path}'");
+                    Debug.Log($"Custom property not found. You have to manualy set its value at '{textureAsset.path}.meta'");
                     return;
                 }
 

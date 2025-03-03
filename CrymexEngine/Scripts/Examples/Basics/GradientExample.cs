@@ -25,8 +25,8 @@ namespace CrymexEngine.Scripts.Examples
             texture.Apply();
             //texture.Save(Directories.AssetsPath + "GradientImage.png", TextureSaveFormat.PNG);
 
-            // Create a display texture
-            UIElement display = new UIElement(texture, Vector2.Zero, Window.Size, null, "DisplayObject");
+            // Create an UI element for displaying the texture
+            new UIElement(texture, Vector2.Zero, Window.Size, null, "DisplayObject");
         }
 
         protected override void Update()

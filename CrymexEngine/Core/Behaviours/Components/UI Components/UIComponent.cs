@@ -8,11 +8,12 @@ namespace CrymexEngine.UI
         {
             get
             {
-                return (UIRenderer)_rendererComponent;
+                if (rendererComponent != null) return (UIRenderer)rendererComponent;
+                return null;
             }
         }
 
-        public UIElement uiElement
+        public UIElement Element
         {
             get
             {
@@ -27,7 +28,7 @@ namespace CrymexEngine.UI
                     return;
                 }
 
-                _rendererComponent = value.Renderer;
+                rendererComponent = value.Renderer;
                 _uiElement = value;
             }
         }

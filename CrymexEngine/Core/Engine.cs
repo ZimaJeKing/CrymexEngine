@@ -66,7 +66,7 @@ namespace CrymexEngine
 
         private static void LogQuitDebugInfo()
         {
-            Debug.LogLocalInfo("Engine", $"Ended after: {DataUtilities.SecondsToTimeString(Time.GameTime)}");
+            Debug.LogLocalInfo("Engine", $"Ended after: {DataUtil.SecondsToTimeString(Time.GameTime)}");
             Debug.LogLocalInfo("Engine", $"Loaded {Scene.Current.scriptableBehaviours.Count} behaviours and {Scene.Current.entities.Count + Scene.Current.uiElements.Count} game objects before quit");
         }
 
