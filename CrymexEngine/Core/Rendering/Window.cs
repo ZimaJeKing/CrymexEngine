@@ -206,9 +206,6 @@ namespace CrymexEngine
                 Audio.InitializeContext();
             }
 
-            // WindowLoad the user specified scene, otherwise create a new scene
-            if (Settings.GlobalSettings.GetSetting("StartingScene", out SettingOption startingSceneSetting, SettingType.RefString)) SceneLoader.LoadScene(Assets.GetScenePath(startingSceneSetting.GetValue<string>()));
-
             Physics.Init();
             Input.Init();
 

@@ -11,6 +11,7 @@ namespace CrymexEngine.Scripts.Examples
         protected override void Load()
         {
             string audioClipName = "SprayPaint";
+
             audioClip = Assets.GetAudioClip(audioClipName);
             if (audioClip == null)
             {

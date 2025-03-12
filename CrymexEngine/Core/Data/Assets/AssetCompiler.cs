@@ -159,9 +159,9 @@ namespace CrymexEngine.Data
             return finalData;
         }
 
-        public static List<TextureAsset> DecompileTextureAssets(byte[] data)
+        internal static Dictionary<string, TextureAsset> DecompileTextureAssets(byte[] data)
         {
-            List<TextureAsset> textureAssets = new List<TextureAsset>();
+            Dictionary<string, TextureAsset> textureAssets = new();
             using (MemoryStream memStream = new MemoryStream(data))
             {
                 using BinaryReader reader = new BinaryReader(memStream);
@@ -181,19 +181,17 @@ namespace CrymexEngine.Data
                     if (DataUtil.GetCheckSum(metaBytes) != reader.ReadInt32()) meta = null;
                     else meta = MetaFile.FromSerialized(metaBytes);
 
-                    Texture texture = Texture.FromCompressed(texData);
+                    TextureAsset asset = new TextureAsset(name, Texture.FromCompressed(texData), meta);
 
-                    textureAssets.Add(new TextureAsset(name, texture, meta));
-
-                    texture.Dispose();
+                    textureAssets.Add(asset.name, asset);
                 }
             }
             return textureAssets;
         }
 
-        public static List<FontAsset> DecompileFontAssets(byte[] data)
+        public static Dictionary<string, FontAsset> DecompileFontAssets(byte[] data)
         {
-            List<FontAsset> fontAssets = new List<FontAsset>();
+            Dictionary<string, FontAsset> fontAssets = new();
             using (MemoryStream memStream = new MemoryStream(data))
             {
                 using BinaryReader reader = new BinaryReader(memStream);
@@ -212,9 +210,9 @@ namespace CrymexEngine.Data
             return fontAssets;
         }
 
-        public static List<AudioAsset> DecompileAudioAssets(byte[] data)
+        public static Dictionary<string, AudioAsset> DecompileAudioAssets(byte[] data)
         {
-            List<AudioAsset> audioAssets = new List<AudioAsset>();
+            Dictionary<string, AudioAsset> audioAssets = new();
             using (MemoryStream memStream = new MemoryStream(data))
             {
                 using BinaryReader reader = new BinaryReader(memStream);
@@ -235,15 +233,44 @@ namespace CrymexEngine.Data
                     if (DataUtil.GetCheckSum(metaBytes) != reader.ReadInt32()) meta = null;
                     else meta = MetaFile.FromSerialized(metaBytes);
 
-                    audioAssets.Add(new AudioAsset(name, AudioClip.FromCompressed(soundData), meta));
+                    AudioAsset asset = new AudioAsset(name, AudioClip.FromCompressed(soundData), meta);
+                    audioAssets.Add(asset.name, asset);
                 }
             }
             return audioAssets;
         }
 
-        public static List<ShaderAsset> DecompileShaderAssets(byte[] data)
+        public static Dictionary<string, SettingAsset> DecompileSettingAssets(byte[] data)
         {
-            List<ShaderAsset> shaderAssets = new List<ShaderAsset>();
+            Dictionary<string, SettingAsset> settingAssets = new();
+            using (MemoryStream memStream = new MemoryStream(data))
+            {
+                using BinaryReader reader = new BinaryReader(memStream);
+
+                while (memStream.Position < memStream.Length - 1)
+                {
+                    int nameLen = reader.ReadInt32();
+                    string name = Encoding.Unicode.GetString(reader.ReadBytes(nameLen));
+                    int dataSize = reader.ReadInt32();
+                    byte[] textData = reader.ReadBytes(dataSize);
+                    string text = Encoding.Unicode.GetString(textData);
+
+                    int checkSum = reader.ReadInt32();
+                    if (checkSum != DataUtil.GetCheckSum(textData)) continue;
+
+                    Settings settings = new Settings();
+                    settings.LoadText(text);
+
+                    SettingAsset asset = new SettingAsset(name, settings);
+                    settingAssets.Add(asset.name, asset);
+                }
+            }
+            return settingAssets;
+        }
+
+        public static Dictionary<string, ShaderAsset> DecompileShaderAssets(byte[] data)
+        {
+            Dictionary<string, ShaderAsset> shaderAssets = new();
             using (MemoryStream memStream = new MemoryStream(data))
             {
                 using BinaryReader reader = new BinaryReader(memStream);
@@ -266,7 +293,8 @@ namespace CrymexEngine.Data
                     string vertex = Encoding.Unicode.GetString(vertexBytes);
                     string fragment = Encoding.Unicode.GetString(fragmentBytes);
 
-                    shaderAssets.Add(new ShaderAsset(name, Shader.LoadFromAsset(vertex, fragment), vertex, fragment, meta));
+                    ShaderAsset asset = new ShaderAsset(name, Shader.LoadFromAsset(vertex, fragment), vertex, fragment, meta);
+                    shaderAssets.Add(asset.name, asset);
                 }
             }
             return shaderAssets;

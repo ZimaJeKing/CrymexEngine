@@ -1,5 +1,6 @@
 ﻿using CrymexEngine.Rendering;
 using SixLabors.Fonts;
+using System.Windows.Forms;
 
 namespace CrymexEngine.Data
 {
@@ -84,6 +85,55 @@ namespace CrymexEngine.Data
 
             return split[0];
         }
+
+        private string GetNameFromPath(string path)
+        {
+            string name;
+            if (Path.IsPathFullyQualified(path))
+            {
+                string relativePath = Path.GetRelativePath(Directories.AssetsPath, path);
+                if (relativePath.StartsWith("Textures\\") || relativePath.StartsWith("Textures/"))
+                {
+                    name = relativePath.Substring(9);
+                }
+                else if (relativePath.StartsWith("Shaders\\") || relativePath.StartsWith("Shaders/"))
+                {
+                    name = relativePath.Substring(8);
+                }
+                else if (relativePath.StartsWith("Audio\\") || relativePath.StartsWith("Audio/"))
+                {
+                    name = relativePath.Substring(6);
+                }
+                else if (relativePath.StartsWith("Scenes\\") || relativePath.StartsWith("Scenes/"))
+                {
+                    name = relativePath.Substring(6);
+                }
+                else if (relativePath.StartsWith("Fonts\\") || relativePath.StartsWith("Fonts/"))
+                {
+                    name = relativePath.Substring(6);
+                }
+                else
+                {
+                    name = relativePath;
+                }
+            }
+            else if (Assets.RunningPrecompiled)
+            {
+                name = path;
+            }
+            else
+            {
+                Debug.LogError($"Path is in incorrect format: {path}");
+                return path;
+            }
+
+            if (!Assets.RunningPrecompiled)
+            {
+                name = name.Replace('\\', '/');
+                name = RemoveExtension(name);
+            }
+            return name;
+        }
     }
 
     public class TextureAsset : DataAsset
@@ -116,6 +166,16 @@ namespace CrymexEngine.Data
         {
             this.clip = clip;
             if (meta != null) _meta = meta;
+        }
+    }
+
+    public class SettingAsset : DataAsset
+    {
+        public readonly Settings settings;
+
+        public SettingAsset(string path, Settings settings) : base(path)
+        {
+            this.settings = settings;
         }
     }
 

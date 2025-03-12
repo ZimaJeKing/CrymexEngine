@@ -17,7 +17,7 @@ namespace CrymexEngine
         {
             get
             {
-                Vector2 pos = Window.Instance.GLFWWindow.MousePosition - Window.HalfSize;
+                Vector2 pos = Window.GLFWWindow.MousePosition - Window.HalfSize;
                 pos.Y = -pos.Y;
                 return pos;
             }
@@ -27,7 +27,7 @@ namespace CrymexEngine
         {
             get
             {
-                return Window.Instance.GLFWWindow.MouseState.ScrollDelta;
+                return Window.GLFWWindow.MouseState.ScrollDelta;
             }
         }
 
@@ -59,28 +59,28 @@ namespace CrymexEngine
 
         public static bool Key(Key key)
         {
-            return Window.Instance.GLFWWindow.IsKeyDown((Keys)key);
+            return Window.GLFWWindow.IsKeyDown((Keys)key);
         }
         public static bool KeyDown(Key key)
         {
-            return Window.Instance.GLFWWindow.IsKeyPressed((Keys)key);
+            return Window.GLFWWindow.IsKeyPressed((Keys)key);
         }
         public static bool KeyUp(Key key)
         {
-            return Window.Instance.GLFWWindow.IsKeyReleased((Keys)key);
+            return Window.GLFWWindow.IsKeyReleased((Keys)key);
         }
 
         public static bool Mouse(MouseButton button)
         {
-            return Window.Instance.GLFWWindow.MouseState.IsButtonDown((OpenTK.Windowing.GraphicsLibraryFramework.MouseButton)button);
+            return Window.GLFWWindow.MouseState.IsButtonDown((OpenTK.Windowing.GraphicsLibraryFramework.MouseButton)button);
         }
         public static bool MouseDown(MouseButton button)
         {
-            return Window.Instance.GLFWWindow.MouseState.IsButtonPressed((OpenTK.Windowing.GraphicsLibraryFramework.MouseButton)button);
+            return Window.GLFWWindow.MouseState.IsButtonPressed((OpenTK.Windowing.GraphicsLibraryFramework.MouseButton)button);
         }
         public static bool MouseUp(MouseButton button)
         {
-            return Window.Instance.GLFWWindow.MouseState.IsButtonReleased((OpenTK.Windowing.GraphicsLibraryFramework.MouseButton)button);
+            return Window.GLFWWindow.MouseState.IsButtonReleased((OpenTK.Windowing.GraphicsLibraryFramework.MouseButton)button);
         }
 
         public static bool CursorOverlap(Vector2 position, Vector2 scale, float rotation = 0)

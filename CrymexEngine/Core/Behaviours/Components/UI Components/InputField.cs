@@ -124,7 +124,7 @@ namespace CrymexEngine.UI
 
         public void OnMouseEnter()
         {
-            if (changeCursor) Window.Instance.GLFWWindow.Cursor = MouseCursor.IBeam;
+            if (changeCursor) Window.GLFWWindow.Cursor = MouseCursor.IBeam;
         }
 
         public void OnMouseExit()

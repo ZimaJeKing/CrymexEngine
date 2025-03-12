@@ -12,7 +12,6 @@ namespace CrymexEngine.Scenes
         public readonly List<UIElement> uiElements = new();
         public readonly List<TextObject> textObjects = new();
         public readonly List<LineGroup> lines = new();
-        public readonly List<Settings> settings = new();
 
         public readonly List<Entity> entityDeleteQueue = new();
         public readonly List<UIElement> uiElementDeleteQueue = new();

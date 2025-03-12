@@ -49,7 +49,7 @@ namespace CrymexEngine
             return (T)value;
         }
 
-        private static bool TypeMatch(SettingType settingType, Type Ttype)
+        internal static bool TypeMatch(SettingType settingType, Type Ttype)
         {
             if (Ttype == typeof(int) || Ttype == typeof(float))
             {

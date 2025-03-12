@@ -2,7 +2,7 @@
 
 namespace CrymexEngine.Scripts.Examples
 {
-    internal class LineRendererExample : ScriptableBehaviour
+    public class LineRendererExample : ScriptableBehaviour
     {
         // This example shows how to draw lines using the LineRenderer class
         // It is a slow approach and it is recomended to use line groups instead
