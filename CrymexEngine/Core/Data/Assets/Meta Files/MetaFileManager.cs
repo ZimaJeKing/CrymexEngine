@@ -8,7 +8,7 @@
 
             string generatedText = string.Empty;
 
-            generatedText += "IncludeInRelease: True\n";
+            generatedText += "IncludeInRelease: True";
 
             writer.Write(generatedText);
 
@@ -17,6 +17,8 @@
 
         internal static MetaFile DecodeMetaFromFile(string path)
         {
+            if (!Assets.UseMeta) return null;
+
             if (!File.Exists(path))
             {
                 return GenerateMeta(path);

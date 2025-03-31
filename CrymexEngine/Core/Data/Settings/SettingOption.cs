@@ -9,9 +9,9 @@ namespace CrymexEngine
 {
     public class SettingOption
     {
-        public string name;
-        public SettingType type;
-        public object value;
+        public readonly string name;
+        public readonly SettingType type;
+        public readonly object value;
 
         public static readonly SettingOption None = new SettingOption("NONE", SettingType.None, 0);
 
@@ -95,9 +95,9 @@ namespace CrymexEngine
         {
             string final = name + ": ";
             string? strValue = value.ToString();
-            if (strValue == null) return "";
+            if (strValue == null) return final + "NULL";
 
-            if (type == SettingType.Float) strValue += 'f';
+            if (type == SettingType.Float || type == SettingType.GeneralNumber) strValue += 'f';
             else if (type == SettingType.Hex) strValue = '#' + ((int)value).ToString("X");
             else if (type == SettingType.String) strValue = '"' + strValue + '"';
             else if (type == SettingType.Bool)
@@ -110,6 +110,21 @@ namespace CrymexEngine
                 {
                     strValue = "False";
                 }
+            }
+            else if (type == SettingType.Vector2)
+            {
+                Vector2 vecValue = (Vector2)value;
+                strValue = $"( {vecValue.X}, {vecValue.Y} )";
+            }
+            else if (type == SettingType.Vector3)
+            {
+                Vector3 vecValue = (Vector3)value;
+                strValue = $"( {vecValue.X}, {vecValue.Y}, {vecValue.Z} )";
+            }
+            else if (type == SettingType.Vector4)
+            {
+                Vector4 vecValue = (Vector4)value;
+                strValue = $"( {vecValue.X}, {vecValue.Y}, {vecValue.Z}, {vecValue.W} )";
             }
 
             final += strValue;

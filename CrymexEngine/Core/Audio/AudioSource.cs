@@ -104,9 +104,15 @@ namespace CrymexEngine
         {
             if (!Audio.Initialized)
             {
-                Debug.LogError("Audio library not initialized. Cannot create an audio source instance");
+                Debug.LogError("Audio module not initialized. Cannot create an audio source instance");
                 return;
             }
+            if (clip.Disposed)
+            {
+                _disposed = true;
+                return;
+            }
+
             this.clip = clip;
             this.mixer = mixer;
             _startTime = Time.GameTime;

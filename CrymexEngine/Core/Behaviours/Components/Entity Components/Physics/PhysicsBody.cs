@@ -1,7 +1,7 @@
 ﻿using nkast.Aether.Physics2D.Dynamics;
 using OpenTK.Mathematics;
 
-namespace CrymexEngine
+namespace CrymexEngine.AetherPhysics
 {
     [SingularComponent]
     public class PhysicsBody : EntityComponent

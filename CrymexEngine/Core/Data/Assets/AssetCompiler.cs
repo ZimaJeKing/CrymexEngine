@@ -19,10 +19,10 @@ namespace CrymexEngine.Data
 
             using Texture texture = asset.texture;
 
-            byte[] nameBytes = Encoding.Unicode.GetBytes(asset.name);
+            byte[] nameBytes = Encoding.Unicode.GetBytes(DataUtil.XorString(asset.name));
             byte[] data = texture.CompressData(Assets.TextureCompressionLevel);
 
-            if (!LoadAssetMeta(asset, out byte[] meta)) meta = Array.Empty<byte>();
+            if (!SerializeAssetMeta(asset, out byte[] meta)) meta = Array.Empty<byte>();
 
             byte[] final = new byte[4 + nameBytes.Length + 4 + data.Length + 4 + 4 + meta.Length + 4];
 
@@ -54,10 +54,10 @@ namespace CrymexEngine.Data
             // bytes - meta
             // Int32 - meta check sum
 
-            byte[] nameBytes = Encoding.Unicode.GetBytes(asset.name);
+            byte[] nameBytes = Encoding.Unicode.GetBytes(DataUtil.XorString(asset.name));
             byte[] soundData = asset.clip.CompressData();
 
-            if (!LoadAssetMeta(asset, out byte[] meta)) meta = Array.Empty<byte>();
+            if (!SerializeAssetMeta(asset, out byte[] meta)) meta = Array.Empty<byte>();
 
             byte[] final = new byte[4 + nameBytes.Length + 4 + soundData.Length + 4 + 4 + meta.Length + 4];
 
@@ -91,11 +91,11 @@ namespace CrymexEngine.Data
             // bytes - meta
             // Int32 - meta check sum
 
-            byte[] nameBytes = Encoding.Unicode.GetBytes(asset.name);
-            byte[] vertexBytes = Encoding.Unicode.GetBytes(asset.vertexAssetCode);
-            byte[] fragmentBytes = Encoding.Unicode.GetBytes(asset.fragmentAssetCode);
+            byte[] nameBytes = Encoding.Unicode.GetBytes(DataUtil.XorString(asset.name));
+            byte[] vertexBytes = Encoding.Unicode.GetBytes(DataUtil.XorString(asset.vertexAssetCode));
+            byte[] fragmentBytes = Encoding.Unicode.GetBytes(DataUtil.XorString(asset.fragmentAssetCode));
 
-            if (!LoadAssetMeta(asset, out byte[] meta)) meta = Array.Empty<byte>();
+            if (!SerializeAssetMeta(asset, out byte[] meta)) meta = Array.Empty<byte>();
 
             byte[] final = new byte[4 + nameBytes.Length + 4 + vertexBytes.Length + 4 + fragmentBytes.Length + 4 + 4 + meta.Length + 4];
 
@@ -126,7 +126,7 @@ namespace CrymexEngine.Data
             // bytes - data bytes
             // Int32 - check sum
 
-            byte[] nameBytes = Encoding.Unicode.GetBytes(name);
+            byte[] nameBytes = Encoding.Unicode.GetBytes(DataUtil.XorString(name));
 
             byte[] final = new byte[4 + nameBytes.Length + 4 + data.Length + 4];
 
@@ -148,7 +148,7 @@ namespace CrymexEngine.Data
             using MemoryStream memStream = new MemoryStream(data);
             using BinaryReader reader = new BinaryReader(memStream);
 
-            name = Encoding.Unicode.GetString(reader.ReadBytes(reader.ReadInt32()));
+            name = DataUtil.XorString(Encoding.Unicode.GetString(reader.ReadBytes(reader.ReadInt32())));
 
             int dataLength = reader.ReadInt32();
             byte[] finalData = reader.ReadBytes(dataLength);
@@ -162,29 +162,27 @@ namespace CrymexEngine.Data
         internal static Dictionary<string, TextureAsset> DecompileTextureAssets(byte[] data)
         {
             Dictionary<string, TextureAsset> textureAssets = new();
-            using (MemoryStream memStream = new MemoryStream(data))
+            using MemoryStream memStream = new MemoryStream(data);
+            using BinaryReader reader = new BinaryReader(memStream);
+
+            while (memStream.Position < memStream.Length - 1)
             {
-                using BinaryReader reader = new BinaryReader(memStream);
+                string name = DataUtil.XorString(Encoding.Unicode.GetString(reader.ReadBytes(reader.ReadInt32())));
+                int dataLength = reader.ReadInt32();
+                byte[] texData = reader.ReadBytes(dataLength);
 
-                while (memStream.Position < memStream.Length - 1)
-                {
-                    string name = Encoding.Unicode.GetString(reader.ReadBytes(reader.ReadInt32()));
-                    int dataLength = reader.ReadInt32();
-                    byte[] texData = reader.ReadBytes(dataLength);
+                int checkSum = reader.ReadInt32();
+                if (checkSum != DataUtil.GetCheckSum(texData)) continue;
 
-                    int checkSum = reader.ReadInt32();
-                    if (checkSum != DataUtil.GetCheckSum(texData)) continue;
+                // Load meta file
+                byte[] metaBytes = reader.ReadBytes(reader.ReadInt32());
+                MetaFile? meta;
+                if (DataUtil.GetCheckSum(metaBytes) != reader.ReadInt32()) meta = null;
+                else meta = MetaFile.FromSerialized(metaBytes);
 
-                    // Load meta file
-                    byte[] metaBytes = reader.ReadBytes(reader.ReadInt32());
-                    MetaFile? meta;
-                    if (DataUtil.GetCheckSum(metaBytes) != reader.ReadInt32()) meta = null;
-                    else meta = MetaFile.FromSerialized(metaBytes);
+                TextureAsset asset = new TextureAsset(name, Texture.FromCompressed(texData), meta);
 
-                    TextureAsset asset = new TextureAsset(name, Texture.FromCompressed(texData), meta);
-
-                    textureAssets.Add(asset.name, asset);
-                }
+                textureAssets.Add(asset.name, asset);
             }
             return textureAssets;
         }
@@ -197,7 +195,7 @@ namespace CrymexEngine.Data
                 using BinaryReader reader = new BinaryReader(memStream);
                 while (memStream.Position < memStream.Length - 1)
                 {
-                    string name = Encoding.Unicode.GetString(reader.ReadBytes(reader.ReadInt32()));
+                    string name = DataUtil.XorString(Encoding.Unicode.GetString(reader.ReadBytes(reader.ReadInt32())));
                     int dataLength = reader.ReadInt32();
                     byte[] fontData = reader.ReadBytes(dataLength);
 
@@ -220,7 +218,7 @@ namespace CrymexEngine.Data
                 while (memStream.Position < memStream.Length - 1)
                 {
                     int nameLen = reader.ReadInt32();
-                    string name = Encoding.Unicode.GetString(reader.ReadBytes(nameLen));
+                    string name = DataUtil.XorString(Encoding.Unicode.GetString(reader.ReadBytes(nameLen)));
                     int dataSize = reader.ReadInt32();
                     byte[] soundData = reader.ReadBytes(dataSize);
 
@@ -250,10 +248,10 @@ namespace CrymexEngine.Data
                 while (memStream.Position < memStream.Length - 1)
                 {
                     int nameLen = reader.ReadInt32();
-                    string name = Encoding.Unicode.GetString(reader.ReadBytes(nameLen));
+                    string name = DataUtil.XorString(Encoding.Unicode.GetString(reader.ReadBytes(nameLen)));
                     int dataSize = reader.ReadInt32();
                     byte[] textData = reader.ReadBytes(dataSize);
-                    string text = Encoding.Unicode.GetString(textData);
+                    string text = DataUtil.XorString(Encoding.Unicode.GetString(textData));
 
                     int checkSum = reader.ReadInt32();
                     if (checkSum != DataUtil.GetCheckSum(textData)) continue;
@@ -277,7 +275,7 @@ namespace CrymexEngine.Data
 
                 while (memStream.Position < memStream.Length - 1)
                 {
-                    string name = Encoding.Unicode.GetString(reader.ReadBytes(reader.ReadInt32()));
+                    string name = DataUtil.XorString(Encoding.Unicode.GetString(reader.ReadBytes(reader.ReadInt32())));
                     byte[] vertexBytes = reader.ReadBytes(reader.ReadInt32());
                     byte[] fragmentBytes = reader.ReadBytes(reader.ReadInt32());
 
@@ -290,8 +288,8 @@ namespace CrymexEngine.Data
                     if (DataUtil.GetCheckSum(metaBytes) != reader.ReadInt32()) meta = null;
                     else meta = MetaFile.FromSerialized(metaBytes);
 
-                    string vertex = Encoding.Unicode.GetString(vertexBytes);
-                    string fragment = Encoding.Unicode.GetString(fragmentBytes);
+                    string vertex = DataUtil.XorString(Encoding.Unicode.GetString(vertexBytes));
+                    string fragment = DataUtil.XorString(Encoding.Unicode.GetString(fragmentBytes));
 
                     ShaderAsset asset = new ShaderAsset(name, Shader.LoadFromAsset(vertex, fragment), vertex, fragment, meta);
                     shaderAssets.Add(asset.name, asset);
@@ -300,7 +298,7 @@ namespace CrymexEngine.Data
             return shaderAssets;
         }
 
-        private static bool LoadAssetMeta(DataAsset asset, out byte[] data)
+        private static bool SerializeAssetMeta(DataAsset asset, out byte[] data)
         {
             if (asset.Meta == null)
             {

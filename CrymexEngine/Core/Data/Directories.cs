@@ -14,10 +14,10 @@
 
         internal static void Init()
         {
-            _assetsPath = Engine.MainDirPath + "\\Assets\\";
-            _runtimeAssetsPath = Engine.MainDirPath + "\\Precompiled\\";
-            _logFolderPath = Engine.MainDirPath + "\\Logs\\";
-            _saveFolderPath = Engine.MainDirPath + "\\Saved\\";
+            _assetsPath = Engine.MainDirPath + "Assets\\";
+            _runtimeAssetsPath = Engine.MainDirPath + "Precompiled\\";
+            _logFolderPath = Engine.MainDirPath + "Logs\\";
+            _saveFolderPath = Engine.MainDirPath + "Saved\\";
         }
     }
 }

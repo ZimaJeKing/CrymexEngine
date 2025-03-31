@@ -1,4 +1,5 @@
-﻿using CrymexEngine.Debugging;
+﻿using CrymexEngine.AetherPhysics;
+using CrymexEngine.Debugging;
 using CrymexEngine.Scenes;
 using CrymexEngine.Scripting;
 using CrymexEngine.UI;
@@ -194,16 +195,20 @@ namespace CrymexEngine
             // Create engine repeat events
             EventSystem.AddEventRepeat("CE_SecondLoop", SecondLoop, 1f, true);
 
-            // Initializing CrymexEngine components
             Camera.MainCamera.Init();
             Assets.LoadAssets();
+
+            if (!Engine.Running) return;
 
             ApplyPostLoadSettings();
 
             // Initialize audio
             if (Settings.GlobalSettings.GetSetting("UseAudio", out SettingOption audioSettingOption, SettingType.Bool) && audioSettingOption.GetValue<bool>())
             {
-                Audio.InitializeContext();
+                if (!Audio.InitializeContext())
+                {
+                    Audio.OverrideContext();
+                }
             }
 
             Physics.Init();
@@ -221,6 +226,8 @@ namespace CrymexEngine
 
         private static void WindowUpdate(FrameEventArgs e)
         {
+            if (!Engine.Running) return;
+
             UsageProfiler.BeginProcessorTimeQuery();
 
             _fpsCounter++;
@@ -551,7 +558,7 @@ namespace CrymexEngine
                 APIVersion = _glVersion,
                 Flags = _glContextFlags,
 
-                NumberOfSamples = 8,
+                NumberOfSamples = Camera.msaaSamples,
                 DepthBits = 24,
                 AutoLoadBindings = true,
                 WindowBorder = _windowBorder,

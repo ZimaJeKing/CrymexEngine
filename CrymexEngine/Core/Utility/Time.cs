@@ -20,6 +20,10 @@ namespace CrymexEngine
             }
         }
 
+        /// <summary>
+        /// Returns a string version of the current time expressed in local time.
+        /// Ex. 15h : 48min : 4s : 56ms
+        /// </summary>
         public static string CurrentTimeString
         {
             get
@@ -28,6 +32,10 @@ namespace CrymexEngine
             }
         }
 
+        /// <summary>
+        /// Returns a short version of the current time and date.
+        /// Format: [DAY][MONTH][YEAR] [HOUR]_[MIN]_[SEC].
+        /// </summary>
         public static string CurrentDateTimeShortString
         {
             get

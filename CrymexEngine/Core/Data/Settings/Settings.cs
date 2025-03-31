@@ -1,5 +1,7 @@
 ﻿using CrymexEngine.Data;
 using CrymexEngine.Debugging;
+using CrymexEngine.Utils;
+using NAudio.Wave;
 using OpenTK.Mathematics;
 using System.Text;
 
@@ -9,14 +11,20 @@ namespace CrymexEngine
     {
         public static readonly Settings GlobalSettings = new Settings();
 
+        public readonly bool recompile;
+
+        /// <summary>
+        /// Generates a new settings text representation on read
+        /// </summary>
         public string AsText => GenerateSettingsText();
 
-        private readonly List<SettingOption> options = new();
+        private readonly Dictionary<string, SettingOption> options = new();
 
         private static readonly string _defaultGlobalSettingsText = "LogToConsole:True\nVSync:True\nLogFPS:True";
 
-        public Settings()
+        public Settings(bool recompile = true)
         {
+            this.recompile = recompile;
         }
 
         /// <summary>
@@ -41,7 +49,7 @@ namespace CrymexEngine
                     // Create an empty settings file
                     File.Create(path).Dispose();
 
-                    // If creating GlobalSettings, write some default settings into the file
+                    // If creating global settings, write some default settings into the file
                     if (Path.GetFileName(path) == "CEConfig.cfg")
                     {
                         File.WriteAllText(path, _defaultGlobalSettingsText);
@@ -60,9 +68,6 @@ namespace CrymexEngine
                 rawSettingsText = File.ReadAllText(path);
             }
 
-            // Add memory consumption value (2 * text length for unicode)
-            UsageProfiler.AddMemoryConsumptionValue(rawSettingsText.Length * 2, MemoryUsageType.Other);
-
             // Load settings from text data
             LoadText(rawSettingsText);
 
@@ -74,48 +79,39 @@ namespace CrymexEngine
             string[] settingsLines = text.Split('\n', StringSplitOptions.TrimEntries);
             for (int i = 0; i < settingsLines.Length; i++)
             {
-                string[]? split = FormatSettingLine(settingsLines[i]);
-                if (split == null || split.Length < 2) continue;
+                (string, string)? formated = FormatSettingLine(settingsLines[i]);
+                if (formated == null) continue;
+                string name = formated.Value.Item1;
+                string value = formated.Value.Item2;
 
-                SettingOption? newSetting = DecompileSetting(split[0], split[1]);
+                SettingOption? newSetting;
+                if (options.ContainsKey(formated.Value.Item1))
+                {
+                    options.Remove(name);
+                    newSetting = DecompileSetting(name, value);
+
+                    if (newSetting == null) continue;
+                    options.Add(name, newSetting);
+                    continue;
+                }
+
+                newSetting = DecompileSetting(name, value);
                 if (newSetting == null) continue;
 
-                options.Add(newSetting);
+                options.Add(newSetting.name, newSetting);
             }
         }
 
         public SettingOption? GetSetting(string name)
         {
-            foreach (SettingOption option in options)
-            {
-                if (option.name == name)
-                {
-                    SettingOption opt = option;
-                    return opt;
-                }
-            }
-            return null;
+            options.TryGetValue(name, out SettingOption? option);
+            return option;
         }
 
-        public bool SetSetting(string name, object value, SettingType type)
+        public void SetSetting(string name, object value, SettingType type)
         {
-            foreach (SettingOption option in options)
-            {
-                if (option.name == name)
-                {
-                    if (option.type == type && SettingOption.TypeMatch(type, value.GetType()))
-                    {
-                        option.value = value;
-                        return true;
-                    }
-                    else
-                    {
-                        Debug.LogError("Setting value is the wrong type");
-                        return false;
-                    }
-                }
-            }
-            return false;
+            options.Remove(name);
+            options.Add(name, new SettingOption(name, type, value));
         }
 
         /// <summary>
@@ -124,23 +120,20 @@ namespace CrymexEngine
         /// <returns>True, if the option was found</returns>
         public bool GetSetting(string name, out SettingOption option, SettingType? type = null)
         {
-            foreach (SettingOption currentOption in options)
+            if (options.TryGetValue(name, out option) && option != null)
             {
-                if (currentOption.name == name && currentOption.type != SettingType.None)
+                if (option.type != SettingType.None)
                 {
-                    if (type == SettingType.GeneralNumber && (currentOption.type == SettingType.Float || currentOption.type == SettingType.Int || currentOption.type == SettingType.Hex))
+                    if (type == SettingType.GeneralNumber && (option.type == SettingType.Float || option.type == SettingType.Int || option.type == SettingType.Hex))
                     {
-                        option = currentOption;
                         return true;
                     }
-                    if (type == SettingType.GeneralString && (currentOption.type == SettingType.String || currentOption.type == SettingType.RefString))
+                    if (type == SettingType.GeneralString && (option.type == SettingType.String || option.type == SettingType.RefString))
                     {
-                        option = currentOption;
                         return true;
                     }
-                    if (type == currentOption.type)
+                    if (type == option.type)
                     {
-                        option = currentOption;
                         return true;
                     }
                 }
@@ -149,24 +142,58 @@ namespace CrymexEngine
             return false;
         }
 
-        private static string[]? FormatSettingLine(string line)
+        /// <summary>
+        /// Recompiles all settings with the made changes
+        /// </summary>
+        public static void RecompileAllSettings()
         {
-            if (string.IsNullOrEmpty(line) || line.Length < 2) return null;
-            line = line.Trim();
-            if (line[..2] == "//") return null;
-            string[] split = line.Split(':', StringSplitOptions.TrimEntries);
-            if (split.Length < 2) return null;
-            split[1] = split[1].Trim();
+            if (!Assets.RunningPrecompiled)
+            {
+                Debug.LogWarning("Cannot recompile settings while running on dynamic assets");
+                return;
+            }
 
-            return split;
+            KeyValuePair<string, SettingAsset>[] settings = Assets.GetAllSettingAssets();
+            string settingsPath = Directories.RuntimeAssetsPath + "RuntimeSettings.rtmAsset";
+            using (FileStream settingsFileStream = File.Create(settingsPath))
+            {
+                foreach (KeyValuePair<string, SettingAsset> pair in settings.ToArray())
+                {
+                    if (!pair.Value.settings.recompile) continue;
+
+                    settingsFileStream.Write(AssetCompiler.CompileData(pair.Value.name, Encoding.Unicode.GetBytes(DataUtil.XorString(pair.Value.settings.AsText))));
+                }
+            }
+
+            // Compile global settings
+            byte[] globalSettingsData = AssetCompiler.CompileData("CEConfig", Encoding.Unicode.GetBytes(DataUtil.XorString(GlobalSettings.AsText)));
+            File.WriteAllBytes(Directories.RuntimeAssetsPath + "CEConfig.rtmAsset", globalSettingsData);
         }
 
-        public string GenerateSettingsText()
+        private static (string, string)? FormatSettingLine(string line)
+        {
+            if (string.IsNullOrEmpty(line) || line.Length < 2) return null;
+
+            line = line.Trim();
+            if (line[..2] == "//") return null;
+
+            int splitIndex = line.IndexOf(':');
+
+            DataUtil.RemoveSpecialCharacters(line.Substring(0, splitIndex).Trim(), out string name);
+            string value = line.Substring(splitIndex + 1).Trim();
+
+            if (name.Length == 0 ||  value.Length == 0) return null;
+
+            return (name, value);
+        }
+
+        private string GenerateSettingsText()
         {
             string text = string.Empty;
-            for (int i = 0; i < options.Count; i++)
+            KeyValuePair<string, SettingOption>[] optionArr = options.ToArray();
+            for (int i = 0; i < optionArr.Length; i++)
             {
-                text += options[i].ToString() + '\n';
+                text += optionArr[i].Value.ToString() + '\n';
             }
             return text;
         }
@@ -180,66 +207,57 @@ namespace CrymexEngine
             char first = value[0];
             char last = value[^1];
 
-            if (first == '#') // Hex values
+            if (first == '#' && int.TryParse(value.AsSpan(1), System.Globalization.NumberStyles.HexNumber, null, out int hexValue)) // Hex value
             {
-                if (!int.TryParse(value.AsSpan(1), System.Globalization.NumberStyles.HexNumber, null, out int hexValue)) return null;
                 return new SettingOption(name, SettingType.Hex, hexValue);
             }
-            else if (first == '(' && value[^1] == ')') // Vectors
+            else if (first == '(' && value[^1] == ')') // Vector
             {
-                string[] strings = value[1..^1].Split(',');
-
-                float[] values = new float[strings.Length];
-
-                for (int i = 0; i < strings.Length; i++)
-                {
-                    if (!float.TryParse(strings[i], System.Globalization.NumberStyles.Float, null, out values[i])) return null;
-                }
-
-                switch (values.Length)
-                {
-                    case 2:
-                        {
-                            return new SettingOption(name, SettingType.Vector2, new Vector2(values[0], values[1]));
-                        }
-                    case 3:
-                        {
-                            return new SettingOption(name, SettingType.Vector3, new Vector3(values[0], values[1], values[2]));
-                        }
-                    case 4:
-                        {
-                            return new SettingOption(name, SettingType.Vector4, new Vector4(values[0], values[1], values[2], values[3]));
-                        }
-                    default:
-                        {
-                            return null;
-                        }
-                }
+                return ParseVectorSetting(name, value);
             }
-            else if (first == '"' || first == '\'')
+            else if (first == '"' || first == '\'') // String
             {
                 if (last != '"' && last != '\'' || value.Length < 2) return null;
 
                 return new SettingOption(name, SettingType.String, value[1..^1]);
             }
-            else if (last == 'f')
+            else if (last == 'f' && value.Length > 1 && float.TryParse(value[0..^1], System.Globalization.NumberStyles.Float, null, out float floatNum)) // Float
             {
-                if (!float.TryParse(value.AsSpan(0, value.Length - 1), System.Globalization.NumberStyles.Float, null, out float num)) return null;
-                return new SettingOption(name, SettingType.Float, num);
+                return new SettingOption(name, SettingType.Float, floatNum);
             }
-            else if (int.TryParse(value, out int num))
+            else if (int.TryParse(value, out int num)) // Int
             {
                 return new SettingOption(name, SettingType.Int, num);
             }
-            else if (value == "On" || value == "True")
+            else if (value == "On" || value == "True") // Bool 1
             {
                 return new SettingOption(name, SettingType.Bool, true);
             }
-            else if (value == "Off" || value == "False")
+            else if (value == "Off" || value == "False") // Bool 0
             {
                 return new SettingOption(name, SettingType.Bool, false);
             }
-            return new SettingOption(name, SettingType.RefString, value);
+            return new SettingOption(name, SettingType.RefString, value); // RefString
+        }
+
+        private static SettingOption? ParseVectorSetting(string name, string value)
+        {
+            string[] strings = value[1..^1].Split(',');
+
+            float[] values = new float[strings.Length];
+
+            for (int i = 0; i < strings.Length; i++)
+            {
+                if (!float.TryParse(strings[i], System.Globalization.NumberStyles.Float, null, out values[i])) return null;
+            }
+
+            switch (values.Length)
+            {
+                case 2: return new SettingOption(name, SettingType.Vector2, new Vector2(values[0], values[1]));
+                case 3: return new SettingOption(name, SettingType.Vector3, new Vector3(values[0], values[1], values[2]));
+                case 4: return new SettingOption(name, SettingType.Vector4, new Vector4(values[0], values[1], values[2], values[3]));
+                default: return null;
+            }
         }
     }
 }

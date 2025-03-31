@@ -6,58 +6,25 @@ namespace CrymexEngine.Debugging
 {
     public class UsageProfiler
     {
-        public static bool Active
-        {
-            get
-            {
-                return _active;
-            }
-        }
+        public static bool Active => _active;
+
+        public static Process CurrentProcess => _currentProcess;
 
         /// <summary>
-        /// Ram usage in byteCount
+        /// Ram usage in bytes
         /// </summary>
-        public static long MemoryUsage
-        {
-            get
-            { 
-                return _memoryUsage; 
-            }
-        }
-        public static long TextureMemoryUsage
-        {
-            get
-            {
-                return _textureMemoryUsage;
-            }
-        }
-        public static long AudioMmeoryUsage
-        {
-            get
-            {
-                return _audioMemoryUsage;
-            }
-        }
+        public static long MemoryUsage => _memoryUsage;
+        public static long TextureMemoryUsage => _textureMemoryUsage;
+        public static long AudioMmeoryUsage => _audioMemoryUsage;
+        public static long OtherMmeoryUsage => _otherMemoryUsage;
 
         /// <summary>
         /// Processor time in nanoseconds
         /// </summary>
-        public static float ProcessorTime
-        {
-            get
-            {
-                return _processorTime;
-            }
-        }
-        public static int ThreadCount
-        {
-            get
-            {
-                return _threadCount;
-            }
-        }
+        public static float ProcessorTime => _processorTime;
+        public static int ThreadCount => _threadCount;
 
-        private static Process _currentProcess = Process.GetCurrentProcess();
+        private static readonly Process _currentProcess = Process.GetCurrentProcess();
 
         private static bool _active;
         private static long _memoryUsage;
@@ -69,6 +36,8 @@ namespace CrymexEngine.Debugging
         private static float _processorTimerStart;
         private static int _processorTimeFrameCount;
         private static float _processorTimeSum;
+        private static PerformanceCounter _cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+
 
         internal static void Init()
         {
@@ -133,9 +102,14 @@ namespace CrymexEngine.Debugging
 
         private static string GetUsageProfileLog()
         {
+            float cpuPerc = _cpuCounter.NextValue();
+            string cpuTimeString = "Cannot measure";
+            if (cpuPerc <= 0 || cpuPerc > 100) cpuTimeString = DataUtil.FloatToShortString(cpuPerc, 2) + '%';
+
             string profile = "\nUsage Profile:\n";
             profile += $"Time: {Time.CurrentTimeString}\n";
             profile += $"Ram usage: {DataUtil.ByteCountToString(MemoryUsage)}\n";
+            profile += $"CPU usage: {cpuTimeString}";
             profile += $"Avarage processor time: {DataUtil.FloatToShortString(ProcessorTime * 1000, 2)}ms\n";
             profile += $"Thread count: {ThreadCount}\n";
             profile += $"FPS: {Window.FramesPerSecond}";

@@ -59,6 +59,9 @@ DefaultEntityShader [REF] - Default shader to use for entities
 DefaultUIShader [REF] - Default shader to use for entities and text
 MissingTexture [REF] - Default missing texture
 
+Data utilities:
+XorKeyChar [STRING] - A signle character to use for the text Xor operation
+
 Physics:
 UsePhysics [COND] - Whether to use the physics module
 Gravity [VEC2] - Direction and strength of gravity

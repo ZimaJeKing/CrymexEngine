@@ -8,10 +8,7 @@ namespace CrymexEngine.Rendering
     {
         public static Shader Regular
         {
-            get
-            {
-                return _regular;
-            }
+            get => _regular;
             set
             {
                 if (value != null) _regular = value;
@@ -19,10 +16,7 @@ namespace CrymexEngine.Rendering
         }
         public static Shader UI
         {
-            get
-            {
-                return _ui;
-            }
+            get => _ui;
             set
             {
                 if (value != null) _ui = value;
@@ -31,10 +25,7 @@ namespace CrymexEngine.Rendering
 
         public static Shader Line
         {
-            get
-            {
-                return _line;
-            }
+            get => _line;
             set
             {
                 if (value != null) _line = value;
@@ -53,9 +44,7 @@ namespace CrymexEngine.Rendering
         {
             if (_defaultShadersLoaded) return;
 
-            string regularShaderName = "Regular";
-            string uiShaderName = "UI";
-            string lineShaderName = "Line";
+            string? regularShaderName = null, uiShaderName = null, lineShaderName = null;
 
             if (Settings.GlobalSettings.GetSetting("DefaultEntityShader", out SettingOption regularShaderOption, SettingType.RefString))
             {
@@ -70,15 +59,14 @@ namespace CrymexEngine.Rendering
                 lineShaderName = lineShaderOption.GetValue<string>();
             }
 
-            _regular = Assets.GetShaderBroad(regularShaderName);
-            _ui = Assets.GetShaderBroad(uiShaderName);
-            _line = Assets.GetShaderBroad(lineShaderName);
+            if (regularShaderName != null) _regular = Assets.GetShaderBroad(regularShaderName);
+            if (_regular == null) _regular = LoadFromAsset(DefaultShaders.regularVertex, DefaultShaders.regularFragment);
 
-            if (_regular == null || _ui == null || _line == null)
-            {
-                Debug.LogWarning("The default shaders couldn't be loaded properly");
-                return;
-            }
+            if (uiShaderName != null) _ui = Assets.GetShaderBroad(uiShaderName);
+            if (_ui == null) _ui = LoadFromAsset(DefaultShaders.uiVertex, DefaultShaders.uiFragment);
+
+            if (lineShaderName != null) _line = Assets.GetShaderBroad(lineShaderName);
+            if (_line == null) _line = LoadFromAsset(DefaultShaders.lineVertex, DefaultShaders.lineFragment);
 
             _defaultShadersLoaded = true;
         }
@@ -302,190 +290,17 @@ namespace CrymexEngine.Rendering
 
             return null;
         }
-    }
 
-    public abstract class ShaderParam(string name)
-    {
-        public readonly string name = name;
-        public int GLLocation => _glLocation;
-
-        public static readonly ShaderParam[] defaultParams = {
-                    new Vec3ShaderParam("position"),
-                    new Mat4ShaderParam("transform"),
-                    new Vec4ShaderParam("color")
-                };
-
-        private int _glLocation;
-
-        public void Init(Shader reference)
+        private static class DefaultShaders
         {
-            _glLocation = GL.GetUniformLocation(reference._glShader, name);
+            public static readonly string regularVertex = "#version 450 core\r\n#usedefaultparams\r\n\r\nlayout (location = 0) in vec2 aPosition;\r\nlayout (location = 1) in vec2 aTexCoord;\r\n\r\nout vec2 texCoord;\r\n\r\nuniform vec3 position;\r\nuniform mat4 transform;\r\n\r\nvoid main()\r\n{\r\n    gl_Position = vec4(aPosition, 0, 1.0) * transform;\r\n    gl_Position.xyz += position;\r\n\r\n    texCoord.xy = aTexCoord;\r\n}";
+            public static readonly string regularFragment = "#version 450 core\r\n\r\nin vec2 texCoord;\r\n\r\nuniform sampler2D texture0;\r\nuniform vec4 color;\r\n\r\nout vec4 FragColor;\r\n\r\nvoid main()\r\n{\r\n    vec4 texColor;\r\n    texColor = texture(texture0, texCoord);\r\n    \r\n    texColor *= color;\r\n\r\n    if (texColor.a < 0.5f) discard;\r\n\r\n    FragColor = texColor;\r\n}";
 
-            if (_glLocation < 0)
-            {
-                Debug.LogError($"Shader parameter '{name}' could not be found");
-            }
-        }
-        public abstract void Set(object _value);
-        protected abstract void Refresh();
-    }
-    public class DoubleShaderParam(string name) : ShaderParam(name)
-    {
-        public double value;
+            public static readonly string uiVertex = "#version 450 core\r\n#usedefaultparams\r\n\r\nlayout(location = 0) in vec2 aPosition;\r\nlayout (location = 1) in vec2 aTexCoord;\r\n\r\nout vec2 texCoord;\r\n\r\nuniform vec3 position;\r\nuniform mat4 transform;\r\n\r\nvoid main()\r\n{\r\n    gl_Position = vec4(aPosition, 0.0, 1.0) * transform;\r\n    gl_Position.xyz += position;\r\n\r\n    texCoord.xy = aTexCoord;\r\n}";
+            public static readonly string uiFragment = "#version 450 core\r\n#shaderparam vec4 uvTransform\r\n\r\nin vec2 texCoord;\r\n\r\nuniform sampler2D texture0;\r\nuniform vec4 color;\r\nuniform vec4 uvTransform;\r\n\r\nout vec4 FragColor;\r\n\r\nvoid main()\r\n{\r\n    vec4 texColor;\r\n    texColor = texture(texture0, (texCoord * uvTransform.rg) + uvTransform.ba);\r\n    \r\n    texColor *= color;\r\n\r\n    FragColor = texColor;\r\n}";
 
-        public override void Set(object _value)
-        {
-            if (GLLocation == -1) return;
-
-            if (_value.GetType() == typeof(float)) _value = (double)(float)_value;
-            if (_value.GetType() != typeof(double))
-            {
-                Debug.LogError($"Wrong paramater format for '{name}'");
-                return;
-            }
-
-            value = (double)_value;
-            Refresh();
-        }
-
-        protected override void Refresh()
-        {
-            if (GLLocation == -1) return;
-
-            GL.Uniform1(GLLocation, value);
-        }
-    }
-    public class Vec2ShaderParam(string name) : ShaderParam(name)
-    {
-        public Vector2 value;
-
-        public override void Set(object _value)
-        {
-            if (GLLocation == -1) return;
-
-            if (_value.GetType() != typeof(Vector2))
-            {
-                Debug.LogError($"Wrong paramater format for '{name}'");
-                return;
-            }
-
-            value = (Vector2)_value;
-            Refresh();
-        }
-
-        protected override void Refresh()
-        {
-            if (GLLocation == -1) return;
-
-            GL.Uniform2(GLLocation, ref value);
-        }
-    }
-    public class Vec3ShaderParam(string name) : ShaderParam(name)
-    {
-        public Vector3 value;
-
-        public override void Set(object _value)
-        {
-            if (GLLocation == -1) return;
-
-            if (_value.GetType() != typeof(Vector3))
-            {
-                Debug.LogError($"Wrong paramater format for '{name}'");
-                return;
-            }
-
-            value = (Vector3)_value;
-            Refresh();
-        }
-
-        protected override void Refresh()
-        {
-            if (GLLocation == -1) return;
-
-            GL.Uniform3(GLLocation, ref value);
-        }
-    }
-    public class Vec4ShaderParam(string name) : ShaderParam(name)
-    {
-        public Vector4 value;
-
-        public override void Set(object _value)
-        {
-            if (GLLocation == -1) return;
-
-            if (_value.GetType() == typeof(Color4))
-            {
-                Color4 col = (Color4)_value;
-                value = new Vector4(col.R, col.G, col.B, col.A);
-                Refresh();
-                return;
-            }
-
-            if (_value.GetType() != typeof(Vector4))
-            {
-                Debug.LogError($"Wrong paramater format for '{name}'");
-                return;
-            }
-
-            value = (Vector4)_value;
-            Refresh();
-        }
-
-        protected override void Refresh()
-        {
-            if (GLLocation == -1) return;
-
-            GL.Uniform4(GLLocation, ref value);
-        }
-    }
-    public class Mat2ShaderParam(string name) : ShaderParam(name)
-    {
-        public Matrix2 value;
-
-        public override void Set(object _value)
-        {
-            if (GLLocation == -1) return;
-
-            if (_value.GetType() != typeof(Matrix2))
-            {
-                Debug.LogError($"Wrong paramater format for '{name}'");
-                return;
-            }
-
-            value = (Matrix2)_value;
-            Refresh();
-        }
-
-        protected override void Refresh()
-        {
-            if (GLLocation == -1) return;
-
-            GL.UniformMatrix2(GLLocation, false, ref value);
-        }
-    }
-    public class Mat4ShaderParam(string name) : ShaderParam(name)
-    {
-        public Matrix4 value;
-
-        public override void Set(object _value)
-        {
-            if (GLLocation == -1) return;
-
-            if (_value.GetType() != typeof(Matrix4))
-            {
-                Debug.LogError($"Wrong paramater format for '{name}'");
-                return;
-            }
-
-            value = (Matrix4)_value;
-            Refresh();
-        }
-
-        protected override void Refresh()
-        {
-            if (GLLocation == -1) return;
-
-            GL.UniformMatrix4(GLLocation, false, ref value);
+            public static readonly string lineVertex = "#version 450 core\r\n#shaderparam vec3 position\r\n#shaderparam mat4 transform\r\n#shaderparam vec4 color\r\n\r\nlayout (location = 0) in vec2 aPosition;\r\n\r\nuniform vec3 position;\r\nuniform mat4 transform;\r\n\r\nvoid main()\r\n{\r\n    gl_Position = vec4(aPosition.xy, 1, 1) * transform;\r\n    gl_Position.xyz += position;\r\n}";
+            public static readonly string lineFragment = "#version 450 core\r\n\r\nuniform vec4 color;\r\n\r\nout vec4 FragColor;\r\n\r\nvoid main()\r\n{\r\n    FragColor = color;\r\n}";
         }
     }
 }

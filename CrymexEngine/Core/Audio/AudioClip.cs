@@ -1,12 +1,14 @@
-﻿using CrymexEngine.Debugging;
+﻿using CrymexEngine.Data;
+using CrymexEngine.Debugging;
 using NAudio.Lame;
 using NAudio.Wave;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace CrymexEngine
 {
-    public class AudioClip : IDisposable
+    public class AudioClip : CEDisposable
     {
         public readonly IntPtr soundData;
         public readonly WaveFormat format;
@@ -25,7 +27,7 @@ namespace CrymexEngine
 
         public static AudioClip? Load(string path)
         {
-            IntPtr soundData = LoadSound(path, out WaveFormat format, out int dataSize);
+            IntPtr soundData = LoadSoundFromFile(path, out WaveFormat format, out int dataSize);
 
             if (soundData == IntPtr.Zero)
             {
@@ -57,10 +59,10 @@ namespace CrymexEngine
         {
             WaveFormat format = new WaveFormat(41000, 16, 2);
 
-            using (var mp3Stream = new MemoryStream(mp3Data))
-            using (var reader = new Mp3FileReader(mp3Stream))
-            using (MediaFoundationResampler resampler = new MediaFoundationResampler(reader, format))
-            using (MemoryStream pcmStream = new MemoryStream())
+            using var mp3Stream = new MemoryStream(mp3Data);
+            using var reader = new Mp3FileReader(mp3Stream);
+            using MediaFoundationResampler resampler = new MediaFoundationResampler(reader, format);
+            using MemoryStream pcmStream = new MemoryStream();
             {
                 byte[] buffer = new byte[4096];
                 int bytesRead;
@@ -78,49 +80,52 @@ namespace CrymexEngine
             }
         }
 
-        public void Dispose()
+        protected override void OnDispose()
         {
             Marshal.FreeHGlobal(soundData);
+            UsageProfiler.AddMemoryConsumptionValue(-dataSize, MemoryUsageType.Audio);
         }
 
-        private static IntPtr LoadSound(string path, out WaveFormat format, out int size)
+        private static IntPtr LoadSoundFromFile(string path, out WaveFormat format, out int size)
         {
+            size = 0;
+            format = new WaveFormat(44100, 16, 2);
             if (!File.Exists(path))
             {
-                format = new WaveFormat();
-                size = 0;
                 return IntPtr.Zero;
             }
 
-            size = 0;
             IntPtr unmanagedBuffer;
-            using (AudioFileReader reader = new AudioFileReader(path))
+            try
             {
-                format = new WaveFormat(44100, 16, 2);
+                using AudioFileReader reader = new AudioFileReader(path);
+                using MediaFoundationResampler resampler = new MediaFoundationResampler(reader, format);
+                using MemoryStream memoryStream = new MemoryStream();
 
-                using (MediaFoundationResampler resampler = new MediaFoundationResampler(reader, format))
+                resampler.ResamplerQuality = 60;
+
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+
+                while ((bytesRead = resampler.Read(buffer, 0, buffer.Length)) > 0)
                 {
-                    resampler.ResamplerQuality = 60;
-
-                    using (MemoryStream memoryStream = new MemoryStream())
-                    {
-                        byte[] buffer = new byte[4096];
-                        int bytesRead;
-
-                        while ((bytesRead = resampler.Read(buffer, 0, buffer.Length)) > 0)
-                        {
-                            memoryStream.Write(buffer, 0, bytesRead);
-                        }
-
-                        byte[] fullData = memoryStream.ToArray();
-                        unmanagedBuffer = Marshal.AllocHGlobal(fullData.Length);
-
-                        Marshal.Copy(fullData, 0, unmanagedBuffer, fullData.Length);
-                        size = fullData.Length;
-                    }
+                    memoryStream.Write(buffer, 0, bytesRead);
                 }
+
+                byte[] fullData = memoryStream.ToArray();
+                size = fullData.Length;
+
+                unmanagedBuffer = Marshal.AllocHGlobal(size);
+
+                Marshal.Copy(fullData, 0, unmanagedBuffer, size);
+                return unmanagedBuffer;
             }
-            return unmanagedBuffer;
+            catch
+            {
+                Debug.LogWarning($"Audio clip at '{path}' couldn't be loaded");
+                format = new WaveFormat();
+                return IntPtr.Zero;
+            }
         }
     }
 }

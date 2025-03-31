@@ -11,11 +11,13 @@ namespace CrymexEngine
         public static string MainDirPath => _mainDirPath;
         public static readonly Version version = new Version(0, 0, 1);
         public static bool Initialized => _initialized;
-        public static bool Precompiled => _precompiled;
+        public static bool Running => _running;
+        public static bool SettingsPrecompiled => _precompiled;
 
         private static bool _initialized = false;
         private static string _mainDirPath;
         private static bool _precompiled;
+        private static bool _running;
 
         public static void Initialize(string? startupPath = null)
         {
@@ -25,7 +27,13 @@ namespace CrymexEngine
             {
                 startupPath = Directory.GetCurrentDirectory() + '\\';
             }
+            else if (!Directory.Exists(startupPath))
+            {
+                Debug.LogWarning($"Specified startup directory doesn't exist ('{startupPath}')");
+                startupPath = Directory.GetCurrentDirectory() + '\\';
+            }
             _mainDirPath = startupPath;
+
             Directories.Init();
 
             GLFW.Init();
@@ -34,7 +42,9 @@ namespace CrymexEngine
 
             bool settingsLoadedFine = LoadGlobalSettings();
 
-            Debug.Instance.LoadSettings();
+            Debug.LoadSettings();
+
+            DataUtil.LoadSettings();
 
             if (!settingsLoadedFine)
             {
@@ -48,14 +58,15 @@ namespace CrymexEngine
 
         private static bool LoadGlobalSettings()
         {
-            if (File.Exists(Directories.RuntimeAssetsPath + "CEConfig.rtmAsset"))
+            string path = Directories.RuntimeAssetsPath + "CEConfig.rtmAsset";
+            if (File.Exists(path))
             {
                 _precompiled = true;
 
                 string cfgText;
                 try
                 {
-                    cfgText = Encoding.Unicode.GetString(AssetCompiler.DecompileData(File.ReadAllBytes(Directories.RuntimeAssetsPath + "CEConfig.rtmAsset"), out _));
+                    cfgText = DataUtil.XorString(Encoding.Unicode.GetString(AssetCompiler.DecompileData(File.ReadAllBytes(path), out _)));
                 }
                 catch
                 {
@@ -76,6 +87,8 @@ namespace CrymexEngine
 
         public static void Run()
         {
+            _running = true;
+
             // --- Main application loop --- //
             Window.Run();
 
@@ -89,12 +102,16 @@ namespace CrymexEngine
         {
             if (!_initialized) return;
 
+            _running = false;
+
             Window.End();
         }
 
         public static void ErrorQuit(string errorMessage)
         {
             if (!_initialized) return;
+
+            _running = false;
 
             Debug.LogError(errorMessage);
             Quit();
@@ -110,7 +127,7 @@ namespace CrymexEngine
         {
             Audio.Cleanup();
             Assets.Cleanup();
-            Debug.Instance.Cleanup();
+            Debug.Cleanup();
 
             GLFW.Terminate();
         }

@@ -10,7 +10,7 @@ namespace CrymexEngine
         public static void WriteInt32(string name, int value)
         {
             // Remove special characters
-            if (DataUtil.ContainsSpecialCharacters(name, out string newName)) name = newName;
+            DataUtil.RemoveSpecialCharacters(name, out name);
 
             using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Int32.bin"))
             {
@@ -38,7 +38,7 @@ namespace CrymexEngine
         public static void WriteFloat(string name, float value)
         {
             // Remove special characters
-            if (DataUtil.ContainsSpecialCharacters(name, out string newName)) name = newName;
+            DataUtil.RemoveSpecialCharacters(name, out name);
 
             using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Float32.bin"))
             {
@@ -66,7 +66,7 @@ namespace CrymexEngine
         public static void WriteString(string name, string value)
         {
             // Remove special characters
-            if (DataUtil.ContainsSpecialCharacters(name, out string newName)) name = newName;
+            DataUtil.RemoveSpecialCharacters(name, out name);
 
             using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Str.bin"))
             {
@@ -101,7 +101,7 @@ namespace CrymexEngine
         public static void WriteBytes(string name, byte[] value)
         {
             // Remove special characters
-            if (DataUtil.ContainsSpecialCharacters(name, out string newName)) name = newName;
+            DataUtil.RemoveSpecialCharacters(name, out name);
 
             using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Bytes.bin"))
             {
@@ -135,7 +135,7 @@ namespace CrymexEngine
         public static void WriteVector2(string name, Vector2 value)
         {
             // Remove special characters
-            if (DataUtil.ContainsSpecialCharacters(name, out string newName)) name = newName;
+            DataUtil.RemoveSpecialCharacters(name, out name);
 
             using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Vec2.bin"))
             {
@@ -166,7 +166,7 @@ namespace CrymexEngine
         public static void WriteVector3(string name, Vector3 value)
         {
             // Remove special characters
-            if (DataUtil.ContainsSpecialCharacters(name, out string newName)) name = newName;
+            DataUtil.RemoveSpecialCharacters(name, out name);
 
             using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Vec3.bin"))
             {
@@ -199,7 +199,7 @@ namespace CrymexEngine
         public static void WriteVector4(string name, Vector4 value)
         {
             // Remove special characters
-            if (DataUtil.ContainsSpecialCharacters(name, out string newName)) name = newName;
+            DataUtil.RemoveSpecialCharacters(name, out name);
 
             using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Vec4.bin"))
             {

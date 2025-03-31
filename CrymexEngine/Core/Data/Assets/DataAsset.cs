@@ -1,4 +1,5 @@
 ﻿using CrymexEngine.Rendering;
+using CrymexEngine.Utils;
 using SixLabors.Fonts;
 using System.Windows.Forms;
 
@@ -16,49 +17,7 @@ namespace CrymexEngine.Data
         public DataAsset(string path)
         {
             this.path = path;
-            if (Path.IsPathFullyQualified(path))
-            {
-                string relativePath = Path.GetRelativePath(Directories.AssetsPath, path);
-                if (relativePath.StartsWith("Textures\\") || relativePath.StartsWith("Textures/")) 
-                {
-                    name = relativePath.Substring(9);
-                }
-                else if (relativePath.StartsWith("Shaders\\") || relativePath.StartsWith("Shaders/"))
-                {
-                    name = relativePath.Substring(8);
-                }
-                else if (relativePath.StartsWith("Audio\\") || relativePath.StartsWith("Audio/"))
-                {
-                    name = relativePath.Substring(6);
-                }
-                else if (relativePath.StartsWith("Scenes\\") || relativePath.StartsWith("Scenes/"))
-                {
-                    name = relativePath.Substring(6);
-                }
-                else if (relativePath.StartsWith("Fonts\\") || relativePath.StartsWith("Fonts/"))
-                {
-                    name = relativePath.Substring(6);
-                }
-                else
-                {
-                    name = relativePath;
-                }
-            }
-            else if (Assets.RunningPrecompiled)
-            {
-                name = path;
-            }
-            else
-            {
-                Debug.LogError($"Path is in incorrect format: {path}");
-                return;
-            }
-
-            if (!Assets.RunningPrecompiled)
-            {
-                name = name.Replace('\\', '/');
-                name = RemoveExtension(name);
-            }
+            name = DataUtil.GetCENameFromPath(path);
 
             LoadDynamicMeta();
         }
@@ -73,66 +32,16 @@ namespace CrymexEngine.Data
                 _meta = MetaFileManager.DecodeMetaFromFile(metaFilePath);
             }
         }
+    }
 
-        private static string RemoveExtension(string path)
+    public class TextAsset : DataAsset
+    {
+        public readonly string text;
+
+        public TextAsset(string path, string text, MetaFile? meta = null) : base(path)
         {
-            string[] split = path.Split('.');
-            if (split.Length < 2)
-            {
-                Debug.LogError($"Path is in incorrect format: {path}");
-                return string.Empty;
-            }
-
-            return split[0];
-        }
-
-        private string GetNameFromPath(string path)
-        {
-            string name;
-            if (Path.IsPathFullyQualified(path))
-            {
-                string relativePath = Path.GetRelativePath(Directories.AssetsPath, path);
-                if (relativePath.StartsWith("Textures\\") || relativePath.StartsWith("Textures/"))
-                {
-                    name = relativePath.Substring(9);
-                }
-                else if (relativePath.StartsWith("Shaders\\") || relativePath.StartsWith("Shaders/"))
-                {
-                    name = relativePath.Substring(8);
-                }
-                else if (relativePath.StartsWith("Audio\\") || relativePath.StartsWith("Audio/"))
-                {
-                    name = relativePath.Substring(6);
-                }
-                else if (relativePath.StartsWith("Scenes\\") || relativePath.StartsWith("Scenes/"))
-                {
-                    name = relativePath.Substring(6);
-                }
-                else if (relativePath.StartsWith("Fonts\\") || relativePath.StartsWith("Fonts/"))
-                {
-                    name = relativePath.Substring(6);
-                }
-                else
-                {
-                    name = relativePath;
-                }
-            }
-            else if (Assets.RunningPrecompiled)
-            {
-                name = path;
-            }
-            else
-            {
-                Debug.LogError($"Path is in incorrect format: {path}");
-                return path;
-            }
-
-            if (!Assets.RunningPrecompiled)
-            {
-                name = name.Replace('\\', '/');
-                name = RemoveExtension(name);
-            }
-            return name;
+            this.text = text;
+            if (meta != null) _meta = meta;
         }
     }
 

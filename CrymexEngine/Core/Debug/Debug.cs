@@ -5,13 +5,8 @@ using System.Text;
 
 namespace CrymexEngine
 {
-    public class Debug
+    public static class Debug
     {
-        /// <summary>
-        /// An internal instance
-        /// </summary>
-        public static Debug Instance => _instance;
-
         /// <summary>
         /// Enables or disables console output
         /// </summary>
@@ -22,37 +17,6 @@ namespace CrymexEngine
         private static FileStream _logFileStream;
         private static bool _logToFile = false;
         private static bool _logAdditionalInfo;
-        private static readonly Debug _instance = new Debug();
-
-        internal void Cleanup()
-        {
-            if (!_logToFile) return;
-
-            _logFileStream.Flush();
-            _logFileStream.Dispose();
-            _logFileStream.Close();
-        }
-
-        internal void LoadSettings()
-        {
-            if (Settings.GlobalSettings.GetSetting("LogToConsole", out SettingOption logToConsoleSetting, SettingType.Bool) && logToConsoleSetting.GetValue<bool>())
-            {
-                logToConsole = true;
-                Console.Clear(); 
-                Console.ResetColor(); 
-            }
-
-            if (Settings.GlobalSettings.GetSetting("AdditionalDebugInfo", out SettingOption additionalDebugInfoSetting, SettingType.Bool) && additionalDebugInfoSetting.GetValue<bool>())
-            {
-                _logAdditionalInfo = true;
-            }
-
-            if (Settings.GlobalSettings.GetSetting("LogToFile", out SettingOption logToFileSetting, SettingType.Bool) && logToFileSetting.GetValue<bool>())
-            {
-                _logToFile = true;
-                _logFileStream = File.Create($"{Directories.LogFolderPath}{Time.CurrentDateTimeShortString}.log");
-            }
-        }
 
         public static void Log(object? message)
         {
@@ -103,7 +67,7 @@ namespace CrymexEngine
                 return;
             }
 
-            _logFileStream.Write(Encoding.Unicode.GetBytes($"\n{Time.CurrentTimeString} | {severity} | {msgString}\n"));
+            _logFileStream.Write(Encoding.Unicode.GetBytes($"{severity} [{Time.CurrentTimeString}] >> {msgString}\n"));
             _logFileStream.Flush();
         }
 
@@ -114,6 +78,36 @@ namespace CrymexEngine
             Console.ForegroundColor = color;
             Console.WriteLine(message);
             Console.ForegroundColor = ConsoleColor.White;
+        }
+
+        internal static void Cleanup()
+        {
+            if (!_logToFile) return;
+
+            _logFileStream.Flush();
+            _logFileStream.Dispose();
+            _logFileStream.Close();
+        }
+
+        internal static void LoadSettings()
+        {
+            if (Settings.GlobalSettings.GetSetting("LogToConsole", out SettingOption logToConsoleSetting, SettingType.Bool) && logToConsoleSetting.GetValue<bool>())
+            {
+                logToConsole = true;
+                Console.Clear(); 
+                Console.ResetColor(); 
+            }
+
+            if (Settings.GlobalSettings.GetSetting("AdditionalDebugInfo", out SettingOption additionalDebugInfoSetting, SettingType.Bool) && additionalDebugInfoSetting.GetValue<bool>())
+            {
+                _logAdditionalInfo = true;
+            }
+
+            if (Settings.GlobalSettings.GetSetting("LogToFile", out SettingOption logToFileSetting, SettingType.Bool) && logToFileSetting.GetValue<bool>())
+            {
+                _logToFile = true;
+                _logFileStream = File.Create($"{Directories.LogFolderPath}{Time.CurrentDateTimeShortString}.log");
+            }
         }
 
         internal static void LogLocalInfo(string sender, object? message)
@@ -146,7 +140,7 @@ namespace CrymexEngine
             {
                 case DebugSeverity.DontCare: return ConsoleColor.Gray;
                 case DebugSeverity.DebugSeverityNotification: return ConsoleColor.Cyan;
-                case DebugSeverity.DebugSeverityLow: return ConsoleColor.White;
+                case DebugSeverity.DebugSeverityLow: return ConsoleColor.Yellow;
                 case DebugSeverity.DebugSeverityMedium: return ConsoleColor.DarkYellow;
                 case DebugSeverity.DebugSeverityHigh: return ConsoleColor.Red;
                 default: return ConsoleColor.White;
@@ -165,7 +159,7 @@ namespace CrymexEngine
         {
             string sourceString = source.ToString();
 
-            // Cut out the DebugType from the name
+            // Cut out the DebugSource from the name
             if (sourceString.Contains("DebugSource")) sourceString = sourceString.Substring(11);
 
             return sourceString;
