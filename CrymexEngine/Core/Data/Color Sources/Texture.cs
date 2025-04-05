@@ -238,6 +238,59 @@ namespace CrymexEngine
             return texture;
         }
 
+        public static Texture FromGradient(int width, int height, Gradient gradient, GradientDirection direction = GradientDirection.FromBottom)
+        {
+            Texture texture = new Texture(width, height);
+
+            switch (direction)
+            {
+                case GradientDirection.FromBottom:
+                    for (int y = 0; y < height; y++)
+                    {
+                        Color4 color = gradient.GetValue(y / (float)height);
+                        for (int x = 0; x < width; x++)
+                        {
+                            texture.SetPixel(x, y, color);
+                        }
+                    }
+                    break;
+                case GradientDirection.FromTop:
+                    for (int y = 0; y < height; y++)
+                    {
+                        Color4 color = gradient.GetValue(1 - (y / (float)height));
+                        for (int x = 0; x < width; x++)
+                        {
+                            texture.SetPixel(x, y, color);
+                        }
+                    }
+                    break;
+                case GradientDirection.FromRight:
+                    for (int x = 0; x < width; x++)
+                    {
+                        Color4 color = gradient.GetValue(1 - (x / (float)height));
+                        for (int y = 0; y < height; y++)
+                        {
+                            texture.SetPixel(x, y, color);
+                        }
+                    }
+                    break;
+                case GradientDirection.FromLeft:
+                    for (int x = 0; x < width; x++)
+                    {
+                        Color4 color = gradient.GetValue(x / (float)width);
+                        for (int y = 0; y < height; y++)
+                        {
+                            texture.SetPixel(x, y, color);
+                        }
+                    }
+                    break;
+            }
+
+            texture.Apply();
+
+            return texture;
+        }
+
         /// <summary>
         /// Flips the texture upside down and calls Texture.Apply()
         /// </summary>
@@ -361,4 +414,5 @@ namespace CrymexEngine
     }
 
     public enum TextureSaveFormat { PNG, BMP, JPEG, GIF }
+    public enum GradientDirection { FromBottom, FromTop, FromRight, FromLeft }
 }

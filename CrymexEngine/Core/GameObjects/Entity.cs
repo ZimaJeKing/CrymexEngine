@@ -1,11 +1,12 @@
-﻿using CrymexEngine.Scenes;
+﻿using CrymexEngine.GameObjects;
+using CrymexEngine.Scenes;
 using CrymexEngine.UI;
 using OpenTK.Mathematics;
 namespace CrymexEngine
 {
     public sealed class Entity : GameObject
     {
-        public Vector2 Forward => new Vector2(MathF.Cos(MathHelper.DegreesToRadians(Rotation)), MathF.Sin(MathHelper.DegreesToRadians(Rotation)));
+        public Vector2 Forward => new Vector2(MathF.Cos(MathHelper.DegreesToRadians(Transform.Rotation)), MathF.Sin(MathHelper.DegreesToRadians(Transform.Rotation)));
 
         public EntityRenderer? Renderer => _renderer;
 
@@ -41,12 +42,9 @@ namespace CrymexEngine
             return null;
         }
 
-        public Entity(Texture texture, Vector2 position, Vector2 scale, Entity? parent = null, string name = "", float depth = 0)
+        public Entity(Texture texture, Vector2 position, Vector2 scale, Entity? parent = null, string name = "", float depth = 0) : base(position, scale)
         {
-            Parent = parent;
-            LocalPosition = position;
-            Scale = scale;
-            Rotation = 0;
+            if (parent != null) Transform.Parent = parent.Transform;
 
             Scene.Current.entities.Add(this);
 
@@ -59,12 +57,9 @@ namespace CrymexEngine
         /// <summary>
         /// Creates an Entity in the specified scene
         /// </summary>
-        public Entity(Texture texture, Vector2 position, Vector2 scale, Scene scene, Entity? parent = null, string name = "")
+        public Entity(Texture texture, Vector2 position, Vector2 scale, Scene scene, Entity? parent = null, string name = "") : base(position, scale)
         {
-            Parent = parent;
-            LocalPosition = position;
-            Scale = scale;
-            Rotation = 0;
+            if (parent != null) Transform.Parent = parent.Transform;
 
             scene.entities.Add(this);
 
@@ -76,12 +71,10 @@ namespace CrymexEngine
         /// <summary>
         /// Creates an Entity with no EntityRenderer attached
         /// </summary>
-        public Entity(Vector2 position, Vector2 scale, Entity? parent = null, string name = "")
+        public Entity(Vector2 position, Vector2 scale, Entity? parent = null, string name = "") : base(position, scale)
         {
-            Parent = parent;
-            Position = position;
-            Scale = scale;
-            Rotation = 0;
+            if (parent != null) Transform.Parent = parent.Transform;
+
             this.name = name;
 
             Scene.Current.entities.Add(this);

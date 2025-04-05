@@ -95,9 +95,9 @@ namespace CrymexEngine.Data
             byte[] vertexBytes = Encoding.Unicode.GetBytes(DataUtil.XorString(asset.vertexAssetCode));
             byte[] fragmentBytes = Encoding.Unicode.GetBytes(DataUtil.XorString(asset.fragmentAssetCode));
 
-            if (!SerializeAssetMeta(asset, out byte[] meta)) meta = Array.Empty<byte>();
+            if (!SerializeAssetMeta(asset, out byte[] metaBytes)) metaBytes = Array.Empty<byte>();
 
-            byte[] final = new byte[4 + nameBytes.Length + 4 + vertexBytes.Length + 4 + fragmentBytes.Length + 4 + 4 + meta.Length + 4];
+            byte[] final = new byte[4 + nameBytes.Length + 4 + vertexBytes.Length + 4 + fragmentBytes.Length + 4 + 4 + metaBytes.Length + 4];
 
             using (MemoryStream memStream = new MemoryStream(final))
             {
@@ -111,9 +111,48 @@ namespace CrymexEngine.Data
 
                 writer.Write(DataUtil.GetCheckSum(vertexBytes) + DataUtil.GetCheckSum(fragmentBytes));
 
-                writer.Write(meta.Length);
-                if (meta.Length != 0) writer.Write(meta);
-                writer.Write(DataUtil.GetCheckSum(meta));
+                writer.Write(metaBytes.Length);
+                if (metaBytes.Length != 0) writer.Write(metaBytes);
+                writer.Write(DataUtil.GetCheckSum(metaBytes));
+            }
+            return final;
+        }
+
+        public static byte[] CompileTextAsset(TextAsset asset)
+        {
+            // Int32 - name length
+            // bytes - name bytes
+            // Int32 - data length
+            // bytes - data bytes
+            // Int32 - check sum
+            // Int32 - meta length
+            // bytes - meta bytes
+            // Int32 - meta check sum
+
+            byte[] nameBytes = Encoding.Unicode.GetBytes(DataUtil.XorString(asset.name));
+            byte[] textBytes = Encoding.Unicode.GetBytes(DataUtil.XorString(asset.text));
+
+            if (!SerializeAssetMeta(asset, out byte[] metaBytes)) metaBytes = Array.Empty<byte>();
+
+            byte[] final = new byte[4 + nameBytes.Length + 4 + textBytes.Length + 4 + 4 + metaBytes.Length + 4];
+
+            using (MemoryStream stream = new MemoryStream(final))
+            {
+                using BinaryWriter writer = new BinaryWriter(stream);
+                writer.Write((int)nameBytes.Length);
+                writer.Write(nameBytes);
+                writer.Write((int)textBytes.Length);
+                writer.Write(textBytes);
+
+                writer.Write(DataUtil.GetCheckSum(textBytes));
+
+                if (metaBytes.Length != 0)
+                {
+                    writer.Write(metaBytes.Length);
+                    writer.Write(metaBytes);
+                    writer.Write(DataUtil.GetCheckSum(metaBytes));
+                }
+                else stream.Position += 8;
             }
             return final;
         }
@@ -296,6 +335,36 @@ namespace CrymexEngine.Data
                 }
             }
             return shaderAssets;
+        }
+
+        public static Dictionary<string, TextAsset> DecompileTextAssets(byte[] data)
+        {
+            Dictionary<string, TextAsset> textAssets = new();
+            using (MemoryStream memStream = new MemoryStream(data))
+            {
+                using BinaryReader reader = new BinaryReader(memStream);
+
+                while (memStream.Position < memStream.Length - 1)
+                {
+                    string name = DataUtil.XorString(Encoding.Unicode.GetString(reader.ReadBytes(reader.ReadInt32())));
+                    byte[] textBytes = reader.ReadBytes(reader.ReadInt32());
+
+                    int checkSum = reader.ReadInt32();
+                    if (checkSum != DataUtil.GetCheckSum(textBytes)) continue;
+
+                    // Load meta file
+                    byte[] metaBytes = reader.ReadBytes(reader.ReadInt32());
+                    MetaFile? meta;
+                    if (DataUtil.GetCheckSum(metaBytes) != reader.ReadInt32()) meta = null;
+                    else meta = MetaFile.FromSerialized(metaBytes);
+
+                    string text = DataUtil.XorString(Encoding.Unicode.GetString(textBytes));
+
+                    TextAsset asset = new TextAsset(name, text, meta);
+                    textAssets.Add(asset.name, asset);
+                }
+            }
+            return textAssets;
         }
 
         private static bool SerializeAssetMeta(DataAsset asset, out byte[] data)

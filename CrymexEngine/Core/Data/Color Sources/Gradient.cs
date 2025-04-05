@@ -57,7 +57,7 @@ namespace CrymexEngine
 
             int keypointIndex = 0;
             float position = _keyPoints[0].position;
-            while (position <= x)
+            while (position <= x && keypointIndex < _keyPoints.Count - 1)
             {
                 Keypoint current = _keyPoints[keypointIndex];
                 Keypoint next = _keyPoints[keypointIndex + 1];
@@ -65,14 +65,14 @@ namespace CrymexEngine
                 {
                     return current.color;
                 }
-                if (x >= current.position && x < next.position)
+                if (x >= current.position && x <= next.position)
                 {
                     float localPosition = (x - current.position) / (next.position - current.position);
 
                     Color4 finalColor = Interpolate(current.color, next.color, localPosition);
-
                     return finalColor;
                 }
+
                 keypointIndex++;
                 position = _keyPoints[keypointIndex].position;
             }

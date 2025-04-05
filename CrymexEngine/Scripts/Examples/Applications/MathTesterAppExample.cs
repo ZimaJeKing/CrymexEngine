@@ -60,7 +60,7 @@ namespace CrymexEngine.Scripts.Examples
         }
         private void CreateHeaderText()
         {
-            TextObject text = new TextObject(new Vector2(0, 300), new Vector2i(720, 50), "Math training application", Assets.GetFontFamily("Jakarta"), 30);
+            TextObject text = new TextObject(new Vector2(0, 300), new Vector2i(720, 50), "Math training application", Assets.DefaultFontFamily, 30);
             text.BackgroundColor = Color4.White;
             text.FontColor = Color4.Red;
         }
@@ -193,7 +193,7 @@ namespace CrymexEngine.Scripts.Examples
 
         protected override void Load()
         {
-            text = new TextObject(Element.Position, VectorUtil.RoundToInt(Element.Scale), string.Empty, Assets.DefaultFontFamily, 25);
+            text = new TextObject(Element.Transform.Position, VectorUtil.RoundToInt(Element.Transform.Scale), string.Empty, Assets.DefaultFontFamily, 25);
             startTime = Time.GameTime;
         }
 

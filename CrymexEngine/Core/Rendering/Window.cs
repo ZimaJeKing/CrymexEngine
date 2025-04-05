@@ -1,5 +1,6 @@
 ﻿using CrymexEngine.AetherPhysics;
 using CrymexEngine.Debugging;
+using CrymexEngine.GameObjects;
 using CrymexEngine.Scenes;
 using CrymexEngine.Scripting;
 using CrymexEngine.UI;
@@ -268,7 +269,18 @@ namespace CrymexEngine
 
         private static void WindowQuit(CancelEventArgs e)
         {
-
+            foreach (ScriptableBehaviour behaviour in Scene.Current.scriptableBehaviours)
+            {
+                Behaviour.QuitBehaviour(behaviour);
+            }
+            foreach (Entity entity in Scene.Current.entities)
+            {
+                GameObject.GameObjectQuit(entity);
+            }
+            foreach (UIElement element in Scene.Current.uiElementDeleteQueue)
+            {
+                GameObject.GameObjectQuit(element);
+            }
         }
 
         private static void WindowTextInput(TextInputEventArgs e)

@@ -11,6 +11,7 @@ namespace CrymexEngine.UI
         public Texture texture = Texture.White;
         public Shader shader = Shader.UI;
         public Color4 color = Color4.White;
+
         public Vector2 UVTiling
         {
             get
@@ -79,8 +80,8 @@ namespace CrymexEngine.UI
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, Mesh.quad.ebo);
 
             // Set first three shader parameters for Position, transformation, and color
-            shader.SetParam(0, VectorUtil.Vec2ToVec3(Element.Position / Window.HalfSize, 0));
-            shader.SetParam(1, Element.TransformationMatrix);
+            shader.SetParam(0, VectorUtil.Vec2ToVec3(Element.Transform.Position / Window.HalfSize, 0));
+            shader.SetParam(1, Element.Transform.TransformationMatrix);
             shader.SetParam(2, color);
             shader.SetParam(3, _uvTransform);
 

@@ -20,7 +20,7 @@ namespace CrymexEngine.Scripts.Examples
                 Entity colliderEntity = new Entity(Texture.White, Random.PointOnUnitCircle() * 256, new Vector2(Random.Range(10, 50), Random.Range(10, 50)));
                 BoxCollider collider = colliderEntity.AddComponent<BoxCollider>();
                 PhysicsBody physicsBody = colliderEntity.AddComponent<PhysicsBody>();
-                collider.Size = colliderEntity.Scale;
+                collider.Size = colliderEntity.Transform.Scale;
                 physicsBody.BodyType = BodyType.Dynamic;
             }
 
@@ -30,7 +30,7 @@ namespace CrymexEngine.Scripts.Examples
                 Entity colliderEntity = new Entity(circleTexture, Random.PointOnUnitCircle() * 256, new Vector2(Random.Range(10, 50)));
                 CircleCollider collider = colliderEntity.AddComponent<CircleCollider>();
                 PhysicsBody physicsBody = colliderEntity.AddComponent<PhysicsBody>();
-                collider.Radius = colliderEntity.HalfScale.X;
+                collider.Radius = colliderEntity.Transform.HalfScale.X;
                 physicsBody.BodyType = BodyType.Dynamic;
             }
         }

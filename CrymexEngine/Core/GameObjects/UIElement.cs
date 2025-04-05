@@ -1,4 +1,5 @@
-﻿using CrymexEngine.Scenes;
+﻿using CrymexEngine.GameObjects;
+using CrymexEngine.Scenes;
 using OpenTK.Mathematics;
 using OpenTK.Platform.Windows;
 
@@ -10,11 +11,9 @@ namespace CrymexEngine.UI
 
         private readonly UIRenderer _renderer;
 
-        public UIElement(Texture texture, Vector2 position, Vector2 scale, UIElement? parent = null, string name = "", float depth = 0)
+        public UIElement(Texture texture, Vector2 position, Vector2 scale, UIElement? parent = null, string name = "", float depth = 0) : base(position, scale)
         {
-            Parent = parent;
-            Scale = scale;
-            LocalPosition = position;
+            if (parent != null) Transform.Parent = parent.Transform;
             this.name = name;
 
             _renderer = new UIRenderer(depth)

@@ -46,8 +46,8 @@ namespace CrymexEngine.Scripts.Examples
             if (!playing) return;
 
             // Update the progress bar
-            progressBar.Scale = new Vector2(source.Progress * 512, 50);
-            progressBar.Position = new Vector2(source.Progress * 256 - 256, 250);
+            progressBar.Transform.Scale = new Vector2(source.Progress * 512, 50);
+            progressBar.Transform.Position = new Vector2(source.Progress * 256 - 256, 250);
         }
 
         void PlayButtonClick(MouseButton button)

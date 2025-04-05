@@ -30,14 +30,14 @@ namespace CrymexEngine.Scripts.Examples
         protected override void Update()
         {
             // Set the line positions for a sinusoidal motion
-            start.Position = new Vector2(-256, MathF.Sin(Time.GameTime) * 256);
-            end.Position = new Vector2(256, MathF.Cos(Time.GameTime) * 256);
+            start.Transform.Position = new Vector2(-256, MathF.Sin(Time.GameTime) * 256);
+            end.Transform.Position = new Vector2(256, MathF.Cos(Time.GameTime) * 256);
 
             // Set the middle point's position to the line's middle point
-            middlePoint.Position = line.MiddlePoint;
+            middlePoint.Transform.Position = line.MiddlePoint;
 
             // When assigning both points at the same time use this approach as it is faster
-            line.StartEnd = (start.Position, end.Position);
+            line.StartEnd = (start.Transform.Position, end.Transform.Position);
         }
     }
 }

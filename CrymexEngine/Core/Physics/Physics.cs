@@ -82,7 +82,7 @@ namespace CrymexEngine.AetherPhysics
                     physicsBody.Remove(fixture);
                 }
             }
-            else physicsBody = _aetherWorld.CreateBody(OpenTKToAether(collider.entity.Position), collider.entity.Rotation, bodyType);
+            else physicsBody = _aetherWorld.CreateBody(OpenTKToAether(collider.entity.Transform.Position), collider.entity.Transform.Rotation, bodyType);
 
             if (collider is BoxCollider box)
             {

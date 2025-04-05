@@ -8,22 +8,15 @@ namespace CrymexEngine.Scripts.Examples
         protected override void Load()
         {
             int textureSize = 64;
-            // Create a gradient going from red, to green, to blue
+            // Create a gradient going from red to blue and add a keypoint for green in the middle
             Gradient gradient = new Gradient(Color4.Red, Color4.Blue);
             gradient.AddKeypoint(0.5f, Color4.Green);
 
-            // Sample the gradient by the x coordinate
-            Texture texture = new Texture(textureSize, textureSize);
-            for (int x = 0; x < textureSize; x++)
-            {
-                Color4 color = gradient.GetValue((float)x / textureSize);
-                for (int y = 0; y < textureSize; y++)
-                {
-                    texture.SetPixel(x, y, color);
-                }
-            }
-            texture.Apply();
-            //texture.Save(Directories.AssetsPath + "GradientImage.png", TextureSaveFormat.PNG);
+            // Generate a texture directly from the gradient
+            Texture texture = Texture.FromGradient(textureSize, textureSize, gradient, GradientDirection.FromLeft);
+
+            // Save the texture if needed
+            // texture.Save(Directories.AssetsPath + "GradientImage.png", TextureSaveFormat.PNG);
 
             // Create an UI element for displaying the texture
             new UIElement(texture, Vector2.Zero, Window.Size, null, "DisplayObject");

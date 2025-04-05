@@ -104,22 +104,22 @@ namespace CrymexEngine
 
             Vector2 point = Camera.ScreenSpaceToWorldSpace(MousePosition);
 
-            float translatedX = point.X - entity.Position.X;
-            float translatedY = entity.Position.Y - point.Y;
+            float translatedX = point.X - entity.Transform.Position.X;
+            float translatedY = entity.Transform.Position.Y - point.Y;
 
-            if ((translatedX * translatedX + translatedY * translatedY) * 2 > entity.Scale.LengthSquared) return false;
+            if ((translatedX * translatedX + translatedY * translatedY) * 2 > entity.Transform.Scale.LengthSquared) return false;
 
-            float radians = MathHelper.DegreesToRadians(-entity.Rotation);
+            float radians = MathHelper.DegreesToRadians(-entity.Transform.Rotation);
             float rotatedX = MathF.Cos(radians) * translatedX - MathF.Sin(radians) * translatedY;
             float rotatedY = MathF.Sin(radians) * translatedX + MathF.Cos(radians) * translatedY;
 
             // Alpha testing
-            if (rotatedX >= -entity.HalfScale.X && rotatedX <= entity.HalfScale.X && rotatedY >= -entity.HalfScale.Y && rotatedY <= entity.HalfScale.Y)
+            if (rotatedX >= -entity.Transform.HalfScale.X && rotatedX <= entity.Transform.HalfScale.X && rotatedY >= -entity.Transform.HalfScale.Y && rotatedY <= entity.Transform.HalfScale.Y)
             {
                 if (!alphaTest) return true;
 
-                int texX = (int)(((rotatedX + entity.HalfScale.X) / entity.Scale.X) * entity.Renderer.texture.width);
-                int texY = (int)(((rotatedY + entity.HalfScale.Y) / entity.Scale.Y) * entity.Renderer.texture.height);
+                int texX = (int)(((rotatedX + entity.Transform.HalfScale.X) / entity.Transform.Scale.X) * entity.Renderer.texture.width);
+                int texY = (int)(((rotatedY + entity.Transform.HalfScale.Y) / entity.Transform.Scale.Y) * entity.Renderer.texture.height);
                 if (entity.Renderer.texture.GetPixel(texX, entity.Renderer.texture.height - texY - 1).A != 0)
                 {
                     return true;
@@ -132,22 +132,22 @@ namespace CrymexEngine
         {
             if (!element.enabled || !element.interactible) return false;
 
-            float translatedX = MousePosition.X - element.Position.X;
-            float translatedY = element.Position.Y - MousePosition.Y;
+            float translatedX = MousePosition.X - element.Transform.Position.X;
+            float translatedY = element.Transform.Position.Y - MousePosition.Y;
 
-            if (translatedX * translatedX + translatedY * translatedY > element.Scale.LengthSquared) return false;
+            if (translatedX * translatedX + translatedY * translatedY > element.Transform.Scale.LengthSquared) return false;
 
-            float radians = MathHelper.DegreesToRadians(-element.Rotation);
+            float radians = MathHelper.DegreesToRadians(-element.Transform.Rotation);
             float rotatedX = MathF.Cos(radians) * translatedX - MathF.Sin(radians) * translatedY;
             float rotatedY = MathF.Sin(radians) * translatedX + MathF.Cos(radians) * translatedY;
 
             // Alpha testing
-            if (rotatedX >= -element.HalfScale.X && rotatedX <= element.HalfScale.X && rotatedY >= -element.HalfScale.Y && rotatedY <= element.HalfScale.Y)
+            if (rotatedX >= -element.Transform.HalfScale.X && rotatedX <= element.Transform.HalfScale.X && rotatedY >= -element.Transform.HalfScale.Y && rotatedY <= element.Transform.HalfScale.Y)
             {
                 if (!alphaTest) return true;
 
-                int texX = (int)(((rotatedX + element.HalfScale.X) / element.Scale.X) * element.Renderer.texture.width);
-                int texY = (int)(((rotatedY + element.HalfScale.Y) / element.Scale.Y) * element.Renderer.texture.height);
+                int texX = (int)(((rotatedX + element.Transform.HalfScale.X) / element.Transform.Scale.X) * element.Renderer.texture.width);
+                int texY = (int)(((rotatedY + element.Transform.HalfScale.Y) / element.Transform.Scale.Y) * element.Renderer.texture.height);
                 if (element.Renderer.texture.GetPixel(texX, element.Renderer.texture.height - texY - 1).A != 0)
                 {
                     return true;

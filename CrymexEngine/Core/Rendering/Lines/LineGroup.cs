@@ -138,5 +138,7 @@ namespace CrymexEngine
                 _lines[i] = new Line(_points[i], _points[i + 1], _color, this, _width, _depth, _screenSpace);
             }
         }
+
+        protected override void OnQuit() { }
     }
 }

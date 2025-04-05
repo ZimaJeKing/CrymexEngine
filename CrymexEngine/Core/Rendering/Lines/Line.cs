@@ -167,5 +167,7 @@ namespace CrymexEngine
 
             GL.UseProgram(0);
         }
+
+        protected override void OnQuit() { }
     }
 }

@@ -1,4 +1,5 @@
-﻿using CrymexEngine.Rendering;
+﻿using CrymexEngine.GameObjects;
+using CrymexEngine.Rendering;
 using CrymexEngine.UI;
 using CrymexEngine.Utils;
 using OpenTK.Graphics.OpenGL;
@@ -40,7 +41,7 @@ namespace CrymexEngine
                 return;
             }
 
-            if (Vector2.DistanceSquared(entity.Position, Camera.position) < Camera.renderDistanceSquared)
+            if (Vector2.DistanceSquared(entity.Transform.Position, Camera.position) < Camera.renderDistanceSquared)
             {
                 GL.UseProgram(shader._glShader);
 
@@ -51,8 +52,8 @@ namespace CrymexEngine
                 GL.BindBuffer(BufferTarget.ElementArrayBuffer, mesh.ebo);
 
                 // Set first three shader parameters for Position, transformation, and color
-                shader.SetParam(0, VectorUtil.Vec2ToVec3((entity.Position - Camera.position) / Window.HalfSize, -Depth * 0.001f));
-                shader.SetParam(1, entity.TransformationMatrix);
+                shader.SetParam(0, VectorUtil.Vec2ToVec3((entity.Transform.Position - Camera.position) / Window.HalfSize, -Depth * 0.001f));
+                shader.SetParam(1, entity.Transform.TransformationMatrix);
                 shader.SetParam(2, color);
 
                 GameObject.GameObjectPreRender(entity);

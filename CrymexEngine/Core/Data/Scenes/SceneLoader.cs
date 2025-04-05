@@ -128,7 +128,7 @@ namespace CrymexEngine.Scenes
 
             Entity entity = new Entity(texture, position, scale, scene, Entity.GetEntity(parentName, scene), name);
 
-            entity.LocalPosition = localPosition;
+            entity.Transform.LocalPosition = localPosition;
 
             return entity;
         }

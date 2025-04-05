@@ -186,12 +186,12 @@ namespace CrymexEngine.UI
 
             if (newText.Length == 0 || _selectedIndex == -1)
             {
-                _cursorPosition = _selected.Element.Position - new Vector2(_selected.Element.HalfScale.X - _selected.DisplayText.TextPadding.X, 0);
+                _cursorPosition = _selected.Element.Transform.Position - new Vector2(_selected.Element.Transform.HalfScale.X - _selected.DisplayText.TextPadding.X, 0);
                 return;
             }
 
             string firstTextPart = newText.Substring(0, _selectedIndex + 1);
-            _cursorPosition = _selected.Element.Position - new Vector2(_selected.Element.HalfScale.X - _selected.DisplayText.Measure(firstTextPart).X - _selected.DisplayText.TextPadding.X - 1, 0);
+            _cursorPosition = _selected.Element.Transform.Position - new Vector2(_selected.Element.Transform.HalfScale.X - _selected.DisplayText.Measure(firstTextPart).X - _selected.DisplayText.TextPadding.X - 1, 0);
         }
     }
 }

@@ -78,8 +78,8 @@ namespace CrymexEngine.AetherPhysics
         protected override void Update() 
         {
             if (_aetherBody == null) return;
-            entity.Position = Physics.AetherToOpenTK(_aetherBody.Position);
-            entity.Rotation = MathHelper.RadiansToDegrees(_aetherBody.Rotation);
+            entity.Transform.Position = Physics.AetherToOpenTK(_aetherBody.Position);
+            entity.Transform.Rotation = MathHelper.RadiansToDegrees(_aetherBody.Rotation);
         }
 
         public override void PreRender() { }

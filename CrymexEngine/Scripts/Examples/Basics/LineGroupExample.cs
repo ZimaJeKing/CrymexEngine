@@ -42,7 +42,7 @@ namespace CrymexEngine.Scripts.Examples
                     pointEntities[i] = new Entity(circleTexture, point, new Vector2(10));
                     pointEntities[i].Renderer.color = Color4.Red;
                 }
-                else pointEntities[i].Position = point;
+                else pointEntities[i].Transform.Position = point;
             }
 
             lineGroup = new LineGroup(points, Color4.Red, 2);

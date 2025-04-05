@@ -9,11 +9,12 @@ namespace CrymexEngine.Scripts
     {
         protected override void Load()
         {
+            Debug.Log(Assets.GetText("MyText"));
         }
 
         protected override void Update()
         {
-
+            
         }
     }
 }

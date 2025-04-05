@@ -7,7 +7,6 @@ namespace CrymexEngine.Debugging
     public class UsageProfiler
     {
         public static bool Active => _active;
-
         public static Process CurrentProcess => _currentProcess;
 
         /// <summary>
@@ -24,7 +23,7 @@ namespace CrymexEngine.Debugging
         public static float ProcessorTime => _processorTime;
         public static int ThreadCount => _threadCount;
 
-        private static readonly Process _currentProcess = Process.GetCurrentProcess();
+        private static Process _currentProcess;
 
         private static bool _active;
         private static long _memoryUsage;
@@ -36,8 +35,6 @@ namespace CrymexEngine.Debugging
         private static float _processorTimerStart;
         private static int _processorTimeFrameCount;
         private static float _processorTimeSum;
-        private static PerformanceCounter _cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
-
 
         internal static void Init()
         {
@@ -45,6 +42,7 @@ namespace CrymexEngine.Debugging
 
             if (!Settings.GlobalSettings.GetSetting("UsageProfiler", out SettingOption option, SettingType.Bool) || !option.GetValue<bool>()) return;
 
+            _currentProcess = Process.GetCurrentProcess();
             Debug.LogLocalInfo("Usage Profiler", "Usage profiler active");
             LogStartupInfo();
             _active = true;
@@ -102,16 +100,14 @@ namespace CrymexEngine.Debugging
 
         private static string GetUsageProfileLog()
         {
-            float cpuPerc = _cpuCounter.NextValue();
             string cpuTimeString = "Cannot measure";
-            if (cpuPerc <= 0 || cpuPerc > 100) cpuTimeString = DataUtil.FloatToShortString(cpuPerc, 2) + '%';
+            if (_processorTime != float.NaN) cpuTimeString = DataUtil.FloatToShortString(_processorTime * 1000, 2) + "ms";
 
-            string profile = "\nUsage Profile:\n";
-            profile += $"Time: {Time.CurrentTimeString}\n";
-            profile += $"Ram usage: {DataUtil.ByteCountToString(MemoryUsage)}\n";
-            profile += $"CPU usage: {cpuTimeString}";
-            profile += $"Avarage processor time: {DataUtil.FloatToShortString(ProcessorTime * 1000, 2)}ms\n";
-            profile += $"Thread count: {ThreadCount}\n";
+            string profile = "\r\nUsage Profile:\r\n";
+            profile += $"Time: {Time.CurrentTimeString}\r\n";
+            profile += $"Ram usage: {DataUtil.ByteCountToString(MemoryUsage)}\r\n";
+            profile += $"Processor time: {cpuTimeString}\r\n";
+            profile += $"Thread count: {ThreadCount}\r\n";
             profile += $"FPS: {Window.FramesPerSecond}";
             return profile;
         }

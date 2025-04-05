@@ -27,7 +27,7 @@ namespace CrymexEngine
         private static bool _useMeta = false;
         private static bool _loaded = false;
         private static bool _precompiled;
-        private static int _textureCompressionLevel = 9;
+        private static int _textureCompressionLevel = 1;
 
         private static FontFamily _defaultFontFamily;
 
@@ -105,54 +105,42 @@ namespace CrymexEngine
         /// <summary>
         /// Gets an audio clip with the same name
         /// </summary>
-        public static AudioClip GetAudioClip(string name)
+        public static AudioClip? GetAudioClip(string name)
         {
-            if (_audioClips.TryGetValue(name, out AudioAsset? asset))
-            {
-                if (asset != null) return asset.clip;
-            }
-            return null;
+            _audioClips.TryGetValue(name, out AudioAsset? asset);
+            return asset?.clip;
         }
         /// <summary>
         /// Gets a shader with the same name
         /// </summary>
         public static Shader? GetShader(string name)
         {
-            if (_shaders.TryGetValue(name, out ShaderAsset? asset))
-            {
-                if (asset != null) return asset.shader;
-            }
-            return null;
+            _shaders.TryGetValue(name, out ShaderAsset? asset);
+            return asset.shader;
         }
         /// <summary>
         /// Gets a text with the same name
         /// </summary>
         public static string? GetText(string name)
         {
-            if (_texts.TryGetValue(name, out TextAsset? asset))
-            {
-                if (asset != null) return asset.text;
-            }
-            return null;
+            _texts.TryGetValue(name, out TextAsset? asset);
+            return asset?.text;
         }
         /// <summary>
         /// Gets a settings object with the same name
         /// </summary>
         public static Settings? GetSettings(string name)
         {
-            if (_settings.TryGetValue(name, out SettingAsset? asset))
-            {
-                if (asset != null) return asset.settings;
-            }
-            return null;
+            _settings.TryGetValue(name, out SettingAsset? asset);
+            return asset.settings;
         }
-        public static FontFamily GetFontFamily(string name)
+        public static FontFamily? GetFontFamily(string name)
         {
             if (_fonts.TryGetValue(name, out FontAsset? asset))
             {
                 if (asset != null) return asset.family;
             }
-            return _defaultFontFamily;
+            return null;
         }
 
         /// <summary>
@@ -259,7 +247,7 @@ namespace CrymexEngine
             // Defining Texture.Missing, Texture.White and Texture.None
             DefineTextures();
 
-            //  Whether the application is precompiled
+            // Whether the application is precompiled
             if (Engine.SettingsPrecompiled)
             {
                 StartLoadingPrecompiled();
@@ -278,6 +266,7 @@ namespace CrymexEngine
             }
             else
             {
+                _precompiled = false;
                 StartLoadingDynamic();
 
                 // Compile assets if specified in settings
@@ -567,7 +556,7 @@ namespace CrymexEngine
                 foreach (KeyValuePair<string, TextureAsset> pair in _textures.ToArray())
                 {
                     MetaFile? meta = pair.Value.Meta;
-                    bool? includeInRelease = pair.Value.Meta.GetBoolProperty("IncludeInRelease");
+                    bool? includeInRelease = pair.Value.Meta?.GetBoolProperty("IncludeInRelease");
 
                     if (pair.Value.Meta == null || includeInRelease != null && includeInRelease.Value)
                     {
@@ -584,9 +573,9 @@ namespace CrymexEngine
                 foreach (KeyValuePair<string, AudioAsset> pair in _audioClips.ToArray())
                 {
                     MetaFile? meta = pair.Value.Meta;
-                    bool? includeInRelease = meta.GetBoolProperty("IncludeInRelease");
+                    bool? includeInRelease = meta?.GetBoolProperty("IncludeInRelease");
 
-                    if (meta == null || includeInRelease != null && includeInRelease.Value)
+                    if (includeInRelease == null || includeInRelease.Value)
                     {
                         audioFileStream.Write(AssetCompiler.CompileAudioAsset(pair.Value));
                     }
@@ -601,9 +590,9 @@ namespace CrymexEngine
                 foreach (KeyValuePair<string, ShaderAsset> pair in _shaders.ToArray())
                 {
                     MetaFile? meta = pair.Value.Meta;
-                    bool? includeInRelease = meta.GetBoolProperty("IncludeInRelease");
+                    bool? includeInRelease = meta?.GetBoolProperty("IncludeInRelease");
 
-                    if (meta == null || includeInRelease != null && includeInRelease.Value)
+                    if (includeInRelease == null || includeInRelease.Value)
                     {
                         shaderFileStream.Write(AssetCompiler.CompileShaderAsset(pair.Value));
                     }
@@ -620,7 +609,7 @@ namespace CrymexEngine
                     MetaFile? meta = pair.Value.Meta;
                     bool? includeInRelease = meta?.GetBoolProperty("IncludeInRelease");
 
-                    if (meta == null || includeInRelease != null && includeInRelease.Value)
+                    if (includeInRelease == null || includeInRelease.Value)
                     {
                         fontFileStream.Write(AssetCompiler.CompileData(pair.Value.name, File.ReadAllBytes(pair.Value.path)));
                     }
@@ -648,9 +637,9 @@ namespace CrymexEngine
             string textPath = Directories.RuntimeAssetsPath + "RuntimeText.rtmAsset";
             using (FileStream textFileStream = File.Create(textPath))
             {
-                foreach (KeyValuePair<string, SettingAsset> pair in _settings.ToArray())
+                foreach (KeyValuePair<string, TextAsset> pair in _texts.ToArray())
                 {
-                    textFileStream.Write(AssetCompiler.CompileData(pair.Value.name, Encoding.Unicode.GetBytes(DataUtil.XorString(pair.Value.settings.AsText))));
+                    textFileStream.Write(AssetCompiler.CompileTextAsset(pair.Value));
                 }
                 textSize = textFileStream.Length;
             }
@@ -678,6 +667,9 @@ namespace CrymexEngine
 
                 string settingsPath = Directories.RuntimeAssetsPath + "RuntimeSettings.rtmAsset";
                 if (File.Exists(settingsPath)) _settings = AssetCompiler.DecompileSettingAssets(File.ReadAllBytes(settingsPath));
+
+                string textpath = Directories.RuntimeAssetsPath + "RuntimeText.rtmAsset";
+                if (File.Exists(textpath)) _texts = AssetCompiler.DecompileTextAssets(File.ReadAllBytes(textpath));
             }
             catch (Exception ex)
             {
@@ -691,8 +683,7 @@ namespace CrymexEngine
 
         private static void StartLoadingDynamic()
         {
-            Debug.LogLocalInfo("Asset Loader", "Running on dynamic assets");
-            _precompiled = false;
+            if (!_precompiled) Debug.LogLocalInfo("Asset Loader", "Running on dynamic assets");
 
             float startTime = Time.GameTime;
 
