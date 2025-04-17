@@ -20,9 +20,9 @@ namespace CrymexEngine.GameObjects
         public bool HandlesClickEvents => _handlesClickEvents;
         public Transform Transform => _transform;
 
-        public GameObject(Vector2 position, Vector2 scale)
+        public GameObject(Vector2 position, Vector2 scale, Transform? parent)
         {
-            _transform = new Transform(this, position, scale);
+            _transform = new Transform(this, position, scale, parent);
 
             _isBuilt = true;
         }

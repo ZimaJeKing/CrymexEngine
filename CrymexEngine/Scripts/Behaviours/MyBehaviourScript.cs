@@ -9,7 +9,7 @@ namespace CrymexEngine.Scripts
     {
         protected override void Load()
         {
-            Debug.Log(Assets.GetText("MyText"));
+            UIElement car = new UIElement(Assets.GetTexture("Car"), Vector2.Zero, new Vector2(256));
         }
 
         protected override void Update()

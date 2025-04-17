@@ -23,28 +23,18 @@ namespace CrymexEngine.Rendering
             }
         }
 
-        public static Shader Line
-        {
-            get => _line;
-            set
-            {
-                if (value != null) _line = value;
-            }
-        }
-
         public readonly int _glShader = 0;
         public readonly ShaderParam[] parameters;
 
         private static Shader _regular;
         private static Shader _ui;
-        private static Shader _line;
         private static bool _defaultShadersLoaded = false;
 
         public static void LoadDefaultShaders()
         {
             if (_defaultShadersLoaded) return;
 
-            string? regularShaderName = null, uiShaderName = null, lineShaderName = null;
+            string? regularShaderName = null, uiShaderName = null;
 
             if (Settings.GlobalSettings.GetSetting("DefaultEntityShader", out SettingOption regularShaderOption, SettingType.RefString))
             {
@@ -54,19 +44,12 @@ namespace CrymexEngine.Rendering
             {
                 uiShaderName = uiShaderOption.GetValue<string>();
             }
-            if (Settings.GlobalSettings.GetSetting("DefaultLineShader", out SettingOption lineShaderOption, SettingType.RefString))
-            {
-                lineShaderName = lineShaderOption.GetValue<string>();
-            }
 
             if (regularShaderName != null) _regular = Assets.GetShaderBroad(regularShaderName);
             if (_regular == null) _regular = LoadFromAsset(DefaultShaders.regularVertex, DefaultShaders.regularFragment);
 
             if (uiShaderName != null) _ui = Assets.GetShaderBroad(uiShaderName);
             if (_ui == null) _ui = LoadFromAsset(DefaultShaders.uiVertex, DefaultShaders.uiFragment);
-
-            if (lineShaderName != null) _line = Assets.GetShaderBroad(lineShaderName);
-            if (_line == null) _line = LoadFromAsset(DefaultShaders.lineVertex, DefaultShaders.lineFragment);
 
             _defaultShadersLoaded = true;
         }
@@ -298,9 +281,6 @@ namespace CrymexEngine.Rendering
 
             public static readonly string uiVertex = "#version 450 core\r\n#usedefaultparams\r\n\r\nlayout(location = 0) in vec2 aPosition;\r\nlayout (location = 1) in vec2 aTexCoord;\r\n\r\nout vec2 texCoord;\r\n\r\nuniform vec3 position;\r\nuniform mat4 transform;\r\n\r\nvoid main()\r\n{\r\n    gl_Position = vec4(aPosition, 0.0, 1.0) * transform;\r\n    gl_Position.xyz += position;\r\n\r\n    texCoord.xy = aTexCoord;\r\n}";
             public static readonly string uiFragment = "#version 450 core\r\n#shaderparam vec4 uvTransform\r\n\r\nin vec2 texCoord;\r\n\r\nuniform sampler2D texture0;\r\nuniform vec4 color;\r\nuniform vec4 uvTransform;\r\n\r\nout vec4 FragColor;\r\n\r\nvoid main()\r\n{\r\n    vec4 texColor;\r\n    texColor = texture(texture0, (texCoord * uvTransform.rg) + uvTransform.ba);\r\n    \r\n    texColor *= color;\r\n\r\n    FragColor = texColor;\r\n}";
-
-            public static readonly string lineVertex = "#version 450 core\r\n#shaderparam vec3 position\r\n#shaderparam mat4 transform\r\n#shaderparam vec4 color\r\n\r\nlayout (location = 0) in vec2 aPosition;\r\n\r\nuniform vec3 position;\r\nuniform mat4 transform;\r\n\r\nvoid main()\r\n{\r\n    gl_Position = vec4(aPosition.xy, 1, 1) * transform;\r\n    gl_Position.xyz += position;\r\n}";
-            public static readonly string lineFragment = "#version 450 core\r\n\r\nuniform vec4 color;\r\n\r\nout vec4 FragColor;\r\n\r\nvoid main()\r\n{\r\n    FragColor = color;\r\n}";
         }
     }
 }

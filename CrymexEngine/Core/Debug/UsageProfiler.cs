@@ -16,6 +16,7 @@ namespace CrymexEngine.Debugging
         public static long TextureMemoryUsage => _textureMemoryUsage;
         public static long AudioMmeoryUsage => _audioMemoryUsage;
         public static long OtherMmeoryUsage => _otherMemoryUsage;
+        public static long VideoMemoryUsage => _videoMemoryUsage;
 
         /// <summary>
         /// Processor time in nanoseconds
@@ -35,6 +36,7 @@ namespace CrymexEngine.Debugging
         private static float _processorTimerStart;
         private static int _processorTimeFrameCount;
         private static float _processorTimeSum;
+        private static long _videoMemoryUsage;
 
         internal static void Init()
         {
@@ -90,6 +92,11 @@ namespace CrymexEngine.Debugging
                         _audioMemoryUsage += byteCount;
                         break;
                     }
+                case MemoryUsageType.VRam:
+                    {
+                        _videoMemoryUsage += byteCount;
+                        break;
+                    }
                 case MemoryUsageType.Other:
                     {
                         _otherMemoryUsage += byteCount;
@@ -100,13 +107,10 @@ namespace CrymexEngine.Debugging
 
         private static string GetUsageProfileLog()
         {
-            string cpuTimeString = "Cannot measure";
-            if (_processorTime != float.NaN) cpuTimeString = DataUtil.FloatToShortString(_processorTime * 1000, 2) + "ms";
-
             string profile = "\r\nUsage Profile:\r\n";
             profile += $"Time: {Time.CurrentTimeString}\r\n";
-            profile += $"Ram usage: {DataUtil.ByteCountToString(MemoryUsage)}\r\n";
-            profile += $"Processor time: {cpuTimeString}\r\n";
+            profile += $"Ram usage: {DataUtil.ByteCountToString(_memoryUsage)}\r\n";
+            profile += $"VRam usage: {DataUtil.ByteCountToString(_videoMemoryUsage)}\r\n";
             profile += $"Thread count: {ThreadCount}\r\n";
             profile += $"FPS: {Window.FramesPerSecond}";
             return profile;
@@ -122,5 +126,5 @@ namespace CrymexEngine.Debugging
         }
     }
 
-    public enum MemoryUsageType { Other, Texture, Audio }
+    public enum MemoryUsageType { Other, Texture, Audio, VRam }
 }

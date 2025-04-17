@@ -7,228 +7,233 @@ namespace CrymexEngine
 {
     public static class SavedData
     {
-        public static void WriteInt32(string name, int value)
+        private static void WriteData<T>(string name, T value, string extension, Action<BinaryWriter, T> writeAction)
         {
-            // Remove special characters
-            DataUtil.RemoveSpecialCharacters(name, out name);
+            name = DataUtil.NormalizeName(name, 20);
 
-            using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Int32.bin"))
+            DataUtil.RemoveSpecialCharacters(name, out name);
+            string path = Directories.SaveFolderPath + name + extension;
+
+            using (FileStream fileStream = File.Create(path))
+            using (BinaryWriter writer = new BinaryWriter(fileStream))
             {
-                using (BinaryWriter writer = new BinaryWriter(fileStream))
-                {
-                    writer.Write((int)value);
-                }
+                writeAction(writer, value);
             }
         }
 
-        public static int? ReadInt32(string name) 
+        private static T? ReadData<T>(string name, string extension, Func<BinaryReader, T> readAction)
         {
-            string path = Directories.SaveFolderPath + name + "Int32.bin";
-            if (!File.Exists(path)) return null;
+            string path = Directories.SaveFolderPath + name + extension;
+            if (!File.Exists(path)) return default;
 
-            using (FileStream fileStream =  File.OpenRead(path))
+            try
             {
+                using (FileStream fileStream = File.OpenRead(path))
                 using (BinaryReader reader = new BinaryReader(fileStream))
                 {
-                    return reader.ReadInt32();
+                    return readAction(reader);
                 }
             }
-        }
-
-        public static void WriteFloat(string name, float value)
-        {
-            // Remove special characters
-            DataUtil.RemoveSpecialCharacters(name, out name);
-
-            using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Float32.bin"))
+            catch (Exception e)
             {
-                using (BinaryWriter writer = new BinaryWriter(fileStream))
-                {
-                    writer.Write((float)value);
-                }
+                Debug.LogError($"An error occurred while reading saved data '{name}': {e.Message}");
+                return default;
             }
         }
 
-        public static float? ReadFloat(string name)
-        {
-            string path = Directories.SaveFolderPath + name + "Float32.bin";
-            if (!File.Exists(path)) return null;
+        public static void WriteInt32(string name, int value) =>
+            WriteData(name, value, "Int32.bin", (writer, val) => writer.Write(val));
 
-            using (FileStream fileStream = File.OpenRead(path))
-            {
-                using (BinaryReader reader = new BinaryReader(fileStream))
-                {
-                    return reader.ReadSingle();
-                }
-            }
-        }
+        public static int? ReadInt32(string name) =>
+            ReadData(name, "Int32.bin", reader => reader.ReadInt32());
+
+        public static void WriteFloat(string name, float value) =>
+            WriteData(name, value, "Float32.bin", (writer, val) => writer.Write(val));
+
+        public static float? ReadFloat(string name) =>
+            ReadData(name, "Float32.bin", reader => reader.ReadSingle());
 
         public static void WriteString(string name, string value)
         {
-            // Remove special characters
-            DataUtil.RemoveSpecialCharacters(name, out name);
-
-            using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Str.bin"))
+            WriteData(name, value, "Str.bin", (writer, val) =>
             {
-                using (BinaryWriter writer = new BinaryWriter(fileStream))
-                {
-                    byte[] bytes = Encoding.Unicode.GetBytes(value);
-                    writer.Write((int)bytes.Length);
-                    writer.Write(bytes);
-                    writer.Write((int)DataUtil.GetCheckSum(bytes));
-                }
-            }
+                byte[] bytes = Encoding.Unicode.GetBytes(DataUtil.XorString(val));
+                writer.Write(bytes.Length);
+                writer.Write(bytes);
+                writer.Write(DataUtil.GetCheckSum(bytes));
+            });
         }
 
         public static string? ReadString(string name)
         {
-            string path = Directories.SaveFolderPath + name + "Str.bin";
-            if (!File.Exists(path)) return null;
-
-            using (FileStream fileStream = File.OpenRead(path))
+            return ReadData(name, "Str.bin", reader =>
             {
-                using (BinaryReader reader = new BinaryReader(fileStream))
-                {
-                    byte[] bytes = reader.ReadBytes(reader.ReadInt32());
-                    int checkSum = reader.ReadInt32();
-
-                    if (checkSum != DataUtil.GetCheckSum(bytes)) return null;
-                    return Encoding.Unicode.GetString(bytes);
-                }
-            }
+                byte[] bytes = reader.ReadBytes(reader.ReadInt32());
+                int checkSum = reader.ReadInt32();
+                if (checkSum != DataUtil.GetCheckSum(bytes)) return null;
+                return DataUtil.XorString(Encoding.Unicode.GetString(bytes));
+            });
         }
 
-        public static void WriteBytes(string name, byte[] value)
-        {
-            // Remove special characters
-            DataUtil.RemoveSpecialCharacters(name, out name);
-
-            using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Bytes.bin"))
+        public static void WriteBytes(string name, byte[] value) =>
+            WriteData(name, value, "Bytes.bin", (writer, val) =>
             {
-                using (BinaryWriter writer = new BinaryWriter(fileStream))
-                {
-                    writer.Write((int)value.Length);
-                    writer.Write(value);
-                    writer.Write((int)DataUtil.GetCheckSum(value));
-                }
-            }
+                writer.Write(val.Length);
+                writer.Write(val);
+                writer.Write(DataUtil.GetCheckSum(val));
+            });
+
+        public static byte[]? ReadBytes(string name) =>
+            ReadData(name, "Bytes.bin", reader =>
+            {
+                byte[] bytes = reader.ReadBytes(reader.ReadInt32());
+                int checkSum = reader.ReadInt32();
+                return checkSum == DataUtil.GetCheckSum(bytes) ? bytes : null;
+            });
+
+        public static void WriteVector2(string name, Vector2 value) =>
+            WriteData(name, value, "Vec2.bin", (writer, val) =>
+            {
+                writer.Write(val.X);
+                writer.Write(val.Y);
+            });
+
+        public static Vector2? ReadVector2(string name) =>
+            ReadData(name, "Vec2.bin", reader => new Vector2(reader.ReadSingle(), reader.ReadSingle()));
+
+        public static void WriteVector3(string name, Vector3 value) =>
+            WriteData(name, value, "Vec3.bin", (writer, val) =>
+            {
+                writer.Write(val.X);
+                writer.Write(val.Y);
+                writer.Write(val.Z);
+            });
+
+        public static Vector3? ReadVector3(string name) =>
+            ReadData(name, "Vec3.bin", reader => new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()));
+
+        public static void WriteVector4(string name, Vector4 value) =>
+            WriteData(name, value, "Vec4.bin", (writer, val) =>
+            {
+                writer.Write(val.X);
+                writer.Write(val.Y);
+                writer.Write(val.Z);
+                writer.Write(val.W);
+            });
+
+        public static Vector4? ReadVector4(string name) =>
+            ReadData(name, "Vec4.bin", reader => new Vector4(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()));
+
+        public static void WriteTexture(string name, Texture value)
+        {
+            if (value.Disposed) throw new ArgumentException(name + " is disposed. Cannot save texture data.");
+            byte[] texturebytes = value.CompressData(Assets.TextureCompressionLevel);
+            WriteData(name, texturebytes, "Tex.bin", (writer, val) =>
+            {
+                writer.Write(val.Length);
+                writer.Write(val);
+                writer.Write(DataUtil.GetCheckSum(val));
+            });
         }
 
-        public static byte[]? ReadBytes(string name)
-        {
-            string path = Directories.SaveFolderPath + name + "Bytes.bin";
-            if (!File.Exists(path)) return null;
-
-            using (FileStream fileStream = File.OpenRead(path))
+        public static Texture? ReadTexture(string name) =>
+            ReadData(name, "Tex.bin", reader =>
             {
-                using (BinaryReader reader = new BinaryReader(fileStream))
-                {
-                    byte[] bytes = reader.ReadBytes(reader.ReadInt32());
-                    int checkSum = reader.ReadInt32();
+                byte[] bytes = reader.ReadBytes(reader.ReadInt32());
+                int checkSum = reader.ReadInt32();
+                return checkSum == DataUtil.GetCheckSum(bytes) ? Texture.FromCompressed(bytes) : null;
+            });
 
-                    if (checkSum != DataUtil.GetCheckSum(bytes)) return null;
-                    return bytes;
+        public static void WriteColor(string name, Color4 value) => WriteData(name, value, "Color.bin", (writer, val) =>
+        {
+            writer.Write(val.R);
+            writer.Write(val.G);
+            writer.Write(val.B);
+            writer.Write(val.A);
+        });
+
+        public static Color4 ReadColor(string name) =>
+            ReadData(name, "Color.bin", reader => new Color4(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()));
+
+        public static void WriteIntArray(string name, int[] value)
+        {
+            WriteData(name, value, "Int32Arr.bin", (writer, val) =>
+            {
+                writer.Write(val.Length);
+                foreach (int i in val)
+                {
+                    writer.Write(i);
                 }
-            }
+            });
         }
 
-        public static void WriteVector2(string name, Vector2 value)
+        public static int[]? ReadIntArray(string name)
         {
-            // Remove special characters
-            DataUtil.RemoveSpecialCharacters(name, out name);
-
-            using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Vec2.bin"))
+            return ReadData(name, "Int32Arr.bin", reader =>
             {
-                using (BinaryWriter writer = new BinaryWriter(fileStream))
+                int length = reader.ReadInt32();
+                int[] array = new int[length];
+                for (int i = 0; i < length; i++)
                 {
-                    writer.Write((float)value.X);
-                    writer.Write((float)value.Y);
+                    array[i] = reader.ReadInt32();
                 }
-            }
+                return array;
+            });
         }
 
-        public static Vector2? ReadVector2(string name)
+        public static void WriteFloatArray(string name, float[] value)
         {
-            string path = Directories.SaveFolderPath + name + "Vec2.bin";
-            if (!File.Exists(path)) return null;
-
-            using (FileStream fileStream = File.OpenRead(path))
+            WriteData(name, value, "Float32Arr.bin", (writer, val) =>
             {
-                using (BinaryReader reader = new BinaryReader(fileStream))
+                writer.Write(value.Length);
+                foreach (float i in value)
                 {
-                    float x = reader.ReadSingle();
-                    float y = reader.ReadSingle();
-                    return new Vector2(x, y);
+                    writer.Write(i);
                 }
-            }
+            });
         }
 
-        public static void WriteVector3(string name, Vector3 value)
+        public static float[]? ReadFloatArray(string name)
         {
-            // Remove special characters
-            DataUtil.RemoveSpecialCharacters(name, out name);
-
-            using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Vec3.bin"))
+            return ReadData(name, "Float32Arr.bin", reader =>
             {
-                using (BinaryWriter writer = new BinaryWriter(fileStream))
+                int length = reader.ReadInt32();
+                float[] array = new float[length];
+                for (int i = 0; i < length; i++)
                 {
-                    writer.Write((float)value.X);
-                    writer.Write((float)value.Y);
-                    writer.Write((float)value.Z);
+                    array[i] = reader.ReadSingle();
                 }
-            }
+                return array;
+            });
         }
 
-        public static Vector3? ReadVector3(string name)
+        public static void WriteColorArray(string name, Color4[] value)
         {
-            string path = Directories.SaveFolderPath + name + "Vec3.bin";
-            if (!File.Exists(path)) return null;
-
-            using (FileStream fileStream = File.OpenRead(path))
+            WriteData(name, value, "ColorArr.bin", (writer, val) =>
             {
-                using (BinaryReader reader = new BinaryReader(fileStream))
+                writer.Write(value.Length);
+                foreach (Color4 i in value)
                 {
-                    float x = reader.ReadSingle();
-                    float y = reader.ReadSingle();
-                    float z = reader.ReadSingle();
-                    return new Vector3(x, y, z);
+                    writer.Write(i.R);
+                    writer.Write(i.G);
+                    writer.Write(i.B);
+                    writer.Write(i.A);
                 }
-            }
+            });
         }
 
-        public static void WriteVector4(string name, Vector4 value)
+        public static Color4[]? ReadColorArray(string name)
         {
-            // Remove special characters
-            DataUtil.RemoveSpecialCharacters(name, out name);
-
-            using (FileStream fileStream = File.OpenWrite(Directories.SaveFolderPath + name + "Vec4.bin"))
+            return ReadData(name, "ColorArr.bin", reader =>
             {
-                using (BinaryWriter writer = new BinaryWriter(fileStream))
+                int length = reader.ReadInt32();
+                Color4[] array = new Color4[length];
+                for (int i = 0; i < length; i++)
                 {
-                    writer.Write((float)value.X);
-                    writer.Write((float)value.Y);
-                    writer.Write((float)value.Z);
-                    writer.Write((float)value.W);
+                    array[i] = new Color4(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
                 }
-            }
-        }
-
-        public static Vector4? ReadVector4(string name)
-        {
-            string path = Directories.SaveFolderPath + name + "Vec4.bin";
-            if (!File.Exists(path)) return null;
-
-            using (FileStream fileStream = File.OpenRead(path))
-            {
-                using (BinaryReader reader = new BinaryReader(fileStream))
-                {
-                    float x = reader.ReadSingle();
-                    float y = reader.ReadSingle();
-                    float z = reader.ReadSingle();
-                    float w = reader.ReadSingle();
-                    return new Vector4(x, y, z, w);
-                }
-            }
+                return array;
+            });
         }
     }
 }

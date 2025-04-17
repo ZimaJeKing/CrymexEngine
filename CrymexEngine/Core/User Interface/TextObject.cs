@@ -172,7 +172,7 @@ namespace CrymexEngine.UI
             }
         }
 
-        public Vector2 PhysicalTextSize => _physicalTextSize;
+        public Vector2 PhysicalTextSize => Measure(_font);
         public Texture InternalTexture => _texture;
         public Vector2 HalfScale => _halfScale;
 
@@ -191,9 +191,9 @@ namespace CrymexEngine.UI
         private Vector2 _halfScale;
         private Vector2 _textPadding;
             
-        private Vector2 _physicalTextSize;
         private bool _bestFit;
         private int _maxBestFitSize = int.MaxValue;
+        private Font _font;
 
         public TextObject(Vector2 position, Vector2i scale, string text, FontFamily family, float fontSize, Alignment textAlignment = Alignment.MiddleCenter, FontStyle style = FontStyle.Regular)
         {
@@ -204,6 +204,7 @@ namespace CrymexEngine.UI
             _family = family;
             _style = style;
             _fontSize = fontSize;
+            _font = family.CreateFont(fontSize, style);
             if (_fontSize == 0) _bestFit = true;
             _alignment = textAlignment;
 
@@ -243,9 +244,7 @@ namespace CrymexEngine.UI
 
             if (_bestFit) _fontSize = GetBestFit();
 
-            // Measure the text and calculate hotspot
-            Font font = Family.CreateFont(_fontSize, _style);
-            _physicalTextSize = Measure(font);
+            _font = _family.CreateFont(_fontSize, _style);
 
             Vector2 alignmentOffset = GetAlignmentOffset(_alignment);
             System.Drawing.Color sysBackColor = System.Drawing.Color.FromArgb(_backgroundColor.ToArgb());
@@ -259,7 +258,7 @@ namespace CrymexEngine.UI
                 image.Mutate(ctx =>
                 {
                     ctx.Fill(Color.FromRgba(sysBackColor.R, sysBackColor.G, sysBackColor.B, sysBackColor.A));
-                    ctx.DrawText(_text, font, Color.FromRgba(sysFontColor.R, sysFontColor.G, sysFontColor.B, sysFontColor.A), new PointF(alignmentOffset.X + _textPadding.X, alignmentOffset.Y + _textPadding.Y));
+                    ctx.DrawText(_text, _font, Color.FromRgba(sysFontColor.R, sysFontColor.G, sysFontColor.B, sysFontColor.A), new PointF(alignmentOffset.X + _textPadding.X, alignmentOffset.Y + _textPadding.Y));
                 });
 
                 // Apply to a texture
@@ -276,8 +275,10 @@ namespace CrymexEngine.UI
             float width = _scale.X;
             float height = _scale.Y;
 
-            float halfPhysicalX = _physicalTextSize.X * 0.5f;
-            float halfPhysicalY = _physicalTextSize.Y * 0.5f;
+            Vector2 size = Measure(_font);
+
+            float halfPhysicalX = size.X * 0.5f;
+            float halfPhysicalY = size.Y * 0.5f;
 
             return alignment switch
             {
@@ -287,9 +288,9 @@ namespace CrymexEngine.UI
                 Alignment.MiddleLeft => new Vector2(0, height / 2f - halfPhysicalY),
                 Alignment.MiddleCenter => new Vector2(width / 2f - halfPhysicalX, height / 2f - halfPhysicalY),
                 Alignment.MiddleRight => new Vector2(width - halfPhysicalX, height / 2f - halfPhysicalY),
-                Alignment.BottomLeft => new Vector2(0, height - _physicalTextSize.Y),
-                Alignment.BottomCenter => new Vector2(width / 2f - halfPhysicalX, height - _physicalTextSize.Y),
-                Alignment.BottomRight => new Vector2(width - halfPhysicalX, height - _physicalTextSize.Y),
+                Alignment.BottomLeft => new Vector2(0, height - size.Y),
+                Alignment.BottomCenter => new Vector2(width / 2f - halfPhysicalX, height - size.Y),
+                Alignment.BottomRight => new Vector2(width - halfPhysicalX, height - size.Y),
                 _ => Vector2.Zero // Default case
             };
         }
@@ -310,7 +311,7 @@ namespace CrymexEngine.UI
             {
                 Origin = PointF.Empty
             };
-            FontRectangle rect = TextMeasurer.MeasureSize(text, textOptions);
+            FontRectangle rect = TextMeasurer.MeasureAdvance(text, textOptions);
             return new Vector2(rect.Width, rect.Height);
         }
 
@@ -320,7 +321,7 @@ namespace CrymexEngine.UI
             {
                 Origin = PointF.Empty
             };
-            FontRectangle rect = TextMeasurer.MeasureSize(_text, textOptions);
+            FontRectangle rect = TextMeasurer.MeasureAdvance(_text, textOptions);
             return new Vector2(rect.Width, rect.Height);
         }
 

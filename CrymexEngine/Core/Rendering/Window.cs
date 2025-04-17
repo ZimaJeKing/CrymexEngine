@@ -1,4 +1,5 @@
 ﻿using CrymexEngine.AetherPhysics;
+using CrymexEngine.Data;
 using CrymexEngine.Debugging;
 using CrymexEngine.GameObjects;
 using CrymexEngine.Scenes;
@@ -221,6 +222,17 @@ namespace CrymexEngine
 
             Debug.LogLocalInfo("Window", $"Window loaded in: {DataUtil.SecondsToTimeString(Time.GameTime)}");
 
+            if (Settings.GlobalSettings.GetSetting("StartingScene", out SettingOption startingSceneSetting, SettingType.RefString))
+            {
+                string sceneName = startingSceneSetting.GetValue<string>();
+                TextAsset? sceneAsset = Assets.GetSceneAsset(sceneName);
+                if (sceneAsset != null)
+                {
+                    Debug.LogLocalInfo("Scene Loader", $"Running scene: '{sceneName}'");
+                    SceneLoader.LoadSceneFromTextImmediate(sceneAsset.text);
+                }
+            }
+
             // Loads scriptable behaviours and calls Load
             ScriptLoader.LoadBehaviours();
         }
@@ -336,20 +348,23 @@ namespace CrymexEngine
         private static void UpdateBehaviours()
         {
             // Update scriptable behaviours
-            foreach (ScriptableBehaviour behaviour in Scene.Current.scriptableBehaviours)
+            for (int i = 0; i < Scene.Current.scriptableBehaviours.Count; i++)
             {
+                ScriptableBehaviour behaviour = Scene.Current.scriptableBehaviours[i];
                 if (behaviour.enabled) Behaviour.UpdateBehaviour(behaviour);
             }
 
             // Update entities
-            foreach (Entity entity in Scene.Current.entities)
+            for (int i = 0; i < Scene.Current.entities.Count; i++)
             {
+                Entity entity = Scene.Current.entities[i];
                 if (entity.enabled) GameObject.GameObjectUpdate(entity);
             }
 
             // Render world space lines
-            foreach (LineGroup line in Scene.Current.lines)
+            for (int i = 0; i < Scene.Current.lines.Count; i++)
             {
+                LineGroup line = Scene.Current.lines[i];
                 if (line.enabled && !line.ScreenSpace) Behaviour.UpdateBehaviour(line);
             }
 
@@ -359,20 +374,23 @@ namespace CrymexEngine
             GL.DepthMask(false);
 
             // Render elemets
-            foreach (UIElement element in Scene.Current.uiElements)
+            for (int i = 0; i < Scene.Current.uiElements.Count; i++)
             {
+                UIElement element = Scene.Current.uiElements[i];
                 if (element.enabled) GameObject.GameObjectUpdate(element);
             }
 
             // Render text
-            foreach (TextObject textObject in Scene.Current.textObjects)
+            for (int i = 0; i < Scene.Current.textObjects.Count; i++)
             {
+                TextObject textObject = Scene.Current.textObjects[i];
                 if (textObject.enabled) TextObject.RenderText(textObject);
             }
 
             // Render screen space lines
-            foreach (LineGroup line in Scene.Current.lines)
+            for (int i = 0; i < Scene.Current.lines.Count; i++)
             {
+                LineGroup line = Scene.Current.lines[i];
                 if (line.enabled && line.ScreenSpace) Behaviour.UpdateBehaviour(line);
             }
 

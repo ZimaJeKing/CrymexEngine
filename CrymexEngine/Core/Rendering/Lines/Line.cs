@@ -9,8 +9,25 @@ namespace CrymexEngine
     {
         public readonly LineGroup group;
 
-        public Shader shader = Shader.Line;
+        public Shader shader = Shader.Regular;
         public Color4 color = Color4.White;
+        public Gradient? Gradient
+        {
+            get => _gradient;
+            set
+            {
+                _gradient = value;
+
+                _gradientTexture?.Dispose();
+                if (_gradient == null)
+                {
+                    _gradientTexture = null;
+                    return;
+                }
+
+                _gradientTexture = Texture.FromGradient(1, (int)_length, _gradient, GradientDirection.FromBottom);
+            }
+        }
 
         private Vector2 _screenPosition;
         private bool _screenSpace = false;
@@ -21,6 +38,9 @@ namespace CrymexEngine
         private float _depth;
         private Vector2 _middlePoint;
         private Vector2 _pointDif;
+        private float _length;
+        private Gradient? _gradient;
+        private Texture? _gradientTexture;
 
         public Vector2 MiddlePoint => _middlePoint;
         public float Depth
@@ -101,7 +121,6 @@ namespace CrymexEngine
             _screenSpace = screenSpace;
 
             RecalcTransform();
-
         }
 
         public Vector2 GetPointOnLine(float x)
@@ -122,6 +141,8 @@ namespace CrymexEngine
 
             _middlePoint = GetPointOnLine(0.5f);
 
+            _length = _pointDif.LengthFast;
+
             if (_screenSpace)
             {
                 _screenPosition = _middlePoint * Window.OneOverHalfSize;
@@ -132,7 +153,7 @@ namespace CrymexEngine
             }
 
             _transform = Matrix4.CreateRotationZ(-rotation - (MathF.PI * 0.5f))
-                       * Matrix4.CreateScale(1, _pointDif.LengthFast * Window.OneOverHalfSize.Y, 1);
+                       * Matrix4.CreateScale(1, _length * Window.OneOverHalfSize.Y, 1);
         }
 
         public void Delete()
@@ -149,22 +170,25 @@ namespace CrymexEngine
             if (shader == null) return;
 
             // Bind buffers
-            GL.BindTexture(TextureTarget.Texture2D, 0);
-            GL.BindBuffer(BufferTarget.ArrayBuffer, Mesh.line.vbo);
+            if (_gradientTexture != null)
+            {
+                GL.BindTexture(TextureTarget.Texture2D, _gradientTexture.glTexture);
+            }
+            else GL.BindTexture(TextureTarget.Texture2D, Texture.White.glTexture);
+
             GL.BindVertexArray(Mesh.line.vao);
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, Mesh.line.ebo);
 
             shader.Use();
 
             shader.SetParam(0, VectorUtil.Vec2ToVec3(_screenPosition, _depth));
-
             shader.SetParam(1, _transform);
             shader.SetParam(2, color);
 
             GL.LineWidth(_width);
 
-            GL.DrawElements(BeginMode.Lines, Mesh.line.indices.Length, DrawElementsType.UnsignedInt, Mesh.line.ebo);
+            GL.DrawElements(PrimitiveType.Lines, Mesh.line.indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero);
 
+            GL.BindTexture(TextureTarget.Texture2D, 0);
             GL.UseProgram(0);
         }
 

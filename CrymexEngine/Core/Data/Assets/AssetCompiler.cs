@@ -6,6 +6,9 @@ namespace CrymexEngine.Data
 {
     public static class AssetCompiler
     {
+        private static Settings _compilationSettings;
+        private static int _textureCompressionLevel = 0;
+
         public static byte[] CompileTextureAsset(TextureAsset asset)
         {
             // Int32 - name length
@@ -20,7 +23,7 @@ namespace CrymexEngine.Data
             using Texture texture = asset.texture;
 
             byte[] nameBytes = Encoding.Unicode.GetBytes(DataUtil.XorString(asset.name));
-            byte[] data = texture.CompressData(Assets.TextureCompressionLevel);
+            byte[] data = texture.CompressData(_textureCompressionLevel);
 
             if (!SerializeAssetMeta(asset, out byte[] meta)) meta = Array.Empty<byte>();
 
@@ -196,6 +199,22 @@ namespace CrymexEngine.Data
             if (checkSum != DataUtil.GetCheckSum(finalData)) return Array.Empty<byte>();
 
             return finalData;
+        }
+
+        internal static void LoadCompilationSettings()
+        {
+            Settings? settings = Assets.GetSettings("AssetCompilation");
+            if (settings == null)
+            {
+                settings = new Settings();
+                settings.LoadFile(Directories.AssetsPath + "AssetCompilation.cfg");
+            }
+            _compilationSettings = settings;
+
+            if (settings.GetSetting("TextureCompressionLevel", out SettingOption texCompOption, SettingType.Int))
+            {
+                _textureCompressionLevel = Math.Clamp(texCompOption.GetValue<int>(), 0, 9);
+            }
         }
 
         internal static Dictionary<string, TextureAsset> DecompileTextureAssets(byte[] data)

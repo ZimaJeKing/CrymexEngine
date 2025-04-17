@@ -75,9 +75,7 @@ namespace CrymexEngine.UI
 
             // Bind shader and texture
             GL.BindTexture(TextureTarget.Texture2D, texture.glTexture);
-            GL.BindBuffer(BufferTarget.ArrayBuffer, Mesh.quad.vbo);
             GL.BindVertexArray(Mesh.quad.vao);
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, Mesh.quad.ebo);
 
             // Set first three shader parameters for Position, transformation, and color
             shader.SetParam(0, VectorUtil.Vec2ToVec3(Element.Transform.Position / Window.HalfSize, 0));
@@ -85,7 +83,7 @@ namespace CrymexEngine.UI
             shader.SetParam(2, color);
             shader.SetParam(3, _uvTransform);
 
-            GL.DrawElements(BeginMode.Triangles, Mesh.quad.indices.Length, DrawElementsType.UnsignedInt, Mesh.quad.ebo);
+            GL.DrawElements(PrimitiveType.Triangles, Mesh.quad.indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero);
 
             GL.BindTexture(TextureTarget.Texture2D, 0);
             GL.UseProgram(0);

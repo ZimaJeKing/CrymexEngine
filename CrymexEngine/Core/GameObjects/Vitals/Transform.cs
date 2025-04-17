@@ -15,12 +15,14 @@ namespace CrymexEngine.GameObjects
 
         protected List<Transform> children = new();
 
-        public Transform(GameObject gameObject, Vector2 position, Vector2 scale)
+        public Transform(GameObject gameObject, Vector2 position, Vector2 scale, Transform? parent)
         {
             if (gameObject.IsBuilt) throw new Exception("Game object vitals cannot be instantiated on built game objects");
 
             _position = position;
             _scale = scale;
+            _halfScale = scale * 0.5f;
+            Parent = parent;
 
             RecalcTransformMatrix();
         }
@@ -38,6 +40,11 @@ namespace CrymexEngine.GameObjects
             {
                 _position = value;
 
+                if (_parent != null)
+                {
+                    _localPosition = value - _parent._position;
+                }
+
                 for (int i = 0; i < children.Count; i++)
                 {
                     RecalcChildTransform(children[i]);
@@ -52,8 +59,12 @@ namespace CrymexEngine.GameObjects
             }
             set
             {
-                if (Parent != null) return;
                 _rotation = value;
+
+                if (_parent != null)
+                {
+                    _localRotation = value - _parent._rotation;
+                }
 
                 RecalcTransformMatrix();
 
@@ -91,6 +102,7 @@ namespace CrymexEngine.GameObjects
                     Position = value;
                     return;
                 }
+                else _position = value - Parent.Position;
                 Parent.RecalcChildTransform(this);
             }
         }
@@ -109,6 +121,7 @@ namespace CrymexEngine.GameObjects
                     Rotation = value;
                     return;
                 }
+                else _rotation = value - Parent.Rotation;
                 Parent.RecalcChildTransform(this);
                 RecalcTransformMatrix();
             }
@@ -124,26 +137,26 @@ namespace CrymexEngine.GameObjects
             {
                 if (value == null || value == this) { UnbindSelf(); return; }
                 value.BindChild(this);
+                _localPosition = _position - value._position;
+                _localRotation = _rotation - value._rotation;
             }
         }
 
         protected void RecalcTransformMatrix()
         {
-            _transformationMatrix = Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(Rotation)) * Matrix4.CreateScale(_scale.X / Window.HalfSize.X, _scale.Y / Window.HalfSize.Y, 1);
+            _transformationMatrix = Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(_rotation)) * Matrix4.CreateScale(_scale.X / Window.HalfSize.X, _scale.Y / Window.HalfSize.Y, 1);
         }
 
         private void RecalcChildTransform(Transform child)
         {
             float dist = child._localPosition.Length;
-            float angle = MathF.Atan(child._localPosition.Y / child._localPosition.X);
 
-            // Handles a case, where child._localPosition.X is 0
-            if (!float.IsNormal(angle)) angle = 0;
+            float angle = MathF.Atan2(child._localPosition.Y, child._localPosition.X);
 
             angle -= MathHelper.DegreesToRadians(_rotation);
 
-            child.Position = Position + new Vector2(dist * MathF.Cos(angle), dist * MathF.Sin(angle));
-            child.Rotation = Rotation + child._localRotation;
+            child._position = _position + new Vector2(dist * MathF.Cos(angle), dist * MathF.Sin(angle));
+            child._rotation = _rotation + child._localRotation;
             child.RecalcTransformMatrix();
         }
 

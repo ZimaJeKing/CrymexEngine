@@ -10,7 +10,7 @@ namespace CrymexEngine
         {
             Engine.Initialize();
 
-            ScriptLoader.Add<MyBehaviourScript>();
+            ScriptLoader.Add<ExampleLoader>();
 
             Engine.Run();
         }

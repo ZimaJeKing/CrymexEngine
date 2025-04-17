@@ -1,9 +1,32 @@
 ﻿using OpenTK.Mathematics;
+using System.Security.Principal;
 
 namespace CrymexEngine
 {
     public class LineGroup : Behaviour
     {
+        private Color4 _color;
+        private float _width;
+        private float _depth;
+        private bool _screenSpace;
+        private Vector2[] _points;
+        private Line[] _lines;
+
+        public LineGroup(Vector2[] points, Color4 color, float width = 1, float depth = 0, bool screenSpace = false)
+        {
+            _color = color;
+            _width = width;
+            _depth = depth;
+            _screenSpace = screenSpace;
+            _points = points;
+
+            if (points == null || points.Length < 2) throw new ArgumentException("You have to provide at least two points for a line group");
+
+            GenLines();
+
+            Scenes.Scene.Current.lines.Add(this);
+        }
+
         public float Depth
         {
             get => _depth;
@@ -57,7 +80,6 @@ namespace CrymexEngine
 
         public Vector2[] Points
         {
-            get => _points;
             set
             {
                 if (value == null || value.Length < 2) return;
@@ -66,28 +88,6 @@ namespace CrymexEngine
 
                 GenLines();
             }
-        }
-
-        private Color4 _color;
-        private float _width;
-        private float _depth;
-        private bool _screenSpace;
-        private Vector2[] _points;
-        private Line[] _lines;
-
-        public LineGroup(Vector2[] points, Color4 color, float width = 1, float depth = 0, bool screenSpace = false)
-        {
-            _color = color;
-            _width = width;
-            _depth = depth;
-            _screenSpace = screenSpace;
-            _points = points;
-
-            if (points == null || points.Length < 2) throw new ArgumentException("You have to provide at least two points for a line group");
-
-            GenLines();
-
-            Scenes.Scene.Current.lines.Add(this);
         }
 
         internal LineGroup(Line line)
@@ -109,8 +109,7 @@ namespace CrymexEngine
             if (index >= _points.Length || index < 0) throw new IndexOutOfRangeException();
 
             _points[index] = point;
-            _lines[index].End = point;
-            _lines[index + 1].Start = point;
+            GenLines();
         }
 
         public void Delete()

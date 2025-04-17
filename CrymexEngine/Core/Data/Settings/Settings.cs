@@ -43,23 +43,30 @@ namespace CrymexEngine
             // Load dynamic settings
             if (!File.Exists(path))
             {
-                Debug.LogWarning($"No settings file found. Created file at '{path}'");
+                Debug.LogWarning($"No settings file found for '{DataUtil.GetCENameFromPath(path)}'. Created file at '{path}'");
                 try
                 {
                     // Create an empty settings file
                     File.Create(path).Dispose();
 
                     // If creating global settings, write some default settings into the file
-                    if (Path.GetFileName(path) == "CEConfig.cfg")
+                    string fileName = Path.GetFileName(path);
+                    if (fileName == "CEConfig.cfg")
                     {
                         File.WriteAllText(path, _defaultGlobalSettingsText);
                         rawSettingsText = _defaultGlobalSettingsText;
+                    }
+                    else if (fileName == "AssetCompilation.cfg")
+                    {
+                        string assetText = $"TextureCompressionLevel: {Assets.TextureCompressionLevel}";
+                        File.WriteAllText(path, assetText);
+                        rawSettingsText = assetText;
                     }
                     else return false;
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"[{Path.GetFileName(path)}] {ex.Message}");
+                    Debug.LogError($"Couldn't load settings file at '{Path.GetFileName(path)}' ({ex.Message})");
                     return false;
                 }
             }
@@ -166,6 +173,17 @@ namespace CrymexEngine
             }
 
             // Compile global settings
+            RecompileGlobalSettings();
+        }
+
+        public static void RecompileGlobalSettings()
+        {
+            if (!Assets.RunningPrecompiled)
+            {
+                Debug.LogWarning("Cannot recompile settings while running on dynamic assets");
+                return;
+            }
+
             byte[] globalSettingsData = AssetCompiler.CompileData("CEConfig", Encoding.Unicode.GetBytes(DataUtil.XorString(GlobalSettings.AsText)));
             File.WriteAllBytes(Directories.RuntimeAssetsPath + "CEConfig.rtmAsset", globalSettingsData);
         }
@@ -193,14 +211,14 @@ namespace CrymexEngine
             KeyValuePair<string, SettingOption>[] optionArr = options.ToArray();
             for (int i = 0; i < optionArr.Length; i++)
             {
-                text += optionArr[i].Value.ToString() + '\n';
+                text += optionArr[i].Value.ToString() + "\r\n";
             }
             return text;
         }
 
         private static SettingOption? DecompileSetting(string name, string value)
         {
-            if (value == null || value.Length < 1) return null;
+            if (value == null || value.Length < 1 || value.ToLower() == "null") return null;
 
             value = value.Trim();
 

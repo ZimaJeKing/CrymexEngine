@@ -168,16 +168,14 @@ namespace CrymexEngine.UI
 
             // Bind buffers
             GL.BindTexture(TextureTarget.Texture2D, Texture.White.glTexture);
-            GL.BindBuffer(BufferTarget.ArrayBuffer, Mesh.quad.vbo);
             GL.BindVertexArray(Mesh.quad.vao);
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, Mesh.quad.ebo);
 
             // Set first three shader parameters for Position, transformation, and color
             Shader.Regular.SetParam(0, VectorUtil.Vec2ToVec3(_cursorPosition / Window.HalfSize, 0));
             Shader.Regular.SetParam(1, _cursorTransform);
             Shader.Regular.SetParam(2, Color4.Black);
 
-            GL.DrawElements(BeginMode.Triangles, Mesh.quad.indices.Length, DrawElementsType.UnsignedInt, Mesh.quad.ebo);
+            GL.DrawElements(PrimitiveType.Triangles, Mesh.quad.indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero);
         }
 
         public static void RecalcCursor(string newText)
@@ -191,7 +189,7 @@ namespace CrymexEngine.UI
             }
 
             string firstTextPart = newText.Substring(0, _selectedIndex + 1);
-            _cursorPosition = _selected.Element.Transform.Position - new Vector2(_selected.Element.Transform.HalfScale.X - _selected.DisplayText.Measure(firstTextPart).X - _selected.DisplayText.TextPadding.X - 1, 0);
+            _cursorPosition = _selected.Element.Transform.Position + new Vector2(-_selected.Element.Transform.HalfScale.X + _selected.DisplayText.Measure(firstTextPart).X + _selected.DisplayText.TextPadding.X + 5, 0);
         }
     }
 }

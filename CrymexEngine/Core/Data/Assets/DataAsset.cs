@@ -1,6 +1,7 @@
 ﻿using CrymexEngine.Rendering;
 using CrymexEngine.Utils;
 using SixLabors.Fonts;
+using System.Configuration;
 using System.Windows.Forms;
 
 namespace CrymexEngine.Data
@@ -24,7 +25,7 @@ namespace CrymexEngine.Data
 
         public void LoadDynamicMeta()
         {
-            if (!Assets.UseMeta || _meta != null) return;
+            if (!Assets.UseMeta || _meta != null || Assets.RunningPrecompiled) return;
 
             string metaFilePath = path + ".meta";
             if (File.Exists(metaFilePath))

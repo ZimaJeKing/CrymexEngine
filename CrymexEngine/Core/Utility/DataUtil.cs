@@ -3,6 +3,7 @@ using OpenTK.Graphics.OpenGL;
 using System.Text;
 using System.Text.RegularExpressions;
 using Ude;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CrymexEngine.Utils
 {
@@ -11,12 +12,18 @@ namespace CrymexEngine.Utils
         /// <summary>
         /// Used in the 'ContainsSpecialCharacters' and 'RemoveSpecialCharacters' function
         /// </summary>
-        public static readonly string regexPattern = @"[^\w\s]";
-        private static readonly string[] _ceNameIgnore = [ "Textures", "Shaders", "Audio", "Fonts"];
+        public static readonly string regexPattern = @"[^a-zA-Z0-9_-]+$";
+        private static readonly string[] _ceNameIgnore = [ "Textures", "Images", "Shaders", "Audio", "Sound", "Fonts", "Scenes"];
         private static char _xorKey = '%';
+        private static bool _use1000 = false;
 
         internal static void LoadSettings()
         {
+            if (Settings.GlobalSettings.GetSetting("Use1000ByteCount", out SettingOption use1000Option, SettingType.Bool) && use1000Option.GetValue<bool>())
+            {
+                _use1000 = true;
+            }
+
             if (Settings.GlobalSettings.GetSetting("XorKeyChar", out SettingOption xorOption, SettingType.GeneralString))
             {
                 string xorKey = xorOption.GetValue<string>();
@@ -64,17 +71,17 @@ namespace CrymexEngine.Utils
 
         /// <summary>
         /// Converts a number of bytes to a B, KB, MB, GB or TB string representation. 
-        /// Uses multiples of 1024.
+        /// Uses multiples of 1000.
         /// </summary>
         /// <returns>A string value. Ex.: '512 KB', '2 TB', '5.8 MB', '14 B'</returns>
-        public static string ByteCountToString(long byteCount)
+        public static string ByteCount1000ToString(long byteCount)
         {
             double currentByteCount = byteCount;
             int i = 0;
-            while (currentByteCount > 1024)
+            while (currentByteCount > 1000)
             {
-                currentByteCount /= 1024;
-                if (currentByteCount < 8192)
+                currentByteCount /= 1000;
+                if (currentByteCount < 10000)
                 {
                     string byteCountString = FloatToShortString((float)currentByteCount, 1);
                     switch (i)
@@ -93,11 +100,48 @@ namespace CrymexEngine.Utils
         }
 
         /// <summary>
+        /// Converts a number of bytes to a B, KiB, MiB, GiB or TiB string representation. 
+        /// Uses multiples of 1024.
+        /// </summary>
+        /// <returns>A string value. Ex.: '512 KiB', '2 TiB', '5.8 MiB', '14 B'</returns>
+        public static string ByteCount1024ToString(long byteCount)
+        {
+            double currentByteCount = byteCount;
+            int i = 0;
+            while (currentByteCount > 1024)
+            {
+                currentByteCount /= 1024;
+                if (currentByteCount < 8192)
+                {
+                    string byteCountString = FloatToShortString((float)currentByteCount, 1);
+                    switch (i)
+                    {
+                        case 0: return $"{byteCountString} KiB";
+                        case 1: return $"{byteCountString} MiB";
+                        case 2: return $"{byteCountString} GiB";
+                        case 3: return $"{byteCountString} TiB";
+                        case 4: return $"{byteCountString} PiB";
+                        case 5: return $"{byteCountString} EiB";
+                    }
+                }
+                i++;
+            }
+            return $"{currentByteCount} B";
+        }
+
+        public static string ByteCountToString(long byteCount)
+        {
+            if (_use1000) return ByteCount1000ToString(byteCount);
+            else return ByteCount1024ToString(byteCount);
+        }
+
+        /// <summary>
         /// Generates a checksum for an array of bytes
         /// </summary>
         public static int GetCheckSum(byte[] data)
         {
-            if (data == null || data.Length < 4) return 0;
+            if (data == null) return 0;
+            if (data.Length < 16) return GetSmallCheckSum(data);
 
             int length = data.Length - (data.Length % sizeof(int));
             int[] ints = new int[length];
@@ -108,6 +152,24 @@ namespace CrymexEngine.Utils
             for (int i = 0; i < length; i++)
             {
                 sum += ints[i];
+            }
+
+            return sum;
+        }
+
+        /// <summary>
+        /// Generates a unprecise checksum for an array of bytes.
+        /// </summary>
+        /// <returns></returns>
+        public static int GetSmallCheckSum(byte[] data)
+        {
+            if (data == null) return 0;
+
+            int sum = 0;
+
+            for (int i = 0; i < data.Length; i++)
+            {
+                sum += data[i];
             }
 
             return sum;
@@ -162,12 +224,29 @@ namespace CrymexEngine.Utils
         /// </summary>
         public static bool ContainsSpecialCharacters(string input)
         {
-            return Regex.IsMatch(input, regexPattern);
+            return !Regex.IsMatch(input, regexPattern);
         }
 
         public static void RemoveSpecialCharacters(string input, out string normalizedString)
         {
             normalizedString = Regex.Replace(input, regexPattern, string.Empty);
+        }
+
+        public static string NormalizeName(string name, int maxLength = 0)
+        {
+            if (string.IsNullOrEmpty(name)) return string.Empty;
+
+            RemoveSpecialCharacters(name, out string normalizedName);
+
+            if (maxLength > 0)
+            {
+                if (normalizedName.Length > maxLength)
+                {
+                    normalizedName = normalizedName[0..maxLength];
+                }
+            }
+
+            return normalizedName;
         }
 
         public static string GetCENameFromPath(string path)

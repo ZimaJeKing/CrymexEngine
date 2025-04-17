@@ -3,7 +3,6 @@ using System.Reflection;
 
 namespace CrymexEngine.Scenes
 {
-    // WIP
     public static class SceneLoader
     {
         public static bool LoadScene(string path)
@@ -21,16 +20,29 @@ namespace CrymexEngine.Scenes
 
             return true;
         }
+
+        internal static bool LoadSceneFromTextImmediate(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return false;
+            }
+
+            string[] precompiled = text.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+
+            Scene scene = SceneCompiler.CompileScene(precompiled);
+
+            Scene.LoadImmediate(scene);
+
+            return true;
+        }
     }
 
-    // WIP
     static class SceneCompiler
     {
-        static Scene scene;
-
         public static Scene CompileScene(string[] lines)
         {
-            scene = new Scene();
+            Scene scene = new Scene();
             for (int l = 0; l < lines.Length; l++) 
             {
                 if (string.IsNullOrEmpty(lines[l])) continue;
@@ -44,11 +56,7 @@ namespace CrymexEngine.Scenes
 
                     command = command.Replace(" ", "");
 
-                    while (command[index] != '{')
-                    {
-                        entityName += command[index];
-                        index++;
-                    }
+                    entityName = command.Substring(index, command.IndexOf('{') - index).Trim();
 
                     int entityEndIndex = l + 1;
                     while (!lines[entityEndIndex].Contains('}'))
@@ -60,15 +68,14 @@ namespace CrymexEngine.Scenes
                      
                     l = entityEndIndex + 1;
 
-                    CompileEntity(entityName, entityParameters);
+                    CompileEntity(scene, entityName, entityParameters);
                 }
             }
 
             return scene;
         }
 
-        // WIP
-        private static Entity CompileEntity(string name, string[] parameters)
+        private static Entity CompileEntity(Scene scene, string name, string[] parameters)
         {
             Texture texture = Texture.Missing;
             Vector2 position = Vector2.Zero;
@@ -128,7 +135,7 @@ namespace CrymexEngine.Scenes
 
             Entity entity = new Entity(texture, position, scale, scene, Entity.GetEntity(parentName, scene), name);
 
-            entity.Transform.LocalPosition = localPosition;
+            if (entity.Transform.Parent != null) entity.Transform.LocalPosition = localPosition;
 
             return entity;
         }

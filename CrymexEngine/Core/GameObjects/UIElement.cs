@@ -11,9 +11,8 @@ namespace CrymexEngine.UI
 
         private readonly UIRenderer _renderer;
 
-        public UIElement(Texture texture, Vector2 position, Vector2 scale, UIElement? parent = null, string name = "", float depth = 0) : base(position, scale)
+        public UIElement(Texture texture, Vector2 position, Vector2 scale, UIElement? parent = null, string name = "", float depth = 0) : base(position, scale, parent?.Transform)
         {
-            if (parent != null) Transform.Parent = parent.Transform;
             this.name = name;
 
             _renderer = new UIRenderer(depth)

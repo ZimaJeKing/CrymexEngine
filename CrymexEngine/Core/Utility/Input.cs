@@ -135,7 +135,7 @@ namespace CrymexEngine
             float translatedX = MousePosition.X - element.Transform.Position.X;
             float translatedY = element.Transform.Position.Y - MousePosition.Y;
 
-            if (translatedX * translatedX + translatedY * translatedY > element.Transform.Scale.LengthSquared) return false;
+            if (translatedX * translatedX + translatedY * translatedY > element.Transform.Scale.LengthSquared * 0.5f) return false;
 
             float radians = MathHelper.DegreesToRadians(-element.Transform.Rotation);
             float rotatedX = MathF.Cos(radians) * translatedX - MathF.Sin(radians) * translatedY;

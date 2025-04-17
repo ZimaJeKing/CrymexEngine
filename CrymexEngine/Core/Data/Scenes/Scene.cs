@@ -22,8 +22,6 @@ namespace CrymexEngine.Scenes
         private static Scene _current = new Scene();
         private static Scene? _nextToLoad = null;
 
-        private bool _shouldClear = false;
-
         public Scene() { }
 
         /// <summary>
@@ -31,7 +29,27 @@ namespace CrymexEngine.Scenes
         /// </summary>
         public void Clear()
         {
-            _shouldClear = true;
+            // Clear entities
+            entities.Clear();
+
+            // Clear elements
+            uiElements.Clear();
+
+            // Clear textObjects
+            textObjects.Clear();
+
+            // Clear colliders
+            colliders.Clear();
+
+            // Clear lines
+            lines.Clear();
+
+            // Clear scriptable behaviours
+            for (int i = 0; i < scriptableBehaviours.Count; i++)
+            {
+                ScriptableBehaviour b = scriptableBehaviours[i];
+                if (!b.stayAlive) scriptableBehaviours.Remove(b);
+            }
         }
 
         /// <summary>
@@ -40,6 +58,11 @@ namespace CrymexEngine.Scenes
         public static void Load(Scene scene)
         {
             _nextToLoad = scene;
+        }
+
+        internal static void LoadImmediate(Scene scene)
+        {
+            _current = scene;
         }
 
         internal static void UpdateQueues()
@@ -56,39 +79,8 @@ namespace CrymexEngine.Scenes
                 _current.textObjectDeleteQueue.Clear();
             }
 
-            // Clearing Queue
-            if (_current._shouldClear || _nextToLoad != null) _current.SafeClear();
-
             // Loading Queue
             if (_nextToLoad != null) _current = _nextToLoad;
-        }
-
-        private void SafeClear()
-        {
-            // Clear entities
-            foreach (Entity entity in entities)
-            {
-                entity.Delete();
-            }
-            entities.Clear();
-
-            // Clear elements
-            foreach (UIElement element in uiElements)
-            {
-                element.Delete();
-            }
-            uiElements.Clear();
-
-            // Clear textObjects
-            foreach (TextObject text in textObjects)
-            {
-                text.Delete();
-            }
-            textObjects.Clear();
-
-            // Clear behaviours and colliders
-            scriptableBehaviours.Clear();
-            colliders.Clear();
         }
     }
 }

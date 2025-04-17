@@ -43,13 +43,11 @@ namespace CrymexEngine
 
             if (Vector2.DistanceSquared(entity.Transform.Position, Camera.position) < Camera.renderDistanceSquared)
             {
-                GL.UseProgram(shader._glShader);
+                shader.Use();
 
                 // Bind buffers
                 GL.BindTexture(TextureTarget.Texture2D, texture.glTexture);
-                GL.BindBuffer(BufferTarget.ArrayBuffer, mesh.vbo);
                 GL.BindVertexArray(mesh.vao);
-                GL.BindBuffer(BufferTarget.ElementArrayBuffer, mesh.ebo);
 
                 // Set first three shader parameters for Position, transformation, and color
                 shader.SetParam(0, VectorUtil.Vec2ToVec3((entity.Transform.Position - Camera.position) / Window.HalfSize, -Depth * 0.001f));
@@ -58,7 +56,7 @@ namespace CrymexEngine
 
                 GameObject.GameObjectPreRender(entity);
 
-                GL.DrawElements(BeginMode.Triangles, mesh.indices.Length, DrawElementsType.UnsignedInt, mesh.ebo);
+                GL.DrawElements(PrimitiveType.Triangles, mesh.indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero);
 
                 GL.BindTexture(TextureTarget.Texture2D, 0);
                 GL.UseProgram(0);

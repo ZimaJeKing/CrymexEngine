@@ -10,13 +10,15 @@ namespace CrymexEngine
         /// <summary>
         /// Enables or disables console output
         /// </summary>
-        public static bool logToConsole = false;
+        public static bool logToConsole = true;
 
         public static bool LogToFile => _logToFile;
+        public static bool HasConsole => _hasConsole;
 
         private static FileStream _logFileStream;
         private static bool _logToFile = false;
         private static bool _logAdditionalInfo;
+        private static bool _hasConsole = false;
 
         public static void Log(object? message)
         {
@@ -91,12 +93,17 @@ namespace CrymexEngine
 
         internal static void LoadSettings()
         {
-            if (Settings.GlobalSettings.GetSetting("LogToConsole", out SettingOption logToConsoleSetting, SettingType.Bool) && logToConsoleSetting.GetValue<bool>())
+            _hasConsole =
+            !Console.IsOutputRedirected &&
+            !Console.IsInputRedirected &&
+            !Console.IsErrorRedirected;
+
+            if (_hasConsole && Settings.GlobalSettings.GetSetting("LogToConsole", out SettingOption logToConsoleSetting, SettingType.Bool) && logToConsoleSetting.GetValue<bool>())
             {
                 logToConsole = true;
-                Console.Clear(); 
-                Console.ResetColor(); 
+                Console.ResetColor();
             }
+            else logToConsole = false;
 
             if (Settings.GlobalSettings.GetSetting("AdditionalDebugInfo", out SettingOption additionalDebugInfoSetting, SettingType.Bool) && additionalDebugInfoSetting.GetValue<bool>())
             {

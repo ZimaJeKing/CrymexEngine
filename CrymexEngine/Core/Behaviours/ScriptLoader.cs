@@ -51,8 +51,14 @@ namespace CrymexEngine.Scripting
             return behaviour;
         }
 
-        private static ScriptableBehaviour RuntimeAdd(Type type)
+        public static ScriptableBehaviour RuntimeAdd(Type type)
         {
+            if (!type.IsSubclassOf(typeof(ScriptableBehaviour)))
+            {
+                Debug.LogError($"[Behaviour Loader] Type '{type}' is not a subclass of ScriptableBehaviour");
+                return null;
+            }
+
             ScriptableBehaviour? behaviour = (ScriptableBehaviour?)Activator.CreateInstance(type);
             if (behaviour == null) return null;
 

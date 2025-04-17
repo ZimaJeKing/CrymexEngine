@@ -21,17 +21,39 @@ namespace CrymexEngine
 
         private byte[] data;
 
-        public static Texture None { get; internal set; }
-        public static Texture Missing { get; internal set; }
-        public static Texture White { get; internal set; }
+        private static Texture _texNone;
+        private static Texture _texMissing;
+        private static Texture _texNWhite;
+
+        public static Texture None => _texNone;
+        public static Texture Missing => _texMissing;
+        public static Texture White => _texNWhite;
+
+        internal static void InitBaseTextures()
+        {
+            _texNWhite = new Texture(1, 1, new byte[] { 255, 255, 255, 255 });
+            _texNone = new Texture(1, 1, new byte[] { 0, 0, 0, 0 });
+
+            // Define the missing texture
+            string missingTextureName = "Missing";
+
+            if (Settings.GlobalSettings.GetSetting("MissingTexture", out SettingOption missingTextureOption, SettingType.RefString))
+            {
+                missingTextureName = missingTextureOption.GetValue<string>();
+            }
+
+            _texMissing = Assets.GetTextureBroad(missingTextureName);
+
+            // If texture not found define a basic missing texture with raw data
+            _texMissing ??= new Texture(2, 2, new byte[] { 255, 0, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 0, 255, 255 } );
+        }
 
         public Texture(int width, int height)
         {
             if (!Assets.Loaded) throw new Exception("Assets must be loaded in order to create textures.");
 
-            // 23170 - The highest number to not overflow the data array
-            width = Math.Clamp(width, 1, 23170);
-            height = Math.Clamp(height, 1, 23170);
+            width = Math.Clamp(width, 1, 16384);
+            height = Math.Clamp(height, 1, 16384);
 
             this.width = width;
             this.height = height;
@@ -51,14 +73,21 @@ namespace CrymexEngine
         {
             if (!Assets.Loaded) throw new Exception("Assets must be loaded in order to create textures.");
 
-            width = Math.Clamp(width, 1, int.MaxValue);
-            height = Math.Clamp(height, 1, int.MaxValue);
+            if (data.Length < width * height * 4)
+            {
+                Debug.LogError($"Texture data not the right size. Expected {DataUtil.ByteCountToString(width * height * 4)}B, got {DataUtil.ByteCountToString(data.Length)}B");
+                return;
+            }
+
+            width = Math.Clamp(width, 1, 16384);
+            height = Math.Clamp(height, 1, 16384);
 
             this.width = width;
             this.height = height;
             this.data = data;
 
             UsageProfiler.AddMemoryConsumptionValue(data.Length, MemoryUsageType.Texture);
+            UsageProfiler.AddMemoryConsumptionValue(data.Length, MemoryUsageType.VRam);
 
             glTexture = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2D, glTexture);
@@ -388,9 +417,11 @@ namespace CrymexEngine
 
         protected override void OnDispose()
         {
-            GL.DeleteBuffer(glTexture);
+            GL.BindTexture(TextureTarget.Texture2D, 0);
+            GL.DeleteTexture(glTexture);
 
             UsageProfiler.AddMemoryConsumptionValue(-data.Length, MemoryUsageType.Texture);
+            UsageProfiler.AddMemoryConsumptionValue(-data.Length, MemoryUsageType.VRam);
         }
 
         private static Texture ApplyMetaData(MetaFile? metadata, Texture texture)

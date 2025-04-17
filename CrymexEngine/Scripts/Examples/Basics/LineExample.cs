@@ -20,11 +20,19 @@ namespace CrymexEngine.Scripts.Examples
             end.Renderer.color = Color4.Red;
 
             // Create a middle point indicator
-            middlePoint = new Entity(circleTexture, Vector2.Zero, new Vector2(5), null, "MiddlePoint", 0);
+            middlePoint = new Entity(circleTexture, Vector2.Zero, new Vector2(5), null, "MiddlePoint", 1);
             middlePoint.Renderer.color = Color4.Blue;
 
             // Create the line itself
-            line = new Line(new Vector2(-256, 0), new Vector2(256, 0), Color4.Yellow);
+            line = new Line(new Vector2(-256, 0), new Vector2(256, 0), Color4.White, 5, -1);
+
+            // Create a gradient for the line
+            Gradient gradient = new Gradient(Color4.BlueViolet, Color4.BlueViolet);
+            gradient.AddKeypoint(0.25f, Color4.Yellow);
+            gradient.AddKeypoint(0.5f, Color4.Red);
+            gradient.AddKeypoint(0.75f, Color4.Yellow);
+
+            line.Gradient = gradient;
         }
 
         protected override void Update()

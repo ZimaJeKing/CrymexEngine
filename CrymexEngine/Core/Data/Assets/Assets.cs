@@ -3,7 +3,6 @@ using CrymexEngine.Debugging;
 using CrymexEngine.Rendering;
 using CrymexEngine.Utils;
 using SixLabors.Fonts;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 namespace CrymexEngine
@@ -22,6 +21,7 @@ namespace CrymexEngine
         private static Dictionary<string, FontAsset> _fonts = new();
         private static Dictionary<string, SettingAsset> _settings = new();
         private static Dictionary<string, TextAsset> _texts = new();
+        private static Dictionary<string, TextAsset> _scenes = new();
 
         private static readonly FontCollection _fontCollecion = new();
         private static bool _useMeta = false;
@@ -52,44 +52,37 @@ namespace CrymexEngine
         /// </summary>
         public static TextureAsset? GetTextureAsset(string name)
         {
-            if (_textures.TryGetValue(name, out TextureAsset? asset))
-            {
-                return asset;
-            }
-            return null;
+            _textures.TryGetValue(name, out TextureAsset? asset);
+            return asset;
         }
         /// <summary>
         /// Gets a shader asset with the same name
         /// </summary>
         public static ShaderAsset? GetShaderAsset(string name)
         {
-            if (_shaders.TryGetValue(name, out ShaderAsset? asset))
-            {
-                return asset;
-            }
-            return null;
+            _shaders.TryGetValue(name, out ShaderAsset? asset);
+            return asset;
         }
         /// <summary>
         /// Gets an audio asset with the same name
         /// </summary>
         public static AudioAsset? GetAudioAsset(string name)
         {
-            if (_audioClips.TryGetValue(name, out AudioAsset? asset))
-            {
-                return asset;
-            }
-            return null;
+            _audioClips.TryGetValue(name, out AudioAsset? asset);
+            return asset;
         }
         /// <summary>
         /// Gets a text asset with the same name
         /// </summary>
         public static TextAsset? GetTextAsset(string name)
         {
-            if (_texts.TryGetValue(name, out TextAsset? asset))
-            {
-                return asset;
-            }
-            return null;
+            _texts.TryGetValue(name, out TextAsset? asset);
+            return asset;
+        }
+        public static TextAsset? GetSceneAsset(string name)
+        {
+            _scenes.TryGetValue(name, out TextAsset? asset);
+            return asset;
         }
         /// <summary>
         /// Gets a texture with the same name. Returns Texture.Missing if not found
@@ -116,7 +109,7 @@ namespace CrymexEngine
         public static Shader? GetShader(string name)
         {
             _shaders.TryGetValue(name, out ShaderAsset? asset);
-            return asset.shader;
+            return asset?.shader;
         }
         /// <summary>
         /// Gets a text with the same name
@@ -132,15 +125,12 @@ namespace CrymexEngine
         public static Settings? GetSettings(string name)
         {
             _settings.TryGetValue(name, out SettingAsset? asset);
-            return asset.settings;
+            return asset?.settings;
         }
         public static FontFamily? GetFontFamily(string name)
         {
-            if (_fonts.TryGetValue(name, out FontAsset? asset))
-            {
-                if (asset != null) return asset.family;
-            }
-            return null;
+            _fonts.TryGetValue(name, out FontAsset? asset);
+            return asset?.family;
         }
 
         /// <summary>
@@ -244,9 +234,6 @@ namespace CrymexEngine
 
             LoadSettings();
 
-            // Defining Texture.Missing, Texture.White and Texture.None
-            DefineTextures();
-
             // Whether the application is precompiled
             if (Engine.SettingsPrecompiled)
             {
@@ -275,6 +262,9 @@ namespace CrymexEngine
                     Compile();
                 }
             }
+
+            // Defining Texture.Missing, Texture.White and Texture.None
+            Texture.InitBaseTextures();
 
             Shader.LoadDefaultShaders();
 
@@ -449,6 +439,11 @@ namespace CrymexEngine
                         LoadSettingsAsset(path); 
                         break;
                     }
+                case ".scene": // Scenes
+                    {
+                        LoadSceneAsset(path);
+                        break;
+                    }
             }
         }
 
@@ -475,7 +470,7 @@ namespace CrymexEngine
             {
                 string vertexCode = File.ReadAllText(path);
                 string fragmentCode = File.ReadAllText(fragmentPath);
-                ShaderAsset shaderAsset = new ShaderAsset(path, Shader.LoadFromAsset(vertexCode, fragmentCode), vertexCode, fragmentCode, MetaFileManager.DecodeMetaFromFile(path + ".meta"));
+                ShaderAsset shaderAsset = new ShaderAsset(path, Shader.LoadFromAsset(vertexCode, fragmentCode), vertexCode, fragmentCode);
                 _shaders.Add(shaderAsset.name, shaderAsset);
             }
             else
@@ -523,7 +518,7 @@ namespace CrymexEngine
 
             AudioClip? clip = AudioClip.Load(path);
             if (clip == null) return;
-            AudioAsset audioAsset = new AudioAsset(path, clip, MetaFileManager.DecodeMetaFromFile(path + ".meta"));
+            AudioAsset audioAsset = new AudioAsset(path, clip);
             _audioClips.Add(name, audioAsset);
         }
         private static void LoadTextAsset(string path)
@@ -540,13 +535,31 @@ namespace CrymexEngine
             }
             string text = encoding.GetString(textBytes);
 
-            TextAsset textAsset = new TextAsset(path, text, MetaFileManager.DecodeMetaFromFile(path + ".meta"));
+            TextAsset textAsset = new TextAsset(path, text);
             _texts.Add(name, textAsset);
+        }
+        private static void LoadSceneAsset(string path)
+        {
+            string name = DataUtil.GetCENameFromPath(path);
+            if (_scenes.ContainsKey(name)) return;
+
+            byte[] textBytes = File.ReadAllBytes(path);
+            Encoding encoding = DataUtil.DetectTextEncoding(path, out float confidence);
+            if (confidence > 0 && confidence < 0.1f)
+            {
+                Debug.LogWarning($"Text encoding detection on low confidence in scene '{name}'. Detected '{encoding.EncodingName}'");
+            }
+            string text = encoding.GetString(textBytes);
+
+            TextAsset textAsset = new TextAsset(path, text);
+            _scenes.Add(name, textAsset);
         }
 
         private static AssetCompilationInfo CompileDataAssets()
         {
             float startTime = Time.GameTime;
+            long rawTextureSize = UsageProfiler.TextureMemoryUsage;
+            long rawAudioSize = UsageProfiler.AudioMmeoryUsage;
             long textureSize, audioSize, shaderSize, fontSize, settingsSize, textSize;
 
             // Compiling texture data
@@ -646,7 +659,7 @@ namespace CrymexEngine
 
             float compilationTime = Time.GameTime - startTime;
 
-            return new AssetCompilationInfo(textureSize, audioSize, shaderSize, fontSize, settingsSize + textSize, compilationTime);
+            return new AssetCompilationInfo(rawTextureSize, textureSize, rawAudioSize, audioSize, shaderSize, fontSize, settingsSize + textSize, compilationTime);
         }
 
         private static bool LoadPrecompiledAssets()
@@ -699,6 +712,8 @@ namespace CrymexEngine
         {
             Debug.WriteToConsole($"Precompiling all assets...", ConsoleColor.Blue);
 
+            AssetCompiler.LoadCompilationSettings();
+
             // Compile data
             AssetCompilationInfo info = CompileDataAssets();
 
@@ -734,25 +749,6 @@ namespace CrymexEngine
 
             float loadingTime = Time.GameTime - startTime;
             Debug.LogLocalInfo("Asset Loader", $"Precompiled assets loaded in {DataUtil.SecondsToTimeString(loadingTime)}");
-        }
-
-        private static void DefineTextures()
-        {
-            Texture.White = new Texture(1, 1, new byte[] { 255, 255, 255, 255 });
-            Texture.None = new Texture(1, 1, new byte[] { 0, 0, 0, 0 });
-
-            // Define the missing texture
-            string missingTextureName = "Missing";
-
-            if (Settings.GlobalSettings.GetSetting("MissingTexture", out SettingOption missingTextureOption, SettingType.RefString))
-            {
-                missingTextureName = missingTextureOption.GetValue<string>();
-            }
-
-            Texture.Missing = GetTextureBroad(missingTextureName);
-
-            // If texture not found define a basic missing texture with raw data
-            Texture.Missing ??= new Texture(2, 2, new byte[] { 255, 0, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 0, 255, 255 });
         }
 
         private static void LoadSettings()

@@ -9,7 +9,7 @@ namespace CrymexEngine
     public static class Engine
     {
         public static string MainDirPath => _mainDirPath;
-        public static readonly Version version = new Version(0, 0, 1);
+        public static readonly Version version = new Version(0, 1, 1);
         public static bool Initialized => _initialized;
         public static bool Running => _running;
         public static bool SettingsPrecompiled => _precompiled;
@@ -36,20 +36,24 @@ namespace CrymexEngine
 
             Directories.Init();
 
-            GLFW.Init();
+            if (!GLFW.Init())
+            {
+                Debug.LogError("GLFW prohibited engine initialization.");
+                return;
+            }
 
             Debug.InitializeEngineDirectories();
 
             bool settingsLoadedFine = LoadGlobalSettings();
 
-            Debug.LoadSettings();
-
-            DataUtil.LoadSettings();
-
             if (!settingsLoadedFine)
             {
                 Debug.LogError($"An error occured while loading precompiled settings. Running on dynamic assets");
             }
+
+            Debug.LoadSettings();
+
+            DataUtil.LoadSettings();
 
             Debug.LogLocalInfo("Engine", $"Crymex engine version {version.Major}.{version.Minor}.b{version.Build}");
 
@@ -87,6 +91,12 @@ namespace CrymexEngine
 
         public static void Run()
         {
+            if (!_initialized)
+            {
+                Debug.LogError("Engine wasn't initialized properly. Try calling Engine.Initialize() before running the engine.");
+                return;
+            }
+
             _running = true;
 
             // --- Main application loop --- //

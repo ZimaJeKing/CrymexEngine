@@ -27,10 +27,7 @@ namespace CrymexEngine
             return null;
         }
 
-        /// <summary>
-        /// Returns null, if the Entity wasn't found
-        /// </summary>
-        public static Entity GetEntity(string name, Scene scene)
+        public static Entity? GetEntity(string name, Scene scene)
         {
             foreach (Entity entity in scene.entities)
             {
@@ -42,10 +39,8 @@ namespace CrymexEngine
             return null;
         }
 
-        public Entity(Texture texture, Vector2 position, Vector2 scale, Entity? parent = null, string name = "", float depth = 0) : base(position, scale)
+        public Entity(Texture texture, Vector2 position, Vector2 scale, Entity? parent = null, string name = "", float depth = 0) : base(position, scale, parent?.Transform)
         {
-            if (parent != null) Transform.Parent = parent.Transform;
-
             Scene.Current.entities.Add(this);
 
             _renderer = AddComponent<EntityRenderer>();
@@ -57,10 +52,8 @@ namespace CrymexEngine
         /// <summary>
         /// Creates an Entity in the specified scene
         /// </summary>
-        public Entity(Texture texture, Vector2 position, Vector2 scale, Scene scene, Entity? parent = null, string name = "") : base(position, scale)
+        public Entity(Texture texture, Vector2 position, Vector2 scale, Scene scene, Entity? parent = null, string name = "") : base(position, scale, parent?.Transform)
         {
-            if (parent != null) Transform.Parent = parent.Transform;
-
             scene.entities.Add(this);
 
             _renderer = AddComponent<EntityRenderer>();
@@ -71,10 +64,8 @@ namespace CrymexEngine
         /// <summary>
         /// Creates an Entity with no EntityRenderer attached
         /// </summary>
-        public Entity(Vector2 position, Vector2 scale, Entity? parent = null, string name = "") : base(position, scale)
+        public Entity(Vector2 position, Vector2 scale, Entity? parent = null, string name = "") : base(position, scale, parent?.Transform)
         {
-            if (parent != null) Transform.Parent = parent.Transform;
-
             this.name = name;
 
             Scene.Current.entities.Add(this);
