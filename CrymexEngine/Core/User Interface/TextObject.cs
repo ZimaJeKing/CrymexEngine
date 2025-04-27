@@ -1,4 +1,5 @@
-﻿using CrymexEngine.Rendering;
+﻿using CrymexEngine.Data;
+using CrymexEngine.Rendering;
 using CrymexEngine.Utils;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
@@ -197,6 +198,15 @@ namespace CrymexEngine.UI
 
         public TextObject(Vector2 position, Vector2i scale, string text, FontFamily family, float fontSize, Alignment textAlignment = Alignment.MiddleCenter, FontStyle style = FontStyle.Regular)
         {
+            if (family == default)
+            {
+                if (Assets.DefaultFontFamily == default)
+                {
+                    Debug.LogError("No default font family set. Add a font to the project assets to make a text object");
+                    return;
+                }
+                family = Assets.DefaultFontFamily;
+            }
             this.position = position;
             _scale = scale;
             _halfScale = scale.ToVector2() * 0.5f;
@@ -224,7 +234,6 @@ namespace CrymexEngine.UI
             // Bind shader and texture
             GL.BindTexture(TextureTarget.Texture2D, _texture.glTexture);
             GL.BindVertexArray(Mesh.quad.vao);
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, Mesh.quad.ebo);
 
             // Set first three shader parameters for Position, transformation, and color
             Shader.UI.SetParam(0, VectorUtil.Vec2ToVec3(position / Window.HalfSize, 0));
@@ -232,7 +241,7 @@ namespace CrymexEngine.UI
             Shader.UI.SetParam(2, Color4.White);
             Shader.UI.SetParam(3, _defaultTilingVector);
 
-            GL.DrawElements(BeginMode.Triangles, Mesh.quad.indices.Length, DrawElementsType.UnsignedInt, Mesh.quad.ebo);
+            GL.DrawElements(PrimitiveType.Triangles, Mesh.quad.indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero);
 
             GL.BindTexture(TextureTarget.Texture2D, 0);
             GL.UseProgram(0);

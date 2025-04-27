@@ -1,6 +1,4 @@
-﻿using FreeTypeSharp;
-using OpenTK.Graphics.OpenGL;
-using OpenTK.Mathematics;
+﻿using OpenTK.Graphics.OpenGL;
 
 namespace CrymexEngine.Rendering
 {

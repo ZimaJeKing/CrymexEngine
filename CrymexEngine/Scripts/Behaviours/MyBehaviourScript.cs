@@ -1,4 +1,5 @@
-﻿using CrymexEngine.Rendering;
+﻿using CrymexEngine.Audio;
+using CrymexEngine.Rendering;
 using CrymexEngine.UI;
 using CrymexEngine.Utils;
 using OpenTK.Mathematics;
@@ -9,12 +10,14 @@ namespace CrymexEngine.Scripts
     {
         protected override void Load()
         {
-            UIElement car = new UIElement(Assets.GetTexture("Car"), Vector2.Zero, new Vector2(256));
         }
 
         protected override void Update()
         {
-            
+            if (Input.KeyDown(Key.F))
+            {
+                ALMgr.Play(GetSound("SprayPaint"), 0.25f, false);
+            }
         }
     }
 }

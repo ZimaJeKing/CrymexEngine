@@ -102,6 +102,7 @@ namespace CrymexEngine
             {
                 logToConsole = true;
                 Console.ResetColor();
+                Console.Clear();
             }
             else logToConsole = false;
 
@@ -170,6 +171,14 @@ namespace CrymexEngine
             if (sourceString.Contains("DebugSource")) sourceString = sourceString.Substring(11);
 
             return sourceString;
+        }
+
+        internal static void InitializeUnixEngineDirectories()
+        {
+            if (!Directory.Exists(Directories.AssetsPath)) Directory.CreateDirectory(Directories.AssetsPath, UnixFileMode.UserWrite);
+            if (!Directory.Exists(Directories.RuntimeAssetsPath)) Directory.CreateDirectory(Directories.RuntimeAssetsPath, UnixFileMode.UserWrite);
+            if (!Directory.Exists(Directories.LogFolderPath)) Directory.CreateDirectory(Directories.LogFolderPath, UnixFileMode.UserWrite);
+            if (!Directory.Exists(Directories.SaveFolderPath)) Directory.CreateDirectory(Directories.SaveFolderPath, UnixFileMode.UserWrite);
         }
 
         internal static void InitializeEngineDirectories()

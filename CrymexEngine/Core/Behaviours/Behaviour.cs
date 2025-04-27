@@ -1,4 +1,6 @@
-﻿namespace CrymexEngine
+﻿using CrymexEngine.Audio;
+
+namespace CrymexEngine
 {
     public abstract class Behaviour
     {
@@ -11,7 +13,7 @@
 
         protected Settings GlobalSettings => Settings.GlobalSettings;
         protected Texture GetTex(string name) => Assets.GetTexture(name);
-        protected AudioClip? GetAud(string name) => Assets.GetAudioClip(name);
+        protected AudioClip? GetSound(string name) => Assets.GetAudioClip(name);
 
         protected abstract void Load();
         protected abstract void Update();

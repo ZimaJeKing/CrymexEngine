@@ -71,6 +71,7 @@ namespace CrymexEngine
             if (Settings.GlobalSettings.GetSetting("ClearColor", out SettingOption clearColorSetting, SettingType.Hex))
             {
                 _clearColor = System.Drawing.Color.FromArgb(clearColorSetting.GetValue<int>());
+                _clearColor.A = 1;
             }
             GL.ClearColor(_clearColor);
 

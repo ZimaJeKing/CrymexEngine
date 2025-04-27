@@ -1,8 +1,8 @@
 ﻿using OpenTK.Audio.OpenAL;
 
-namespace CrymexEngine
+namespace CrymexEngine.Audio
 {
-    public static class Audio
+    public static class ALMgr
     {
         public static bool Initialized => _initialized;
         public static string? PlaybackDevice => _playbackDevice;
@@ -108,10 +108,11 @@ namespace CrymexEngine
             }
         }
 
-        public static AudioSource Play(AudioClip clip, float volume, bool looping = false, AudioMixer? mixer = null, bool deleteAfterEnd = true)
+        /// <returns>Null, if the clip is null, disposed, or the audio context isn't initialized</returns>
+        public static AudioSource Play(AudioClip? clip, float volume, bool looping = false, AudioMixer? mixer = null, bool deleteAfterEnd = true)
         {
             if (!_initialized || clip == null || clip.Disposed) return null;
-            AudioSource source = new AudioSource(clip, volume, looping, true, mixer);
+            AudioSource source = new AudioSource(clip, volume, looping, true, mixer, deleteAfterEnd);
 
            _sources.Add(source);
 
@@ -122,7 +123,7 @@ namespace CrymexEngine
         {
             if (channels == 1 && bits == 8) return ALFormat.Mono8;
             if (channels == 1 && bits == 16) return ALFormat.Mono16;
-            if (channels == 2 && bits == 8) return ALFormat.Stereo16;
+            if (channels == 2 && bits == 8) return ALFormat.Stereo8;
             if (channels == 2 && bits == 16) return ALFormat.Stereo16;
             Debug.LogError($"Audio: Unsuported sound format (channels: {channels}, bitRate: {bits})");
             return ALFormat.Mono8;

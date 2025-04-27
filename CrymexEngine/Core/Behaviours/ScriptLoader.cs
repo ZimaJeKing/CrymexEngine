@@ -1,6 +1,4 @@
 ﻿using CrymexEngine.Scenes;
-using CrymexEngine.Scripts;
-using CrymexEngine.Scripts.Examples;
 
 namespace CrymexEngine.Scripting
 {

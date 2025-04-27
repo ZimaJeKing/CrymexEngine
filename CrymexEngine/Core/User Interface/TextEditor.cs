@@ -3,7 +3,6 @@ using CrymexEngine.UI;
 using CrymexEngine.Utils;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
-using System.Windows.Forms;
 
 namespace CrymexEngine.UI
 {
@@ -20,33 +19,6 @@ namespace CrymexEngine.UI
 
         private static readonly TextEditor _instance = new TextEditor();
 
-
-        [STAThread]
-        public static void SaveToClipboard(string text)
-        {
-            try
-            {
-                Clipboard.SetText(text);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Failed to save to clipboard:" + ex.Message);
-            }
-        }
-
-        [STAThread]
-        public static string GetFromClipboard()
-        {
-            try
-            {
-                return Clipboard.GetText();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Failed to load from clipboard:" + ex.Message);
-                return "";
-            }
-        }
         public static void Select(InputField? inputField, int index)
         {
             if (_selected == inputField)
@@ -92,14 +64,7 @@ namespace CrymexEngine.UI
 
             if (input.Length == 0) // First input
             {
-                if (Input.Key(Key.LeftControl) && Input.Key(Key.V)) // Pasting
-                {
-                    _lastEditTime = Time.GameTime;
-                    final = GetFromClipboard();
-                    edited = true;
-                    _selectedIndex = final.Length - 1;
-                }
-                else if (Input.textInput.Length != 0) // Text input
+                if (Input.textInput.Length != 0) // Text input
                 {
                     final = Input.textInput;
                     edited = true;
@@ -130,22 +95,6 @@ namespace CrymexEngine.UI
                 _lastEditTime = Time.GameTime;
                 _selectedIndex += arrowMovement;
                 _selectedIndex = Math.Clamp(_selectedIndex, -1, input.Length - 1);
-            }
-            else if (Input.Key(Key.LeftControl) && editTimeDif > 0.25f) // Copying & Pasting
-            {
-                if (Input.KeyDown(Key.V)) // Pasting
-                {
-                    _lastEditTime = Time.GameTime;
-                    string clipboard = GetFromClipboard();
-                    final = firstPart + clipboard + secondPart;
-                    _selectedIndex += clipboard.Length;
-                    edited = true;
-                    _selected.onTextInput?.Invoke(clipboard);
-                }
-                else if (Input.KeyDown(Key.C)) // Copying
-                {
-                    SaveToClipboard(_selected.Value);
-                }
             }
             else if (Input.textInput.Length < _selected.CharacterLimit) // Text input
             {

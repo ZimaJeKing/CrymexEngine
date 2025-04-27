@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace CrymexEngine
+﻿namespace CrymexEngine
 {
     public class AudioMixer
     {

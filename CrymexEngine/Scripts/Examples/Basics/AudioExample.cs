@@ -1,4 +1,5 @@
-﻿using CrymexEngine.UI;
+﻿using CrymexEngine.Audio;
+using CrymexEngine.UI;
 using OpenTK.Mathematics;
 
 namespace CrymexEngine.Scripts.Examples
@@ -37,7 +38,7 @@ namespace CrymexEngine.Scripts.Examples
 
         private void PlayAudio()
         {
-            Audio.Play(audioClip, volume);
+            ALMgr.Play(audioClip, volume);
         }
     }
 }

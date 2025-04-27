@@ -10,7 +10,7 @@ namespace CrymexEngine
         {
             Engine.Initialize();
 
-            ScriptLoader.Add<ExampleLoader>();
+            ScriptLoader.Add<MusicPlayerAppExample>();
 
             Engine.Run();
         }

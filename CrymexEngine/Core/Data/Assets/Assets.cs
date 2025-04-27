@@ -1,4 +1,5 @@
-﻿using CrymexEngine.Data;
+﻿using CrymexEngine.Audio;
+using CrymexEngine.Data;
 using CrymexEngine.Debugging;
 using CrymexEngine.Rendering;
 using CrymexEngine.Utils;
@@ -285,15 +286,15 @@ namespace CrymexEngine
         {
             foreach (KeyValuePair<string, AudioAsset> pair in _audioClips.ToArray())
             {
-                pair.Value.clip.Dispose();
+                pair.Value?.clip?.Dispose();
             }
             foreach (KeyValuePair<string, TextureAsset> pair in _textures.ToArray())
             {
-                pair.Value.texture.Dispose();
+                pair.Value?.texture?.Dispose();
             }
             foreach (KeyValuePair<string, ShaderAsset> pair in _shaders.ToArray())
             {
-                pair.Value.shader.Dispose();
+                pair.Value?.shader?.Dispose();
             }
 
             _audioClips.Clear();
@@ -364,17 +365,7 @@ namespace CrymexEngine
                         LoadAudioAsset(path);
                         break;
                     }
-                case ".mp3":
-                    {
-                        LoadAudioAsset(path);
-                        break;
-                    }
-                case ".aac":
-                    {
-                        LoadAudioAsset(path);
-                        break;
-                    }
-                case ".wma":
+                case ".ogg":
                     {
                         LoadAudioAsset(path);
                         break;

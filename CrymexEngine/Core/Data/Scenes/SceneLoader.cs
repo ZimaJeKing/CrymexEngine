@@ -1,5 +1,4 @@
 ﻿using OpenTK.Mathematics;
-using System.Reflection;
 
 namespace CrymexEngine.Scenes
 {

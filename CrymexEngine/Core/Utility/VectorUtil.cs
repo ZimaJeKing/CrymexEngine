@@ -1,5 +1,4 @@
-﻿
-using OpenTK.Mathematics;
+﻿using OpenTK.Mathematics;
 
 namespace CrymexEngine.Utils
 {

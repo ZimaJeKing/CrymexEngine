@@ -22,7 +22,14 @@ namespace CrymexEngine.GameObjects
             _position = position;
             _scale = scale;
             _halfScale = scale * 0.5f;
-            Parent = parent;
+
+            if (parent != null)
+            {
+                _parent = parent;
+                parent.children.Add(this);
+                _position = Vector2.Zero;
+                LocalPosition = position;
+            }
 
             RecalcTransformMatrix();
         }

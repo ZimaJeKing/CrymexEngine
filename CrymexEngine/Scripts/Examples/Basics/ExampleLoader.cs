@@ -10,6 +10,8 @@ namespace CrymexEngine.Scripts.Examples
             typeof(GradientExample),
             typeof(LineExample),
             typeof(LineGroupExample),
+            typeof(LineRendererExample),
+            typeof(SavedDataExample),
             typeof(TextExample),
             typeof(InputFieldExample),
             typeof(UVTransformExample)

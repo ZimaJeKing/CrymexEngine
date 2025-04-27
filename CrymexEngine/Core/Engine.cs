@@ -1,4 +1,5 @@
-﻿using CrymexEngine.Data;
+﻿using CrymexEngine.Audio;
+using CrymexEngine.Data;
 using CrymexEngine.Scenes;
 using CrymexEngine.Utils;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -8,6 +9,7 @@ namespace CrymexEngine
 {
     public static class Engine
     {
+        public static char PSep => Path.DirectorySeparatorChar;
         public static string MainDirPath => _mainDirPath;
         public static readonly Version version = new Version(0, 1, 1);
         public static bool Initialized => _initialized;
@@ -25,12 +27,12 @@ namespace CrymexEngine
 
             if (startupPath == null)
             {
-                startupPath = Directory.GetCurrentDirectory() + '\\';
+                startupPath = Directory.GetCurrentDirectory() + PSep;
             }
             else if (!Directory.Exists(startupPath))
             {
                 Debug.LogWarning($"Specified startup directory doesn't exist ('{startupPath}')");
-                startupPath = Directory.GetCurrentDirectory() + '\\';
+                startupPath = Directory.GetCurrentDirectory() + PSep;
             }
             _mainDirPath = startupPath;
 
@@ -42,13 +44,19 @@ namespace CrymexEngine
                 return;
             }
 
-            Debug.InitializeEngineDirectories();
+            if (OperatingSystem.IsLinux()) Debug.InitializeUnixEngineDirectories();
+            else Debug.InitializeEngineDirectories();
 
             bool settingsLoadedFine = LoadGlobalSettings();
 
             if (!settingsLoadedFine)
             {
                 Debug.LogError($"An error occured while loading precompiled settings. Running on dynamic assets");
+            }
+
+            if (Settings.GlobalSettings.GetSetting("LogWorkingDirectory", out SettingOption pwdOption, SettingType.Bool) && pwdOption.GetValue<bool>())
+            {
+                Debug.LogLocalInfo("Engine", $"Working directory: '{_mainDirPath}'");
             }
 
             Debug.LoadSettings();
@@ -135,7 +143,7 @@ namespace CrymexEngine
 
         private static void PerformCleanup()
         {
-            Audio.Cleanup();
+            ALMgr.Cleanup();
             Assets.Cleanup();
             Debug.Cleanup();
 

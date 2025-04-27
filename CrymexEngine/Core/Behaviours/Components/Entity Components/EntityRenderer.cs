@@ -1,6 +1,5 @@
 ﻿using CrymexEngine.GameObjects;
 using CrymexEngine.Rendering;
-using CrymexEngine.UI;
 using CrymexEngine.Utils;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;

@@ -50,6 +50,8 @@ namespace CrymexEngine.Scenes
                 ScriptableBehaviour b = scriptableBehaviours[i];
                 if (!b.stayAlive) scriptableBehaviours.Remove(b);
             }
+
+            TextEditor.Deselect();
         }
 
         /// <summary>

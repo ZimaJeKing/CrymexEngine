@@ -1,7 +1,5 @@
 ﻿using CrymexEngine.Data;
-using CrymexEngine.Debugging;
 using CrymexEngine.Utils;
-using NAudio.Wave;
 using OpenTK.Mathematics;
 using System.Text;
 
@@ -20,7 +18,7 @@ namespace CrymexEngine
 
         private readonly Dictionary<string, SettingOption> options = new();
 
-        private static readonly string _defaultGlobalSettingsText = "LogToConsole:True\nVSync:True\nLogFPS:True";
+        private static readonly string _defaultGlobalSettingsText = "LogToConsole:True\nVSync:True\nLogFPS:True\nLogWorkingDirectory:True";
 
         public Settings(bool recompile = true)
         {

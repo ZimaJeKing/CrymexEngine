@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using CrymexEngine.Utils;
-using OpenTK.Graphics.OpenGL;
 
 namespace CrymexEngine.Debugging
 {

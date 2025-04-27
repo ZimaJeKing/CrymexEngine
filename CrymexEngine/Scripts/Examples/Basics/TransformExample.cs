@@ -4,11 +4,13 @@ namespace CrymexEngine.Scripts.Examples
 {
     public class TransformExample : ScriptableBehaviour
     {
+        private Entity globalParent;
         private Entity box;
 
         protected override void Load()
         {
-            box = new Entity(Texture.White, Vector2.Zero, new Vector2(64));
+            globalParent = new Entity(Vector2.Zero, Vector2.Zero);
+            box = new Entity(Texture.White, new Vector2(128, 0), new Vector2(64), globalParent);
 
             box.Renderer.color = Color4.Purple;
 
@@ -31,7 +33,10 @@ namespace CrymexEngine.Scripts.Examples
 
         protected override void Update()
         {
-            box.Transform.Rotation = Time.GameTime * 30;
+            float rotation = Time.GameTime * 30;
+
+            globalParent.Transform.Rotation = rotation;
+            box.Transform.Rotation = rotation;
         }
     }
 

@@ -1,131 +1,203 @@
 ﻿using CrymexEngine.Data;
 using CrymexEngine.Debugging;
-using NAudio.Lame;
-using NAudio.Wave;
-using System.IO;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace CrymexEngine
+namespace CrymexEngine.Audio
 {
     public class AudioClip : CEDisposable
     {
         public readonly IntPtr soundData;
-        public readonly WaveFormat format;
         public readonly int dataSize;
+        public readonly int sampleRate;
+        public readonly int channels;
+        public readonly int bitRate;
         public readonly float length;
 
-        public AudioClip(IntPtr soundData, WaveFormat format, int dataSize)
+        public AudioClip(IntPtr soundData, int dataSize, int sampleRate, int channels)
         {
             this.soundData = soundData;
-            this.format = format;
             this.dataSize = dataSize;
-            length = dataSize / (float)(format.SampleRate * format.Channels * (format.BitsPerSample / 8f));
+            this.sampleRate = sampleRate;
+            this.channels = channels;
+            length = dataSize / (float)(sampleRate * channels * 2);
 
             UsageProfiler.AddMemoryConsumptionValue(dataSize, MemoryUsageType.Audio);
         }
 
         public static AudioClip? Load(string path)
         {
-            IntPtr soundData = LoadSoundFromFile(path, out WaveFormat format, out int dataSize);
-
-            if (soundData == IntPtr.Zero)
+            if (!File.Exists(path))
             {
+                Debug.LogError($"Audio file at '{path}' not found.");
                 return null;
             }
 
-            return new AudioClip(soundData, format, dataSize);
+            string extension = Path.GetExtension(path).ToLowerInvariant();
+            switch (extension)
+            {
+                case ".ogg": return VorbisLoad(path);
+                case ".wav": return WavLoad(path);
+                default:
+                    Debug.LogError($"Unsupported audio format: '{extension}'");
+                    return null;
+            }
+        }
+
+        private static AudioClip? VorbisLoad(string path)
+        {
+            try
+            {
+                using (FileStream fileStream = File.OpenRead(path))
+                {
+                    IntPtr soundData = Vorbis.OggToPCM16(fileStream, out int dataSize, out int sampleRate, out int channels);
+
+                    if (soundData == IntPtr.Zero)
+                    {
+                        return null;
+                    }
+
+                    return new AudioClip(soundData, dataSize, sampleRate, channels);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("Error loading audio file: " + e.Message);
+                return null;
+            }
+        }
+
+        private static AudioClip? WavLoad(string path)
+        {
+            try
+            {
+                using (FileStream fileStream = File.OpenRead(path))
+                {
+                    IntPtr soundData = WavDecoder.WavToPCM16(fileStream, out int dataSize, out int sampleRate, out int channels);
+
+                    if (soundData == IntPtr.Zero)
+                    {
+                        return null;
+                    }
+
+                    return new AudioClip(soundData, dataSize, sampleRate, channels);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error loading audio file: {e.Message} (source: {e.Source})");
+                return null;
+            }
         }
 
         public byte[] CompressData()
         {
-            byte[] pcmData = new byte[dataSize];
-            Marshal.Copy(soundData, pcmData, 0, dataSize);
+            short[] buffer = new short[dataSize / sizeof(short)];
+            Marshal.Copy(soundData, buffer, 0, dataSize / 2);
 
-            using (var pcmStream = new MemoryStream(pcmData))
-            using (var reader = new RawSourceWaveStream(pcmStream, new WaveFormat(format.SampleRate, format.BitsPerSample, format.Channels)))
-            using (var mp3Stream = new MemoryStream())
+            if (channels == 2)
             {
-                using (var writer = new LameMP3FileWriter(mp3Stream, reader.WaveFormat, LAMEPreset.VBR_90))
+                (short[] leftChannel, short[] rightChannel) = CEResampler.SplitChannels(buffer);
+
+                rightChannel = CEResampler.CreateDifChannel(leftChannel, rightChannel);
+
+                sbyte[] rightSq = CEResampler.DeltaSqueeze(rightChannel);
+
+                using MemoryStream memStream = new MemoryStream();
+                using BinaryWriter writer = new BinaryWriter(memStream);
+
+                writer.Write((int)channels);
+                writer.Write((int)sampleRate);
+
+                writer.Write((int)leftChannel.Length * sizeof(short));
+                writer.Write(CEResampler.ConvertShortToByte(leftChannel));
+
+                writer.Write((int)rightSq.Length);
+                writer.Write(SByteToByteArray(rightSq));
+
+                return memStream.ToArray();
+            }
+            else if (channels == 1)
+            {
+                using MemoryStream memStream = new MemoryStream();
+                using BinaryWriter writer = new BinaryWriter(memStream);
+
+                writer.Write((int)channels);
+                writer.Write((int)sampleRate);
+
+                writer.Write((int)buffer.Length);
+                writer.Write(CEResampler.ConvertShortToByte(buffer));
+
+                return memStream.ToArray();
+            }
+            else throw new ArgumentException("Invalid number of channels. Only 1 or 2 channels are supported.");
+        }
+
+        public static AudioClip FromCompressed(byte[] data)
+        {
+            try
+            {
+                using MemoryStream memStream = new MemoryStream(data);
+                using BinaryReader reader = new BinaryReader(memStream);
+
+                int channels = reader.ReadInt32();
+                int sampleRate = reader.ReadInt32();
+
+                byte[]? leftBytes = null, rightSq = null;
+
+                leftBytes = reader.ReadBytes(reader.ReadInt32());
+                short[] leftChannel = new short[leftBytes.Length / sizeof(short)];
+                Buffer.BlockCopy(leftBytes, 0, leftChannel, 0, leftBytes.Length - (leftBytes.Length % 2));
+
+                if (channels == 2)
                 {
-                    reader.CopyTo(writer);
+                    // 2 channels
+                    rightSq = reader.ReadBytes(reader.ReadInt32());
+                    short[] rightChannel = CEResampler.RevertDifChannel(leftChannel, CEResampler.DeltaUnsqueeze(ByteToSByteArray(rightSq)));
+
+                    short[] merged = CEResampler.MergeChannels(leftChannel, rightChannel);
+
+                    IntPtr mergedSoundData = Marshal.AllocHGlobal(merged.Length * sizeof(short));
+                    Marshal.Copy(merged, 0, mergedSoundData, merged.Length);
+
+                    return new AudioClip(mergedSoundData, merged.Length * sizeof(short), sampleRate, 2);
                 }
 
-                return mp3Stream.ToArray();
+                // 1 channel
+                IntPtr leftSoundData = Marshal.AllocHGlobal(leftChannel.Length * sizeof(short));
+                Marshal.Copy(leftChannel, 0, leftSoundData, leftChannel.Length);
+                return new AudioClip(leftSoundData, leftChannel.Length * sizeof(short), sampleRate, 1);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("Error decompressing audio data: " + e.Message);
+                return null;
             }
         }
 
-        public static AudioClip FromCompressed(byte[] mp3Data)
+        public static byte[] SByteToByteArray(sbyte[] source)
         {
-            WaveFormat format = new WaveFormat(41000, 16, 2);
-
-            using var mp3Stream = new MemoryStream(mp3Data);
-            using var reader = new Mp3FileReader(mp3Stream);
-            using MediaFoundationResampler resampler = new MediaFoundationResampler(reader, format);
-            using MemoryStream pcmStream = new MemoryStream();
+            byte[] result = new byte[source.Length];
+            for (int i = 0; i < source.Length; i++)
             {
-                byte[] buffer = new byte[4096];
-                int bytesRead;
-
-                while ((bytesRead = resampler.Read(buffer, 0, buffer.Length)) > 0)
-                {
-                    pcmStream.Write(buffer, 0, bytesRead);
-                }
-
-                byte[] fullData = pcmStream.ToArray();
-                IntPtr unmanagedBuffer = Marshal.AllocHGlobal(fullData.Length);
-
-                Marshal.Copy(fullData, 0, unmanagedBuffer, fullData.Length);
-                return new AudioClip(unmanagedBuffer, format, fullData.Length);
+                result[i] = unchecked((byte)source[i]);
             }
+            return result;
+        }
+
+        public static sbyte[] ByteToSByteArray(byte[] source)
+        {
+            sbyte[] result = new sbyte[source.Length];
+            for (int i = 0; i < source.Length; i++)
+            {
+                result[i] = unchecked((sbyte)source[i]);
+            }
+            return result;
         }
 
         protected override void OnDispose()
         {
             Marshal.FreeHGlobal(soundData);
             UsageProfiler.AddMemoryConsumptionValue(-dataSize, MemoryUsageType.Audio);
-        }
-
-        private static IntPtr LoadSoundFromFile(string path, out WaveFormat format, out int size)
-        {
-            size = 0;
-            format = new WaveFormat(44100, 16, 2);
-            if (!File.Exists(path))
-            {
-                return IntPtr.Zero;
-            }
-
-            IntPtr unmanagedBuffer;
-            try
-            {
-                using AudioFileReader reader = new AudioFileReader(path);
-                using MediaFoundationResampler resampler = new MediaFoundationResampler(reader, format);
-                using MemoryStream memoryStream = new MemoryStream();
-
-                resampler.ResamplerQuality = 60;
-
-                byte[] buffer = new byte[4096];
-                int bytesRead;
-
-                while ((bytesRead = resampler.Read(buffer, 0, buffer.Length)) > 0)
-                {
-                    memoryStream.Write(buffer, 0, bytesRead);
-                }
-
-                byte[] fullData = memoryStream.ToArray();
-                size = fullData.Length;
-
-                unmanagedBuffer = Marshal.AllocHGlobal(size);
-
-                Marshal.Copy(fullData, 0, unmanagedBuffer, size);
-                return unmanagedBuffer;
-            }
-            catch
-            {
-                Debug.LogWarning($"Audio clip at '{path}' couldn't be loaded");
-                format = new WaveFormat();
-                return IntPtr.Zero;
-            }
         }
     }
 }

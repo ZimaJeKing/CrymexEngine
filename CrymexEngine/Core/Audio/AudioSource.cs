@@ -1,4 +1,5 @@
-﻿using OpenTK.Audio.OpenAL;
+﻿using CrymexEngine.Audio;
+using OpenTK.Audio.OpenAL;
 
 namespace CrymexEngine
 {
@@ -15,7 +16,7 @@ namespace CrymexEngine
         {
             get
             {
-                if (!_playing) return false;
+                if (!_playing || _disposed) return false;
                 if (Progress >= 1)
                 {
                     _playing = false;
@@ -34,6 +35,7 @@ namespace CrymexEngine
         {
             set
             {
+                if (_disposed) return;
                 if (value < 0) value = 0;
                 else if (value > 10) value = 10;
 
@@ -55,6 +57,8 @@ namespace CrymexEngine
         {
             get
             {
+                if (_disposed) return 0;
+
                 if (!_playing)
                 {
                     return _playProgress / lengthWithPitch;
@@ -71,18 +75,13 @@ namespace CrymexEngine
             }
         }
 
-        public bool Disposed
-        {
-            get 
-            { 
-                return _disposed; 
-            }
-        }
+        public bool Disposed => _disposed;
 
         public bool ShouldBeDeleted
         {
             get
             {
+                if (_disposed) return true;
                 if (Progress > 1 && deleteAfterEnd)
                 {
                     return true;
@@ -102,9 +101,10 @@ namespace CrymexEngine
 
         public AudioSource(AudioClip clip, float volume, bool looping = false, bool playOnStart = true, AudioMixer? mixer = null, bool deleteAfterEnd = true)
         {
-            if (!Audio.Initialized)
+            if (!ALMgr.Initialized)
             {
                 Debug.LogError("Audio module not initialized. Cannot create an audio source instance");
+                _disposed = true;
                 return;
             }
             if (clip.Disposed)
@@ -137,10 +137,9 @@ namespace CrymexEngine
             // Setup OpenAL buffer and source
             alDataBuffer = AL.GenBuffer();
             _alSource = AL.GenSource();
+            ALFormat format = ALMgr.GetSoundFormat(clip.channels, sizeof(short) * 8);
 
-            ALFormat format = Audio.GetSoundFormat(clip.format.Channels, clip.format.BitsPerSample);
-
-            AL.BufferData(alDataBuffer, format, clip.soundData, clip.dataSize, clip.format.SampleRate);
+            AL.BufferData(alDataBuffer, format, clip.soundData, clip.dataSize, clip.sampleRate);
 
             AL.Source(_alSource, ALSourcei.Buffer, alDataBuffer);
 

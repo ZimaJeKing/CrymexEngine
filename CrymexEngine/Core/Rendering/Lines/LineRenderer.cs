@@ -1,7 +1,6 @@
 ﻿using CrymexEngine.Rendering;
 using CrymexEngine.UI;
 using CrymexEngine.Utils;
-using Microsoft.Win32.SafeHandles;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 

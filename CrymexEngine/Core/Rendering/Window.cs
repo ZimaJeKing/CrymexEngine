@@ -1,4 +1,5 @@
 ﻿using CrymexEngine.AetherPhysics;
+using CrymexEngine.Audio;
 using CrymexEngine.Data;
 using CrymexEngine.Debugging;
 using CrymexEngine.GameObjects;
@@ -34,13 +35,15 @@ namespace CrymexEngine
         private static bool _loaded;
         private static Version _glVersion = new Version(3, 3);
         private static Vector2 _halfSize = new Vector2(128);
-        private static WindowCursor _windowCursor;
+        private static WindowCursor? _windowCursor;
         private static Texture _windowIcon;
         private static WindowBorder _windowBorder = WindowBorder.Fixed;
         private static ContextFlags _glContextFlags = ContextFlags.Default;
         private static bool _logFPS;
         private static Vector2 _oneOverSize;
         private static Vector2 _oneOverHalfSize;
+        private static bool _hasWayland = false;
+        private static bool _tabX;
 
         public static GameWindow GLFWWindow => _glfwWindow;
 
@@ -104,13 +107,28 @@ namespace CrymexEngine
         public static Texture Icon
         {
             get => _windowIcon;
-            set => SetWindowIcon(value);
+            set
+            {
+                if (_hasWayland)
+                {
+                    Debug.LogError("Wayland doesn't support window icons. Please use X11 instead.");
+                    return;
+                }
+                SetWindowIcon(value);
+            }
         }
-        public static WindowCursor Cursor
+        public static WindowCursor? Cursor
         {
             get => _windowCursor;
             set
             {
+                if (value == null)
+                {
+                    _glfwWindow.Cursor = MouseCursor.Default;
+                    _windowCursor = null;
+                    return;
+                }
+
                 Texture texture = value.texture.Resize(value.size.X, value.size.Y);
 
                 texture.FlipY();
@@ -162,7 +180,12 @@ namespace CrymexEngine
         {
             if (_loaded) return;
 
-            _windowIcon = Texture.White;
+            GLFWProvider.SetErrorCallback((errorCode, description) =>
+            {
+                Debug.LogError($"GLFW Error ({errorCode}): {description}");
+            });
+
+            _windowIcon = Texture.None;
 
             ApplyPreLoadSettings();
 
@@ -190,9 +213,16 @@ namespace CrymexEngine
 
         private static unsafe void WindowLoad()
         {
+            _tabX = Settings.GlobalSettings.GetSetting("TabXMinimize", out SettingOption tabXSetting, SettingType.Bool) && tabXSetting.GetValue<bool>();
+
+            // Wayland on linux has only limited functionality
+            _hasWayland = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE") == "wayland";
+
             _glfwWindow.IsVisible = true;
 
-            _glfwWindow.CenterWindow();
+            // Wayland on linux lacks the functionality to position the window
+            if (!_hasWayland) _glfwWindow.CenterWindow();
+            else Debug.LogWarning("Limited compatibility with Wayland. Please use X11 instead.");
 
             // Create engine repeat events
             EventSystem.AddEventRepeat("CE_SecondLoop", SecondLoop, 1f, true);
@@ -207,9 +237,9 @@ namespace CrymexEngine
             // Initialize audio
             if (Settings.GlobalSettings.GetSetting("UseAudio", out SettingOption audioSettingOption, SettingType.Bool) && audioSettingOption.GetValue<bool>())
             {
-                if (!Audio.InitializeContext())
+                if (!ALMgr.InitializeContext())
                 {
-                    Audio.OverrideContext();
+                    ALMgr.OverrideContext();
                 }
             }
 
@@ -263,7 +293,7 @@ namespace CrymexEngine
             HandleErrors();
 
             // Minimize the window with Tab + X
-            if (Input.Key(Key.Tab) && Input.Key(Key.X)) _glfwWindow.WindowState = WindowState.Minimized;
+            if (_tabX && Input.Key(Key.Tab) && Input.Key(Key.X)) _glfwWindow.WindowState = WindowState.Minimized;
 
             _glfwWindow.SwapBuffers();
 
@@ -318,7 +348,7 @@ namespace CrymexEngine
 
             UsageProfiler.UpdateStats();
 
-            Audio.RemoveInactiveSources();
+            ALMgr.RemoveInactiveSources();
         }
 
         private static void HandleErrors()
@@ -329,7 +359,7 @@ namespace CrymexEngine
                 Debug.LogError("OpenGL Error: " + glError);
             }
 
-            if (Audio.Initialized)
+            if (ALMgr.Initialized)
             {
                 ALError alError = AL.GetError();
                 if (alError != ALError.NoError)
@@ -531,7 +561,13 @@ namespace CrymexEngine
                     size = (Vector2i)sizeSetting.GetValue<Vector2>();
                 }
 
-                Cursor = new WindowCursor(Assets.GetTexture(cursorTexSetting.GetValue<string>()), size, hotspot);
+                Texture? texture = Assets.GetTexture(cursorTexSetting.GetValue<string>());
+                if (texture == null)
+                {
+                    Cursor = null;
+                    return;
+                }
+                Cursor = new WindowCursor(texture, size, hotspot);
             }
         }
 

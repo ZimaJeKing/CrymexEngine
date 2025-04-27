@@ -1,9 +1,7 @@
 ﻿using CrymexEngine.Data;
-using OpenTK.Graphics.OpenGL;
 using System.Text;
 using System.Text.RegularExpressions;
 using Ude;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CrymexEngine.Utils
 {
@@ -81,7 +79,7 @@ namespace CrymexEngine.Utils
             while (currentByteCount > 1000)
             {
                 currentByteCount /= 1000;
-                if (currentByteCount < 10000)
+                if (currentByteCount < 2000)
                 {
                     string byteCountString = FloatToShortString((float)currentByteCount, 1);
                     switch (i)
@@ -111,7 +109,7 @@ namespace CrymexEngine.Utils
             while (currentByteCount > 1024)
             {
                 currentByteCount /= 1024;
-                if (currentByteCount < 8192)
+                if (currentByteCount < 2048)
                 {
                     string byteCountString = FloatToShortString((float)currentByteCount, 1);
                     switch (i)
