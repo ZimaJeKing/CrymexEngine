@@ -104,6 +104,30 @@ namespace CrymexEngine.Audio
             return pcmBufferPtr;
         }
 
+        public static byte[] CreateWavHeader(int sampleRate, int channels, int dataSize, WavFormat format = WavFormat.PCM)
+        {
+            using MemoryStream stream = new MemoryStream();
+            using BinaryWriter writer = new BinaryWriter(stream);
+
+            writer.Write("RIFF".ToCharArray());
+            writer.Write((uint)(36 + dataSize));
+            writer.Write("WAVE".ToCharArray());
+            writer.Write("fmt ".ToCharArray());
+            writer.Write((uint)16); // fmt chunk size
+            writer.Write((ushort)format);
+            writer.Write((ushort)channels);
+            writer.Write((uint)sampleRate);
+            writer.Write((uint)(sampleRate * channels * 2)); // byte rate
+            writer.Write((ushort)(channels * 2)); // block align
+
+            writer.Write((ushort)8); // bits per sample
+
+            writer.Write("data".ToCharArray());
+            writer.Write((uint)dataSize);
+
+            return stream.ToArray();
+        }
+
         private static short[]? ConvertToPCM16(WavFormat audioFormat, byte[] dataBuffer, ushort bitsPerSample, ushort samplesPerBlock, ushort blockAlign, int channels)
         {
             short[]? pcmBuffer = null;

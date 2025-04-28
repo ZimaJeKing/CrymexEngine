@@ -13,13 +13,13 @@ namespace CrymexEngine.Utils
         public static readonly string regexPattern = @"[^a-zA-Z0-9_-]+$";
         private static readonly string[] _ceNameIgnore = [ "Textures", "Images", "Shaders", "Audio", "Sound", "Fonts", "Scenes"];
         private static char _xorKey = '%';
-        private static bool _use1000 = false;
+        private static bool _use1000bc = false;
 
         internal static void LoadSettings()
         {
             if (Settings.GlobalSettings.GetSetting("Use1000ByteCount", out SettingOption use1000Option, SettingType.Bool) && use1000Option.GetValue<bool>())
             {
-                _use1000 = true;
+                _use1000bc = true;
             }
 
             if (Settings.GlobalSettings.GetSetting("XorKeyChar", out SettingOption xorOption, SettingType.GeneralString))
@@ -127,9 +127,12 @@ namespace CrymexEngine.Utils
             return $"{currentByteCount} B";
         }
 
+        /// <summary>
+        /// Converts a number of bytes to a B, KB, MB, GB or TB string representation. Uses bytecount specified in settings (1024 or 1000).
+        /// </summary>
         public static string ByteCountToString(long byteCount)
         {
-            if (_use1000) return ByteCount1000ToString(byteCount);
+            if (_use1000bc) return ByteCount1000ToString(byteCount);
             else return ByteCount1024ToString(byteCount);
         }
 
@@ -142,14 +145,12 @@ namespace CrymexEngine.Utils
             if (data.Length < 16) return GetSmallCheckSum(data);
 
             int length = data.Length - (data.Length % sizeof(int));
-            int[] ints = new int[length];
-            Array.Copy(data, ints, length);
 
             int sum = 0;
 
-            for (int i = 0; i < length; i++)
+            for (int i = 0; i < length; i += sizeof(int))
             {
-                sum += ints[i];
+                sum += BitConverter.ToInt32(data, i);
             }
 
             return sum;

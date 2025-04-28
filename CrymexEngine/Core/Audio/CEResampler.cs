@@ -97,11 +97,11 @@
 
                 if (channels == 1)
                 {
-                    DecodeMonoBlock(block, left, samplesPerBlock);
+                    DecodeMonoADPCMBlock(block, left, samplesPerBlock);
                 }
                 else if (channels == 2)
                 {
-                    DecodeStereoBlock(block, left, right, samplesPerBlock);
+                    DecodeStereoADPCMBlock(block, left, right, samplesPerBlock);
                 }
                 else
                 {
@@ -113,7 +113,7 @@
         }
 
 
-        private static void DecodeMonoBlock(byte[] block, List<short> output, int samplesPerBlock)
+        private static void DecodeMonoADPCMBlock(byte[] block, List<short> output, int samplesPerBlock)
         {
             using var reader = new BinaryReader(new MemoryStream(block));
 
@@ -142,7 +142,7 @@
             }
         }
 
-        private static void DecodeStereoBlock(byte[] block, List<short> left, List<short> right, int samplesPerBlock)
+        private static void DecodeStereoADPCMBlock(byte[] block, List<short> left, List<short> right, int samplesPerBlock)
         {
             using var reader = new BinaryReader(new MemoryStream(block));
 
@@ -244,30 +244,6 @@
             return (leftChannel, rightChannel);
         }
 
-        public static sbyte[] DeltaSqueeze(short[] samples)
-        {
-            List<sbyte> deltas = new List<sbyte>();
-            short last = 0;
-            foreach (short sample in samples)
-            {
-                short delta = (short)(sample - last);
-                if (delta > sbyte.MaxValue || delta <= sbyte.MinValue)
-                {
-                    deltas.Add(sbyte.MinValue);
-                    byte[] bytes = BitConverter.GetBytes(delta);
-                    sbyte first = (sbyte)(bytes[0] - 128);
-                    sbyte second = (sbyte)(bytes[1] - 128);
-                    deltas.Add(first);
-                    deltas.Add(second);
-                    continue;
-                }
-
-                deltas.Add((sbyte)delta);
-                last = sample;
-            }
-            return deltas.ToArray();
-        }
-
         public static short[] CreateDifChannel(short[] left, short[] right)
         {
             if (left.Length != right.Length)
@@ -314,33 +290,6 @@
             return right;
         }
 
-        public static short[] DeltaUnsqueeze(sbyte[] deltas)
-        {
-            List<short> samples = new List<short>();
-            short last = 0;
-            for (int i = 0; i < deltas.Length; i++)
-            {
-                sbyte delta = deltas[i];
-                if (delta == sbyte.MinValue)
-                {
-                    byte first = (byte)(deltas[i + 1] + 128);
-                    byte second = (byte)(deltas[i + 2] + 128);
-
-                    short sample = BitConverter.ToInt16([first, second]);
-                    samples.Add(sample);
-                    last = sample;
-
-                    i += 2;
-                    continue;
-                }
-
-                short current = (short)(delta + last);
-                samples.Add(current);
-                last = current;
-            }
-            return samples.ToArray();
-        }
-
         public static short[] MergeChannels(short[] left, short[] right)
         {
             int length = left.Length;
@@ -358,6 +307,16 @@
             }
 
             return buffer;
+        }
+
+        public static byte[] ResamplePCM16ToALaw(short[] channel)
+        {
+            byte[] alaw = new byte[channel.Length];
+            for (int i = 0; i < channel.Length; i++)
+            {
+                alaw[i] = LinearToALawSample(channel[i]);
+            }
+            return alaw;
         }
 
         private static short ALawToLinear(byte aLaw)
@@ -388,6 +347,42 @@
             sample -= 0x84;
 
             return (short)(sign == 0 ? sample : -sample);
+        }
+
+        private static byte LinearToALawSample(short sample)
+        {
+            const int QUANT_MASK = 0x0F;
+            const int SEG_SHIFT = 4;
+
+            int pcmVal = sample;
+            int mask;
+            if (pcmVal >= 0)
+            {
+                mask = 0xD5;
+            }
+            else
+            {
+                mask = 0x55;
+                pcmVal = -pcmVal - 1;
+            }
+
+            int seg = 0;
+            if (pcmVal >= 256) seg = (pcmVal >= 0x1000) ? 7 :
+                                      (pcmVal >= 0x0800) ? 6 :
+                                      (pcmVal >= 0x0400) ? 5 :
+                                      (pcmVal >= 0x0200) ? 4 :
+                                      (pcmVal >= 0x0100) ? 3 :
+                                      2;
+            else if (pcmVal >= 32) seg = (pcmVal >= 64) ? 1 : 0;
+
+            byte aval = (byte)(seg << SEG_SHIFT);
+
+            if (seg >= 2)
+                aval |= (byte)((pcmVal >> (seg + 3)) & QUANT_MASK);
+            else
+                aval |= (byte)((pcmVal >> 4) & QUANT_MASK);
+
+            return (byte)(aval ^ mask);
         }
     }
 }

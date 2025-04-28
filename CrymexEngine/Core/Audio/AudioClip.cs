@@ -94,38 +94,38 @@ namespace CrymexEngine.Audio
             short[] buffer = new short[dataSize / sizeof(short)];
             Marshal.Copy(soundData, buffer, 0, dataSize / 2);
 
+            using MemoryStream memStream = new MemoryStream();
+            using BinaryWriter writer = new BinaryWriter(memStream);
+
+            writer.Write(WavDecoder.CreateWavHeader(sampleRate, channels, dataSize, WavFormat.ALaw));
+
             if (channels == 2)
             {
                 (short[] leftChannel, short[] rightChannel) = CEResampler.SplitChannels(buffer);
 
+                byte[] leftALaw = CEResampler.ResamplePCM16ToALaw(leftChannel);
+
                 rightChannel = CEResampler.CreateDifChannel(leftChannel, rightChannel);
-
-                sbyte[] rightSq = CEResampler.DeltaSqueeze(rightChannel);
-
-                using MemoryStream memStream = new MemoryStream();
-                using BinaryWriter writer = new BinaryWriter(memStream);
+                byte[] rightALaw = CEResampler.ResamplePCM16ToALaw(rightChannel);
 
                 writer.Write((int)channels);
                 writer.Write((int)sampleRate);
 
-                writer.Write((int)leftChannel.Length * sizeof(short));
-                writer.Write(CEResampler.ConvertShortToByte(leftChannel));
+                writer.Write((int)leftALaw.Length);
+                writer.Write(leftALaw);
 
-                writer.Write((int)rightSq.Length);
-                writer.Write(SByteToByteArray(rightSq));
+                writer.Write((int)rightALaw.Length);
+                writer.Write(rightALaw);
 
                 return memStream.ToArray();
             }
             else if (channels == 1)
             {
-                using MemoryStream memStream = new MemoryStream();
-                using BinaryWriter writer = new BinaryWriter(memStream);
-
                 writer.Write((int)channels);
                 writer.Write((int)sampleRate);
 
                 writer.Write((int)buffer.Length);
-                writer.Write(CEResampler.ConvertShortToByte(buffer));
+                writer.Write(CEResampler.ResamplePCM16ToALaw(buffer));
 
                 return memStream.ToArray();
             }
@@ -142,17 +142,12 @@ namespace CrymexEngine.Audio
                 int channels = reader.ReadInt32();
                 int sampleRate = reader.ReadInt32();
 
-                byte[]? leftBytes = null, rightSq = null;
-
-                leftBytes = reader.ReadBytes(reader.ReadInt32());
-                short[] leftChannel = new short[leftBytes.Length / sizeof(short)];
-                Buffer.BlockCopy(leftBytes, 0, leftChannel, 0, leftBytes.Length - (leftBytes.Length % 2));
+                short[] leftChannel = CEResampler.ResampleALawToPCM16(reader.ReadBytes(reader.ReadInt32()));
 
                 if (channels == 2)
                 {
                     // 2 channels
-                    rightSq = reader.ReadBytes(reader.ReadInt32());
-                    short[] rightChannel = CEResampler.RevertDifChannel(leftChannel, CEResampler.DeltaUnsqueeze(ByteToSByteArray(rightSq)));
+                    short[] rightChannel = CEResampler.RevertDifChannel(leftChannel, CEResampler.ResampleALawToPCM16(reader.ReadBytes(reader.ReadInt32())));
 
                     short[] merged = CEResampler.MergeChannels(leftChannel, rightChannel);
 
